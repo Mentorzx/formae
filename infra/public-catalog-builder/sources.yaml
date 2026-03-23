@@ -1,0 +1,14 @@
+sources:
+  - name: sigaa-root
+    kind: html
+    url: https://sigaa.ufba.br/
+  - name: sigaa-public-turmas
+    kind: html
+    url: https://sigaa.ufba.br/sigaa/public/turmas/listar.jsf
+  - name: ufba-sim-horarios
+    kind: html
+    url: https://ufbasim.ufba.br/hor%C3%A1rios-de-aula-c%C3%B3digos-na-tabela-de-hor%C3%A1rios-do-sigaa
+  - name: ihac-faixas-de-horario
+    kind: html
+    url: https://ihac.ufba.br/pt/10212/
+
