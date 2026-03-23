@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">Formaê Brandmark</title>
+  <desc id="desc">Geometric monogram for the Formae project.</desc>
+  <defs>
+    <linearGradient id="paint" x1="16" x2="112" y1="16" y2="112" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0b4f6c" />
+      <stop offset="1" stop-color="#df7a3b" />
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="#f4efe7" />
+  <path
+    d="M28 26h72v14H44v18h46v14H44v30H28V26Zm26 38h46v14H54V64Z"
+    fill="url(#paint)"
+  />
+  <circle cx="97" cy="30" r="7" fill="#df7a3b" />
+</svg>
+

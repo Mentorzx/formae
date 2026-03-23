@@ -1,0 +1,11 @@
+node_modules/
+.pnpm-store/
+dist/
+coverage/
+.turbo/
+.vite/
+target/
+*.log
+.DS_Store
+pnpm-debug.log*
+

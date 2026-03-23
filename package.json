@@ -1,0 +1,23 @@
+{
+  "name": "formae",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Formae monorepo bootstrap for the Formae academic assistant.",
+  "packageManager": "pnpm@10.18.3",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "scripts": {
+    "build": "pnpm -r --if-present build && cargo build --workspace",
+    "build:wasm": "wasm-pack build crates/wasm_core --target web --out-dir ../../target/wasm-pack/wasm_core --release",
+    "dev:web": "pnpm --filter @formae/web dev",
+    "format": "pnpm -r --if-present format && cargo fmt --all",
+    "lint": "pnpm -r --if-present lint && cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings",
+    "test": "pnpm -r --if-present test && cargo test --workspace"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.2"
+  }
+}
+

@@ -1,0 +1,20 @@
+name: Public Catalog Dry Run
+
+on:
+  workflow_dispatch:
+
+jobs:
+  validate-manifest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show configured public sources
+        run: cat infra/public-catalog-builder/sources.yaml
+
+      - name: Explain current mode
+        run: |
+          echo "Public catalog generation stays manual/offline in v0."
+          echo "This workflow validates the source manifest until the builder runtime lands."
