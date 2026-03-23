@@ -222,9 +222,19 @@ a {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
+.split-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
 .tag-grid {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   margin-bottom: 1rem;
+}
+
+.compact-grid {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
 }
 
 .tag {
@@ -264,6 +274,31 @@ a {
   padding: 0.5rem 0 3rem;
   font-size: 0.95rem;
   color: var(--ink-soft);
+}
+
+.input-panel {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.import-textarea {
+  min-height: 220px;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--ink);
+  font: inherit;
+  resize: vertical;
+}
+
+.import-textarea:focus {
+  outline: 2px solid rgba(11, 79, 108, 0.26);
+  outline-offset: 2px;
+}
+
+.warnings-card {
+  margin-top: 1rem;
 }
 
 @media (max-width: 720px) {

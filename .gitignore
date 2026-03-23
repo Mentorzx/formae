@@ -5,7 +5,10 @@ coverage/
 .turbo/
 .vite/
 target/
+.env
+.env.local
+.env.*
+!.env.example
 *.log
 .DS_Store
 pnpm-debug.log*
-

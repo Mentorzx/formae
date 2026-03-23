@@ -53,8 +53,12 @@ pnpm build:wasm
 - Accepted architecture baseline, threat model and ADR set.
 - Rust crates for the canonical domain model, UFBA 2025 timing profile and schedule parsing.
 - Contract fixtures and CI workflows for Node, Rust and GitHub Pages deployment.
+- Seeded public catalog data and an initial manual-import preview that works from pasted text.
+
+## Local secrets
+
+Use `.env.example` only as a template. Do not commit real SIGAA credentials, and do not store them in tracked files. The intended product flow keeps SIGAA credentials ephemeral and session-based.
 
 ## License and brand
 
 The source code is licensed under Apache-2.0. The name "Formaê", its future logo and related brand assets are reserved and are not licensed for reuse or derivative branding. See [TRADEMARKS.md](./TRADEMARKS.md).
-

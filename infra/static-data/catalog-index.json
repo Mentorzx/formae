@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-03-23T21:10:00Z",
+  "institution": "UFBA",
+  "timingProfileId": "Ufba2025",
+  "sources": [
+    {
+      "id": "sigaa-root",
+      "title": "SIGAA UFBA",
+      "kind": "html",
+      "url": "https://sigaa.ufba.br/",
+      "pii": "none"
+    },
+    {
+      "id": "sigaa-public-turmas",
+      "title": "SIGAA Publico - Turmas",
+      "kind": "html",
+      "url": "https://sigaa.ufba.br/sigaa/public/turmas/listar.jsf",
+      "pii": "none"
+    },
+    {
+      "id": "ufba-sim-horarios",
+      "title": "UFBA SIM - Codigos de horario",
+      "kind": "html",
+      "url": "https://ufbasim.ufba.br/hor%C3%A1rios-de-aula-c%C3%B3digos-na-tabela-de-hor%C3%A1rios-do-sigaa",
+      "pii": "none"
+    },
+    {
+      "id": "ihac-faixas-de-horario",
+      "title": "IHAC UFBA - Faixas de horario",
+      "kind": "html",
+      "url": "https://ihac.ufba.br/pt/10212/",
+      "pii": "none"
+    }
+  ],
+  "components": [
+    {
+      "code": "MATA37",
+      "title": "Introducao a Logica de Programacao",
+      "sourceId": "sigaa-public-turmas",
+      "scheduleCode": "3M23 5T23",
+      "canonicalScheduleCode": "3M23 5T23",
+      "summary": "Exemplo de componente publico para validar parsing e exibicao."
+    },
+    {
+      "code": "BIOD01",
+      "title": "Fundamentos de Anatomia",
+      "sourceId": "sigaa-public-turmas",
+      "scheduleCode": "35N12",
+      "canonicalScheduleCode": "35N12",
+      "summary": "Exemplo de codigo noturno canonico usado como fixture contratual."
+    }
+  ],
+  "documentShortcuts": [
+    {
+      "label": "Validador de documentos SIGAA",
+      "url": "https://sigaa.ufba.br/sigaa/verificador/documentos.jsf",
+      "kind": "validation"
+    },
+    {
+      "label": "SUPAC - Guia de Matricula",
+      "url": "https://supac.ufba.br/",
+      "kind": "guide"
+    }
+  ],
+  "notes": [
+    "Catalogo publico inicial mantido manualmente no v0.",
+    "Nenhum dado privado de estudante deve aparecer neste arquivo."
+  ]
+}

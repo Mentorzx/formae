@@ -14,6 +14,8 @@ export type BridgeMessageKind = (typeof bridgeMessageKinds)[number];
 export type TimingProfileId = "Ufba2025";
 export type SyncReason = "manual" | "rehydrate" | "background-refresh";
 export type WipeMode = "memory-only" | "full-device-purge";
+export type ManualImportSource = "sigaa-history" | "sigaa-html" | "plain-text";
+export type ManualImportStatus = "idle" | "ready";
 
 export interface BridgeEnvelope<TKind extends BridgeMessageKind, TPayload> {
   kind: TKind;
@@ -64,12 +66,34 @@ export interface WipeLocalVaultPayload {
   requestedAt: string;
 }
 
-export type RequestSyncMessage = BridgeEnvelope<"RequestSync", RequestSyncPayload>;
+export interface ManualImportDraft {
+  source: ManualImportSource;
+  rawInput: string;
+  capturedAt: string;
+  timingProfileId: TimingProfileId;
+}
+
+export interface ManualImportPreview {
+  status: ManualImportStatus;
+  rawLength: number;
+  detectedScheduleCodes: string[];
+  detectedComponentCodes: string[];
+  warnings: string[];
+  timingProfileId: TimingProfileId;
+}
+
+export type RequestSyncMessage = BridgeEnvelope<
+  "RequestSync",
+  RequestSyncPayload
+>;
 export type ProvideEphemeralCredentialsMessage = BridgeEnvelope<
   "ProvideEphemeralCredentials",
   ProvideEphemeralCredentialsPayload
 >;
-export type RawSigaaPayloadMessage = BridgeEnvelope<"RawSigaaPayload", RawSigaaPayloadPayload>;
+export type RawSigaaPayloadMessage = BridgeEnvelope<
+  "RawSigaaPayload",
+  RawSigaaPayloadPayload
+>;
 export type NormalizedSnapshotMessage = BridgeEnvelope<
   "NormalizedSnapshot",
   NormalizedSnapshotPayload
@@ -78,7 +102,10 @@ export type StoreEncryptedSnapshotMessage = BridgeEnvelope<
   "StoreEncryptedSnapshot",
   StoreEncryptedSnapshotPayload
 >;
-export type WipeLocalVaultMessage = BridgeEnvelope<"WipeLocalVault", WipeLocalVaultPayload>;
+export type WipeLocalVaultMessage = BridgeEnvelope<
+  "WipeLocalVault",
+  WipeLocalVaultPayload
+>;
 
 export type BridgeMessage =
   | RequestSyncMessage
@@ -100,4 +127,3 @@ export function createRequestSyncExample(): RequestSyncMessage {
     },
   };
 }
-
