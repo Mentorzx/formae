@@ -55,14 +55,28 @@ pnpm build
 - Contract fixtures and CI workflows for Node, Rust and GitHub Pages deployment.
 - Seeded public catalog data and an initial manual-import preview that works from pasted text.
 - WASM-backed schedule normalization inside the manual-import flow, loaded from the shared Rust core.
+- Automatic local SIGAA sync through the MV3 extension, reusing the same browser-local snapshot and vault pipeline.
 - Browser-local snapshot persistence for manual imports, stored in IndexedDB and restorable without backend state.
 - Versioned local vault baseline with AES-GCM sealing, device-local key material and migration from the earlier cleartext snapshot store.
 - Minimal `StudentSnapshot` projection derived locally from manual imports, including schedule blocks, in-progress components and explicit pending-review items.
 - Overview page wired to the latest local projection, surfacing initial progress, catalog coverage and open pending items directly from browser storage.
+- Private Playwright harness for authenticated SIGAA captures and end-to-end validation of `web -> extension -> SIGAA -> local vault`.
 
 ## Local secrets
 
 Use `.env.example` only as a template. Do not commit real SIGAA credentials, and do not store them in tracked files. The intended product flow keeps SIGAA credentials ephemeral and session-based.
+
+## Private sync validation
+
+The local-only SIGAA harness lives in `infra/private-sync-e2e`.
+
+```bash
+cd infra/private-sync-e2e
+pnpm install
+pnpm sync:web
+```
+
+That command expects the PWA to be running locally at `http://localhost:4173/#/importacao` and the MV3 extension to be loaded unpacked from `apps/extension`.
 
 ## License and brand
 
