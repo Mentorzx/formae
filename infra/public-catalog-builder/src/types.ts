@@ -48,6 +48,19 @@ export interface PublicCatalogPageCoreSnapshot {
   timeSlotCodes: string[];
 }
 
+export interface PublicCatalogCurriculumStructureEntry {
+  curriculumId: string;
+  code: string;
+  label: string;
+  groupLabel: string;
+  status: "active" | "inactive" | "unknown";
+  createdYear: number | null;
+  sourceId: string;
+  sourceTitle: string;
+  sourceUrl: string;
+  evidence: string[];
+}
+
 export interface PublicCatalogComponentCandidate {
   code: string;
   title: string;
@@ -87,6 +100,7 @@ export interface PublicCatalogSnapshot {
   timingProfileId: "Ufba2025";
   sources: PublicCatalogSourceDefinition[];
   pages: PublicCatalogPageSnapshot[];
+  curriculumStructures: PublicCatalogCurriculumStructureEntry[];
   components: PublicCatalogComponentCandidate[];
   scheduleGuide: PublicCatalogScheduleGuideEntry[];
   timeSlots: PublicCatalogTimeSlotEntry[];

@@ -142,3 +142,68 @@ test("buildCatalogSnapshot records provenance for a live public source", async (
 
   assert.equal(source.id, "eng-civil-portal");
 });
+
+test("buildCatalogSnapshot extracts curriculum structures from public course pages", async () => {
+  const result = await buildCatalogSnapshot({
+    sources: [
+      {
+        id: "eng-civil-curriculo",
+        title: "CURSO DE ENGENHARIA CIVIL / EPOLI - Curriculos",
+        kind: "html",
+        url: "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+        fixture: null,
+        notes: [],
+      },
+    ],
+    fixturesDir: null,
+    builderVersion: "test",
+    now: new Date("2026-03-24T00:00:00.000Z"),
+    fetchImpl: async () =>
+      ({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        url: "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+        headers: {
+          get(name: string) {
+            if (name === "content-type") {
+              return "text/html; charset=utf-8";
+            }
+
+            return null;
+          },
+        },
+        async text() {
+          return [
+            "<!doctype html>",
+            '<html lang="pt-BR">',
+            "<head><meta charset=\"utf-8\"><title>CURSO DE ENGENHARIA CIVIL / EPOLI - Curriculos</title></head>",
+            "<body>",
+            '<table id="table_lt"><tbody>',
+            '<tr class="campos"><td colspan="3">Matutino e Vespertino</td></tr>',
+            '<tr class="linha_par">',
+            '<td width="50%">Detalhes da Estrutura Curricular G20251, Criado em 2025</td>',
+            '<td width="45%">Ativa</td>',
+            '<td width="55px"><a title="Visualizar Estrutura Curricular" onclick="jsfcljs(document.getElementById(\'formCurriculosCurso\'),{\'id\':\'2477782\'},\'\');"></a></td>',
+            "</tr>",
+            '<tr class="linha_impar">',
+            '<td width="50%">Detalhes da Estrutura Curricular T20252, Criado em 2025</td>',
+            '<td width="45%">Inativa</td>',
+            '<td width="55px"><a title="Visualizar Estrutura Curricular" onclick="jsfcljs(document.getElementById(\'formCurriculosCurso\'),{\'id\':\'4718371\'},\'\');"></a></td>',
+            "</tr>",
+            "</tbody></table>",
+            "</body></html>",
+          ].join("");
+        },
+      }) as unknown as Response,
+  });
+
+  assert.equal(result.snapshot.curriculumStructures.length, 2);
+  assert.deepEqual(result.snapshot.curriculumStructures.map((item) => item.code), [
+    "G20251",
+    "T20252",
+  ]);
+  assert.equal(result.snapshot.curriculumStructures[0]?.status, "active");
+  assert.equal(result.snapshot.curriculumStructures[1]?.status, "inactive");
+  assert.equal(result.snapshot.curriculumStructures[0]?.curriculumId, "2477782");
+});

@@ -33,6 +33,7 @@ async function main(): Promise<void> {
       `Public catalog snapshot written to ${outputPath}`,
       `sources: ${result.snapshot.sources.length}`,
       `pages: ${result.snapshot.pages.length}`,
+      `curriculum structures: ${result.snapshot.curriculumStructures.length}`,
       `components: ${result.snapshot.components.length}`,
       `schedule guide entries: ${result.snapshot.scheduleGuide.length}`,
       `time slots: ${result.snapshot.timeSlots.length}`,

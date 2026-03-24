@@ -4,6 +4,7 @@ import path from "node:path";
 
 import type {
   PublicCatalogComponentCandidate,
+  PublicCatalogCurriculumStructureEntry,
   PublicCatalogPageSnapshot,
   PublicCatalogScheduleGuideEntry,
   PublicCatalogSnapshot,
@@ -43,6 +44,7 @@ export async function buildCatalogSnapshot(
   const fetchImpl = input.fetchImpl ?? globalThis.fetch.bind(globalThis);
 
   const pages: PublicCatalogPageSnapshot[] = [];
+  const curriculumStructures: PublicCatalogCurriculumStructureEntry[] = [];
   const components: PublicCatalogComponentCandidate[] = [];
   const scheduleGuide: PublicCatalogScheduleGuideEntry[] = [];
   const timeSlots: PublicCatalogTimeSlotEntry[] = [];
@@ -67,6 +69,7 @@ export async function buildCatalogSnapshot(
       ...extracted.page,
       ...provenance,
     });
+    curriculumStructures.push(...extracted.curriculumStructures);
     components.push(...extracted.components);
     scheduleGuide.push(...extracted.scheduleGuide);
     timeSlots.push(...extracted.timeSlots);
@@ -87,6 +90,7 @@ export async function buildCatalogSnapshot(
     timingProfileId: "Ufba2025",
     sources,
     pages,
+    curriculumStructures: dedupeCurriculumStructures(curriculumStructures),
     components: dedupeComponents(components),
     scheduleGuide: dedupeScheduleGuide(scheduleGuide),
     timeSlots: dedupeTimeSlots(timeSlots),
@@ -234,6 +238,24 @@ function dedupeComponents(
     const key = `${component.sourceId}:${component.code}`;
     if (!byKey.has(key)) {
       byKey.set(key, component);
+    }
+  }
+
+  return Array.from(byKey.values()).sort((left, right) => {
+    const sourceCompare = left.sourceId.localeCompare(right.sourceId);
+    return sourceCompare !== 0 ? sourceCompare : left.code.localeCompare(right.code);
+  });
+}
+
+function dedupeCurriculumStructures(
+  entries: PublicCatalogCurriculumStructureEntry[],
+): PublicCatalogCurriculumStructureEntry[] {
+  const byKey = new Map<string, PublicCatalogCurriculumStructureEntry>();
+
+  for (const entry of entries) {
+    const key = `${entry.sourceId}:${entry.code}:${entry.curriculumId}`;
+    if (!byKey.has(key)) {
+      byKey.set(key, entry);
     }
   }
 

@@ -7,12 +7,13 @@ CLI pequena e offline-first para transformar paginas publicas oficiais da UFBA/S
 - Lê `sources.yaml` como lista de fontes públicas.
 - Baixa as páginas ao vivo ou usa fixtures locais para execução determinística.
 - Registra provenance por página com digest, tamanho e metadados HTTP quando a fonte é viva.
-- Extrai candidatos de componentes, guias de horário e faixas de tempo e valida os tokens normalizados antes de escrever.
+- Extrai estruturas curriculares públicas, candidatos de componentes, guias de horário e faixas de tempo e valida os tokens normalizados antes de escrever.
 - Escreve um snapshot público em `infra/static-data/public-catalog.snapshot.json` por padrão.
 
 ## Estrutura do snapshot
 
 - `pages`: metadados por fonte, com excerpt, códigos detectados e contagens.
+- `curriculumStructures`: estruturas curriculares públicas com status e ano de criação quando disponíveis.
 - `components`: candidatos públicos descobertos em listagens da SIGAA.
 - `scheduleGuide`: referências de códigos de horário e exemplos.
 - `timeSlots`: faixas oficiais de horário extraídas da tabela da IHAC.

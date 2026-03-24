@@ -2,6 +2,7 @@ import * as cheerio from "cheerio";
 
 import type {
   PublicCatalogComponentCandidate,
+  PublicCatalogCurriculumStructureEntry,
   PublicCatalogPageCoreSnapshot,
   PublicCatalogPageSnapshot,
   PublicCatalogScheduleGuideEntry,
@@ -15,6 +16,7 @@ const SCHEDULE_SEGMENT_PATTERN = /[2-7]{1,2}[MTN]\d{1,2}/g;
 
 export interface ExtractedPublicSourceData {
   page: PublicCatalogPageCoreSnapshot;
+  curriculumStructures: PublicCatalogCurriculumStructureEntry[];
   components: PublicCatalogComponentCandidate[];
   scheduleGuide: PublicCatalogScheduleGuideEntry[];
   timeSlots: PublicCatalogTimeSlotEntry[];
@@ -29,6 +31,7 @@ export function extractPublicSourceData(
 ): ExtractedPublicSourceData {
   const $ = cheerio.load(html);
   const bodyText = normalizeWhitespace($("body").text());
+  const curriculumStructures = extractCurriculumStructures($, source);
   const componentCandidates = extractComponentCandidates($, source);
   const scheduleGuide = extractScheduleGuide($, source, bodyText);
   const timeSlots = extractTimeSlots($, source);
@@ -54,10 +57,76 @@ export function extractPublicSourceData(
       scheduleCodes: uniqueSorted(extractScheduleCodes(bodyText)),
       timeSlotCodes: uniqueSorted(timeSlots.map((slot) => slot.slot)),
     },
+    curriculumStructures,
     components: componentCandidates,
     scheduleGuide,
     timeSlots,
   };
+}
+
+function extractCurriculumStructures(
+  $: cheerio.CheerioAPI,
+  source: PublicCatalogSourceDefinition,
+): PublicCatalogCurriculumStructureEntry[] {
+  if (!source.url.includes("/curriculo.jsf")) {
+    return [];
+  }
+
+  const entries: PublicCatalogCurriculumStructureEntry[] = [];
+  let currentGroupLabel = "unknown";
+
+  $("#table_lt tr").each((_index, row) => {
+    const rowElement = $(row);
+    const rowClass = normalizeWhitespace(rowElement.attr("class") ?? "");
+    const cells = rowElement
+      .find("td")
+      .map((_cellIndex, cell) => normalizeWhitespace($(cell).text()))
+      .get()
+      .filter(Boolean);
+
+    if (rowClass === "campos") {
+      currentGroupLabel = cells[0] ?? currentGroupLabel;
+      return;
+    }
+
+    if (cells.length < 2) {
+      return;
+    }
+
+    const label = cells[0] ?? "";
+    const statusLabel = cells[1] ?? "";
+    const codeMatch = label.match(/Estrutura Curricular\s+(.+?),\s*Criado em\s+(\d{4})/i);
+    const code = sanitizeToken(codeMatch?.[1] ?? "");
+    const createdYear = codeMatch ? Number.parseInt(codeMatch[2] ?? "", 10) : null;
+    const status = normalizeCurriculumStatus(statusLabel);
+    const detailActionId = extractCurriculumActionId(
+      rowElement.find('a[title="Visualizar Estrutura Curricular"]').first().attr("onclick") ?? "",
+    );
+
+    if (!code || !detailActionId) {
+      return;
+    }
+
+    entries.push({
+      curriculumId: detailActionId,
+      code,
+      label,
+      groupLabel: currentGroupLabel,
+      status,
+      createdYear: Number.isFinite(createdYear) ? createdYear : null,
+      sourceId: source.id,
+      sourceTitle: source.title,
+      sourceUrl: source.url,
+      evidence: compactEvidence([
+        currentGroupLabel,
+        label,
+        statusLabel,
+        detailActionId,
+      ]),
+    });
+  });
+
+  return dedupeCurriculumStructures(entries);
 }
 
 function extractComponentCandidates(
@@ -232,6 +301,42 @@ function normalizeScheduleCode(value: string): string | null {
 
 function sanitizeToken(value: string): string {
   return value.replace(/\s+/g, "").trim().toUpperCase();
+}
+
+function normalizeCurriculumStatus(value: string): "active" | "inactive" | "unknown" {
+  const normalized = normalizeWhitespace(value).toLowerCase();
+
+  if (normalized === "ativa" || normalized === "active") {
+    return "active";
+  }
+
+  if (normalized === "inativa" || normalized === "inactive") {
+    return "inactive";
+  }
+
+  return "unknown";
+}
+
+function extractCurriculumActionId(onclick: string): string | null {
+  const match = onclick.match(/'id':'([^']+)'/);
+  return match ? sanitizeToken(match[1] ?? "") || null : null;
+}
+
+function dedupeCurriculumStructures(
+  entries: PublicCatalogCurriculumStructureEntry[],
+): PublicCatalogCurriculumStructureEntry[] {
+  const byKey = new Map<string, PublicCatalogCurriculumStructureEntry>();
+
+  for (const entry of entries) {
+    const key = `${entry.sourceId}:${entry.code}:${entry.curriculumId}`;
+    if (!byKey.has(key)) {
+      byKey.set(key, entry);
+    }
+  }
+
+  return Array.from(byKey.values()).sort((left, right) =>
+    left.code.localeCompare(right.code),
+  );
 }
 
 function uniqueSorted(values: string[]): string[] {
