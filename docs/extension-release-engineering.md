@@ -24,6 +24,22 @@ fails if any of these drift across rebuilds:
 - packaged `package-metadata.json`
 - release manifest
 
+Then run the privacy-oriented package audit:
+
+```bash
+node scripts/audit-extension-package.mjs
+```
+
+That audit repackages the extension in a temporary directory and fails if the
+staged release contains files or text that should never ship, such as:
+
+- `.env` files
+- local artifacts or fixtures
+- `.test.js` files
+- unsanitized `jsessionid=` strings
+- direct `SIGAA_USERNAME=` or `SIGAA_PASSWORD=` assignments
+- embedded private-key blocks
+
 ## Release build
 
 To produce the publishable artifacts locally:
@@ -51,5 +67,5 @@ paths so that CI can compare rebuilds byte-for-byte.
 
 - `verify-extension-release.yml` runs on `push` to `main` and on pull requests
   touching extension packaging paths.
-- `release-extension.yml` reruns the same release gates before publishing GitHub
-  release assets for tags.
+- `release-extension.yml` reruns the same reproducibility and package-audit
+  gates before publishing GitHub release assets for tags.

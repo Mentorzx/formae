@@ -37,6 +37,9 @@ jobs:
       - name: Verify reproducible Chrome and Firefox packaging
         run: node scripts/verify-extension-release.mjs
 
+      - name: Audit packaged extension contents
+        run: node scripts/audit-extension-package.mjs
+
       - name: Build releasable extension artifacts
         run: node scripts/package-extension.mjs
 
@@ -49,4 +52,4 @@ jobs:
       - name: Surface extension release drift alarm
         if: failure()
         run: |
-          echo "::error title=Extension release verification failed::Chrome/Firefox packaging drifted or the packaged manifest references missing assets. Inspect apps/extension/manifest.json and scripts/package-extension.mjs."
+          echo "::error title=Extension release verification failed::Chrome/Firefox packaging drifted, packaged assets are missing, or the extension artifact contains forbidden files/content. Inspect apps/extension/manifest.json and scripts/package-extension.mjs."

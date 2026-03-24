@@ -28,6 +28,9 @@ jobs:
       - name: Verify reproducible Chrome and Firefox packaging
         run: node scripts/verify-extension-release.mjs
 
+      - name: Audit packaged extension contents
+        run: node scripts/audit-extension-package.mjs
+
       - name: Package release artifacts
         run: node scripts/package-extension.mjs
 
