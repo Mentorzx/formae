@@ -356,6 +356,22 @@ a {
   background: rgba(179, 217, 230, 0.14);
 }
 
+.vault-fact-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+}
+
+.vault-fact {
+  padding: 0.65rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(11, 79, 108, 0.14);
+  background: rgba(255, 255, 255, 0.8);
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+}
+
 .storage-summary p:last-child,
 .storage-hint {
   margin-bottom: 0;

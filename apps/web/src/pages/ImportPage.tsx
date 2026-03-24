@@ -14,6 +14,8 @@ import { buildManualImportStoredSnapshot } from "../manualSnapshot";
 import {
   clearLatestManualImportSnapshot,
   loadLatestManualImportSnapshot,
+  loadManualImportVaultState,
+  type ManualImportVaultState,
   saveLatestManualImportSnapshot,
 } from "../manualSnapshotStore";
 import { findCatalogMatches } from "../publicCatalog";
@@ -59,6 +61,9 @@ export function ImportPage() {
   });
   const [latestSnapshot, setLatestSnapshot] =
     useState<ManualImportStoredSnapshot | null>(null);
+  const [vaultState, setVaultState] = useState<ManualImportVaultState | null>(
+    null,
+  );
   const [localSnapshotStatus, setLocalSnapshotStatus] =
     useState<LocalSnapshotStatus>("checking");
   const [localSnapshotMessage, setLocalSnapshotMessage] = useState<
@@ -68,27 +73,29 @@ export function ImportPage() {
   useEffect(() => {
     let cancelled = false;
 
-    void loadLatestManualImportSnapshot()
-      .then((snapshot) => {
-        if (cancelled) {
-          return;
-        }
+    void (async () => {
+      const snapshot = await loadLatestManualImportSnapshot();
+      const nextVaultState = await loadManualImportVaultState();
 
-        setLatestSnapshot(snapshot);
-        setLocalSnapshotStatus("idle");
-      })
-      .catch((error: unknown) => {
-        if (cancelled) {
-          return;
-        }
+      if (cancelled) {
+        return;
+      }
 
-        setLocalSnapshotStatus("error");
-        setLocalSnapshotMessage(
-          error instanceof Error
-            ? error.message
-            : "Falha ao abrir o snapshot local salvo no navegador.",
-        );
-      });
+      setLatestSnapshot(snapshot);
+      setVaultState(nextVaultState);
+      setLocalSnapshotStatus("idle");
+    })().catch((error: unknown) => {
+      if (cancelled) {
+        return;
+      }
+
+      setLocalSnapshotStatus("error");
+      setLocalSnapshotMessage(
+        error instanceof Error
+          ? error.message
+          : "Falha ao abrir o snapshot local salvo no navegador.",
+      );
+    });
 
     return () => {
       cancelled = true;
@@ -180,8 +187,9 @@ export function ImportPage() {
         matchedCatalogComponentCodes: matchedComponentCodes,
       });
 
-      await saveLatestManualImportSnapshot(snapshot);
+      const nextVaultState = await saveLatestManualImportSnapshot(snapshot);
       setLatestSnapshot(snapshot);
+      setVaultState(nextVaultState);
       setLocalSnapshotStatus("saved");
       setLocalSnapshotMessage(
         `Snapshot salvo localmente em ${formatLocalDateTime(snapshot.savedAt)}.`,
@@ -224,8 +232,9 @@ export function ImportPage() {
     setLocalSnapshotMessage(null);
 
     try {
-      await clearLatestManualImportSnapshot();
+      const nextVaultState = await clearLatestManualImportSnapshot();
       setLatestSnapshot(null);
+      setVaultState(nextVaultState);
       setLocalSnapshotStatus("cleared");
       setLocalSnapshotMessage("Snapshot salvo removido do navegador.");
     } catch (error: unknown) {
@@ -281,8 +290,8 @@ export function ImportPage() {
             <div>
               <h3>Snapshot local do navegador</h3>
               <p>
-                Salva a ultima importacao manual em IndexedDB para retomar o
-                trabalho sem enviar nada ao servidor.
+                Salva a ultima importacao manual em um vault local versionado,
+                selado com AES-GCM e chave device-local no navegador.
               </p>
             </div>
             <div className="action-row">
@@ -323,6 +332,7 @@ export function ImportPage() {
             status={localSnapshotStatus}
             latestSnapshot={latestSnapshot}
             message={localSnapshotMessage}
+            vaultState={vaultState}
           />
 
           {!canSaveSnapshot ? (
@@ -439,56 +449,112 @@ function LocalSnapshotBanner({
   status,
   latestSnapshot,
   message,
+  vaultState,
 }: {
   status: LocalSnapshotStatus;
   latestSnapshot: ManualImportStoredSnapshot | null;
   message: string | null;
+  vaultState: ManualImportVaultState | null;
 }) {
+  const facts = vaultState ? <VaultStateFacts vaultState={vaultState} /> : null;
+
   if (status === "checking") {
     return (
-      <p className="status-banner">
-        Verificando se existe um snapshot local...
-      </p>
+      <>
+        <p className="status-banner">
+          Verificando se existe um snapshot local...
+        </p>
+        {facts}
+      </>
     );
   }
 
   if (status === "error") {
     return (
-      <p className="status-banner status-banner-error" role="status">
-        {message ?? "Falha ao acessar o snapshot local do navegador."}
-      </p>
+      <>
+        <p className="status-banner status-banner-error" role="status">
+          {message ?? "Falha ao acessar o snapshot local do navegador."}
+        </p>
+        {facts}
+      </>
     );
   }
 
   if (message) {
     return (
-      <p
-        className={`status-banner ${
-          status === "cleared" ? "" : "status-banner-success"
-        }`}
-        role="status"
-      >
-        {message}
-      </p>
+      <>
+        <p
+          className={`status-banner ${
+            status === "cleared" ? "" : "status-banner-success"
+          }`}
+          role="status"
+        >
+          {message}
+        </p>
+        {facts}
+      </>
     );
   }
 
   if (!latestSnapshot) {
     return (
-      <p className="status-banner" role="status">
-        Ainda nao existe snapshot salvo neste navegador.
-      </p>
+      <>
+        <p className="status-banner" role="status">
+          Ainda nao existe snapshot salvo neste navegador.
+        </p>
+        {facts}
+      </>
     );
   }
 
   return (
-    <div className="storage-summary" role="status">
-      <p className="micro-label">Ultimo snapshot salvo</p>
-      <p>
-        {formatLocalDateTime(latestSnapshot.savedAt)} ·{" "}
-        {latestSnapshot.detectedComponentCodes.length} componentes ·{" "}
-        {latestSnapshot.detectedScheduleCodes.length} horarios
-      </p>
+    <>
+      <div className="storage-summary" role="status">
+        <p className="micro-label">Ultimo snapshot salvo</p>
+        <p>
+          {formatLocalDateTime(latestSnapshot.savedAt)} ·{" "}
+          {latestSnapshot.detectedComponentCodes.length} componentes ·{" "}
+          {latestSnapshot.detectedScheduleCodes.length} horarios
+        </p>
+      </div>
+      {facts}
+    </>
+  );
+}
+
+function VaultStateFacts({
+  vaultState,
+}: {
+  vaultState: ManualImportVaultState;
+}) {
+  const facts = [
+    `Vault v${vaultState.storageVersion}`,
+    vaultState.status === "sealed" ? "Estado: selado" : "Estado: vazio",
+    `Chave: ${vaultState.keyId ?? "nenhuma"}`,
+    "Derivacao: device-local",
+  ];
+
+  if (vaultState.updatedAt) {
+    facts.push(`Atualizado: ${formatLocalDateTime(vaultState.updatedAt)}`);
+  }
+
+  if (vaultState.lastWipeAt && vaultState.lastWipeReason) {
+    facts.push(
+      `Ultimo wipe: ${formatLocalDateTime(vaultState.lastWipeAt)} (${formatWipeReason(vaultState.lastWipeReason)})`,
+    );
+  }
+
+  if (vaultState.migrationSource) {
+    facts.push("Migrado do store legivel anterior");
+  }
+
+  return (
+    <div className="vault-fact-grid">
+      {facts.map((fact) => (
+        <span key={fact} className="vault-fact">
+          {fact}
+        </span>
+      ))}
     </div>
   );
 }
@@ -536,4 +602,18 @@ function formatLocalDateTime(value: string): string {
 
 function isLocalSnapshotBusy(status: LocalSnapshotStatus): boolean {
   return status === "checking" || status === "saving" || status === "clearing";
+}
+
+function formatWipeReason(
+  reason: ManualImportVaultState["lastWipeReason"],
+): string {
+  if (reason === "logout") {
+    return "logout";
+  }
+
+  if (reason === "legacy-migration") {
+    return "migracao";
+  }
+
+  return "limpeza manual";
 }

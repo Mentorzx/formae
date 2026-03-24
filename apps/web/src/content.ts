@@ -42,7 +42,7 @@ export const milestones = [
   {
     phase: "Fase 3",
     title: "Vault local",
-    body: "IndexedDB cifrado com Web Crypto, desbloqueio local por passkey e wipe explícito no logout.",
+    body: "IndexedDB cifrado com Web Crypto, baseline device-local ja aplicada aos snapshots manuais e desbloqueio por passkey entrando na etapa seguinte.",
   },
 ] as const;
 
