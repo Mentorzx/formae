@@ -8,12 +8,13 @@ CLI pequena e offline-first para transformar paginas publicas oficiais da UFBA/S
 - Baixa as páginas ao vivo ou usa fixtures locais para execução determinística.
 - Registra provenance por página com digest, tamanho e metadados HTTP quando a fonte é viva.
 - Extrai estruturas curriculares públicas, candidatos de componentes, guias de horário e faixas de tempo e valida os tokens normalizados antes de escrever.
+- Cada estrutura curricular carrega provenance da página de origem, inclusive digest, origem, URL final e instante de captura.
 - Escreve um snapshot público em `infra/static-data/public-catalog.snapshot.json` por padrão.
 
 ## Estrutura do snapshot
 
 - `pages`: metadados por fonte, com excerpt, códigos detectados e contagens.
-- `curriculumStructures`: estruturas curriculares públicas com status e ano de criação quando disponíveis.
+- `curriculumStructures`: estruturas curriculares públicas com status, ano de criação e provenance da página de origem.
 - `components`: candidatos públicos descobertos em listagens da SIGAA.
 - `scheduleGuide`: referências de códigos de horário e exemplos.
 - `timeSlots`: faixas oficiais de horário extraídas da tabela da IHAC.

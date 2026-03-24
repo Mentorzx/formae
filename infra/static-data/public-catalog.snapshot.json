@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "builderVersion": "0.2.0",
-  "generatedAt": "2026-03-24T05:30:19.972Z",
+  "generatedAt": "2026-03-24T05:48:02.053Z",
   "institution": "UFBA",
   "timingProfileId": "Ufba2025",
   "sources": [
@@ -66,7 +66,7 @@
       "sourceTitle": "SIGAA UFBA",
       "sourceUrl": "https://sigaa.ufba.br/",
       "finalUrl": "https://sigaa.ufba.br/",
-      "fetchedAt": "2026-03-24T05:30:19.972Z",
+      "fetchedAt": "2026-03-24T05:48:02.053Z",
       "origin": "fixture",
       "title": "SIGAA UFBA",
       "headingCount": 1,
@@ -87,7 +87,7 @@
       "sourceTitle": "SIGAA Publico - Turmas",
       "sourceUrl": "https://sigaa.ufba.br/sigaa/public/turmas/listar.jsf",
       "finalUrl": "https://sigaa.ufba.br/sigaa/public/turmas/listar.jsf",
-      "fetchedAt": "2026-03-24T05:30:19.972Z",
+      "fetchedAt": "2026-03-24T05:48:02.053Z",
       "origin": "fixture",
       "title": "SIGAA publico - turmas",
       "headingCount": 3,
@@ -114,7 +114,7 @@
       "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI",
       "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?id=1876833&lc=pt_BR",
       "finalUrl": "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?id=1876833&lc=pt_BR",
-      "fetchedAt": "2026-03-24T05:30:19.972Z",
+      "fetchedAt": "2026-03-24T05:48:02.053Z",
       "origin": "live",
       "title": "SIGAA - Sistema Integrado de Gestão de Atividades Acadêmicas",
       "headingCount": 0,
@@ -123,7 +123,7 @@
       "componentCodes": [],
       "scheduleCodes": [],
       "timeSlotCodes": [],
-      "contentDigest": "b2aed6f10ee886e508008937c7c6c35bce54383c0caa4ce3203cafdf9e1d2e12",
+      "contentDigest": "fd8445e5b5e23e287af15e05c1144f031f0f1a67b6df80213c578aca0b01d9db",
       "contentLength": 34176,
       "contentType": "text/html;charset=ISO-8859-1",
       "httpStatus": 200,
@@ -135,7 +135,7 @@
       "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI - Curriculos",
       "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
       "finalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
-      "fetchedAt": "2026-03-24T05:30:19.972Z",
+      "fetchedAt": "2026-03-24T05:48:02.053Z",
       "origin": "live",
       "title": "SIGAA - Sistema Integrado de Gestão de Atividades Acadêmicas",
       "headingCount": 0,
@@ -144,7 +144,7 @@
       "componentCodes": [],
       "scheduleCodes": [],
       "timeSlotCodes": [],
-      "contentDigest": "7214536ac595b450adbb2f7e4bb7da6515d37621feb516d3d8258af3cd452b1c",
+      "contentDigest": "81576b0f753f0814e3885ad7ebd38ec644837c54639c8df9fa1ec5e08e6363a2",
       "contentLength": 52260,
       "contentType": "text/html;charset=ISO-8859-1",
       "httpStatus": 200,
@@ -156,7 +156,7 @@
       "sourceTitle": "UFBA SIM - Codigos de horario",
       "sourceUrl": "https://ufbasim.ufba.br/hor%C3%A1rios-de-aula-c%C3%B3digos-na-tabela-de-hor%C3%A1rios-do-sigaa",
       "finalUrl": "https://ufbasim.ufba.br/hor%C3%A1rios-de-aula-c%C3%B3digos-na-tabela-de-hor%C3%A1rios-do-sigaa",
-      "fetchedAt": "2026-03-24T05:30:19.972Z",
+      "fetchedAt": "2026-03-24T05:48:02.053Z",
       "origin": "fixture",
       "title": "UFBA SIM - Codigos de horario no SIGAA",
       "headingCount": 1,
@@ -181,7 +181,7 @@
       "sourceTitle": "IHAC UFBA - Faixas de horario",
       "sourceUrl": "https://ihac.ufba.br/pt/10212/",
       "finalUrl": "https://ihac.ufba.br/pt/10212/",
-      "fetchedAt": "2026-03-24T05:30:19.972Z",
+      "fetchedAt": "2026-03-24T05:48:02.053Z",
       "origin": "fixture",
       "title": "IHAC UFBA - Faixas de horario",
       "headingCount": 1,
@@ -219,7 +219,11 @@
         "Detalhes da Estrutura Curricular 102140, Criado em 2023",
         "Inativa",
         "1880549"
-      ]
+      ],
+      "sourcePageOrigin": "live",
+      "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+      "sourcePageFetchedAt": "2026-03-24T05:48:02.053Z",
+      "sourcePageContentDigest": "81576b0f753f0814e3885ad7ebd38ec644837c54639c8df9fa1ec5e08e6363a2"
     },
     {
       "curriculumId": "1880461",
@@ -236,7 +240,11 @@
         "Detalhes da Estrutura Curricular 102140A, Criado em 2019",
         "Inativa",
         "1880461"
-      ]
+      ],
+      "sourcePageOrigin": "live",
+      "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+      "sourcePageFetchedAt": "2026-03-24T05:48:02.053Z",
+      "sourcePageContentDigest": "81576b0f753f0814e3885ad7ebd38ec644837c54639c8df9fa1ec5e08e6363a2"
     },
     {
       "curriculumId": "1880374",
@@ -253,7 +261,11 @@
         "Detalhes da Estrutura Curricular 102140B, Criado em 2009",
         "Inativa",
         "1880374"
-      ]
+      ],
+      "sourcePageOrigin": "live",
+      "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+      "sourcePageFetchedAt": "2026-03-24T05:48:02.053Z",
+      "sourcePageContentDigest": "81576b0f753f0814e3885ad7ebd38ec644837c54639c8df9fa1ec5e08e6363a2"
     },
     {
       "curriculumId": "1880288",
@@ -270,7 +282,11 @@
         "Detalhes da Estrutura Curricular 102140C, Criado em 2008",
         "Inativa",
         "1880288"
-      ]
+      ],
+      "sourcePageOrigin": "live",
+      "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+      "sourcePageFetchedAt": "2026-03-24T05:48:02.053Z",
+      "sourcePageContentDigest": "81576b0f753f0814e3885ad7ebd38ec644837c54639c8df9fa1ec5e08e6363a2"
     },
     {
       "curriculumId": "1880202",
@@ -287,7 +303,11 @@
         "Detalhes da Estrutura Curricular 102140D, Criado em 2007",
         "Inativa",
         "1880202"
-      ]
+      ],
+      "sourcePageOrigin": "live",
+      "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+      "sourcePageFetchedAt": "2026-03-24T05:48:02.053Z",
+      "sourcePageContentDigest": "81576b0f753f0814e3885ad7ebd38ec644837c54639c8df9fa1ec5e08e6363a2"
     },
     {
       "curriculumId": "1880116",
@@ -304,7 +324,11 @@
         "Detalhes da Estrutura Curricular 102140E, Criado em 2006",
         "Inativa",
         "1880116"
-      ]
+      ],
+      "sourcePageOrigin": "live",
+      "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+      "sourcePageFetchedAt": "2026-03-24T05:48:02.053Z",
+      "sourcePageContentDigest": "81576b0f753f0814e3885ad7ebd38ec644837c54639c8df9fa1ec5e08e6363a2"
     },
     {
       "curriculumId": "1880035",
@@ -321,7 +345,11 @@
         "Detalhes da Estrutura Curricular 102140F, Criado em 2005",
         "Inativa",
         "1880035"
-      ]
+      ],
+      "sourcePageOrigin": "live",
+      "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+      "sourcePageFetchedAt": "2026-03-24T05:48:02.053Z",
+      "sourcePageContentDigest": "81576b0f753f0814e3885ad7ebd38ec644837c54639c8df9fa1ec5e08e6363a2"
     },
     {
       "curriculumId": "1879953",
@@ -338,7 +366,11 @@
         "Detalhes da Estrutura Curricular 102140G, Criado em 2004",
         "Inativa",
         "1879953"
-      ]
+      ],
+      "sourcePageOrigin": "live",
+      "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+      "sourcePageFetchedAt": "2026-03-24T05:48:02.053Z",
+      "sourcePageContentDigest": "81576b0f753f0814e3885ad7ebd38ec644837c54639c8df9fa1ec5e08e6363a2"
     },
     {
       "curriculumId": "1879873",
@@ -355,7 +387,11 @@
         "Detalhes da Estrutura Curricular 102140H, Criado em 2003",
         "Inativa",
         "1879873"
-      ]
+      ],
+      "sourcePageOrigin": "live",
+      "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+      "sourcePageFetchedAt": "2026-03-24T05:48:02.053Z",
+      "sourcePageContentDigest": "81576b0f753f0814e3885ad7ebd38ec644837c54639c8df9fa1ec5e08e6363a2"
     },
     {
       "curriculumId": "1879794",
@@ -372,7 +408,11 @@
         "Detalhes da Estrutura Curricular 102140I, Criado em 1998",
         "Inativa",
         "1879794"
-      ]
+      ],
+      "sourcePageOrigin": "live",
+      "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+      "sourcePageFetchedAt": "2026-03-24T05:48:02.053Z",
+      "sourcePageContentDigest": "81576b0f753f0814e3885ad7ebd38ec644837c54639c8df9fa1ec5e08e6363a2"
     },
     {
       "curriculumId": "1879716",
@@ -389,7 +429,11 @@
         "Detalhes da Estrutura Curricular 102140J, Criado em 1996",
         "Inativa",
         "1879716"
-      ]
+      ],
+      "sourcePageOrigin": "live",
+      "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+      "sourcePageFetchedAt": "2026-03-24T05:48:02.053Z",
+      "sourcePageContentDigest": "81576b0f753f0814e3885ad7ebd38ec644837c54639c8df9fa1ec5e08e6363a2"
     },
     {
       "curriculumId": "1879639",
@@ -406,7 +450,11 @@
         "Detalhes da Estrutura Curricular 102140K, Criado em 1995",
         "Inativa",
         "1879639"
-      ]
+      ],
+      "sourcePageOrigin": "live",
+      "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+      "sourcePageFetchedAt": "2026-03-24T05:48:02.053Z",
+      "sourcePageContentDigest": "81576b0f753f0814e3885ad7ebd38ec644837c54639c8df9fa1ec5e08e6363a2"
     },
     {
       "curriculumId": "1879563",
@@ -423,7 +471,11 @@
         "Detalhes da Estrutura Curricular 102140L, Criado em 1994",
         "Inativa",
         "1879563"
-      ]
+      ],
+      "sourcePageOrigin": "live",
+      "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+      "sourcePageFetchedAt": "2026-03-24T05:48:02.053Z",
+      "sourcePageContentDigest": "81576b0f753f0814e3885ad7ebd38ec644837c54639c8df9fa1ec5e08e6363a2"
     },
     {
       "curriculumId": "1879489",
@@ -440,7 +492,11 @@
         "Detalhes da Estrutura Curricular 102140M, Criado em 1993",
         "Inativa",
         "1879489"
-      ]
+      ],
+      "sourcePageOrigin": "live",
+      "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+      "sourcePageFetchedAt": "2026-03-24T05:48:02.053Z",
+      "sourcePageContentDigest": "81576b0f753f0814e3885ad7ebd38ec644837c54639c8df9fa1ec5e08e6363a2"
     },
     {
       "curriculumId": "1879416",
@@ -457,7 +513,11 @@
         "Detalhes da Estrutura Curricular 102140N, Criado em 1992",
         "Inativa",
         "1879416"
-      ]
+      ],
+      "sourcePageOrigin": "live",
+      "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+      "sourcePageFetchedAt": "2026-03-24T05:48:02.053Z",
+      "sourcePageContentDigest": "81576b0f753f0814e3885ad7ebd38ec644837c54639c8df9fa1ec5e08e6363a2"
     },
     {
       "curriculumId": "2477782",
@@ -474,7 +534,11 @@
         "Detalhes da Estrutura Curricular G20251, Criado em 2025",
         "Ativa",
         "2477782"
-      ]
+      ],
+      "sourcePageOrigin": "live",
+      "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+      "sourcePageFetchedAt": "2026-03-24T05:48:02.053Z",
+      "sourcePageContentDigest": "81576b0f753f0814e3885ad7ebd38ec644837c54639c8df9fa1ec5e08e6363a2"
     },
     {
       "curriculumId": "4718371",
@@ -491,7 +555,11 @@
         "Detalhes da Estrutura Curricular T20252, Criado em 2025",
         "Inativa",
         "4718371"
-      ]
+      ],
+      "sourcePageOrigin": "live",
+      "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+      "sourcePageFetchedAt": "2026-03-24T05:48:02.053Z",
+      "sourcePageContentDigest": "81576b0f753f0814e3885ad7ebd38ec644837c54639c8df9fa1ec5e08e6363a2"
     }
   ],
   "components": [

@@ -69,7 +69,15 @@ export async function buildCatalogSnapshot(
       ...extracted.page,
       ...provenance,
     });
-    curriculumStructures.push(...extracted.curriculumStructures);
+    curriculumStructures.push(
+      ...extracted.curriculumStructures.map((entry) => ({
+        ...entry,
+        sourcePageOrigin: resolved.origin,
+        sourcePageFinalUrl: resolved.finalUrl,
+        sourcePageFetchedAt: fetchedAt,
+        sourcePageContentDigest: provenance.contentDigest,
+      })),
+    );
     components.push(...extracted.components);
     scheduleGuide.push(...extracted.scheduleGuide);
     timeSlots.push(...extracted.timeSlots);

@@ -206,4 +206,16 @@ test("buildCatalogSnapshot extracts curriculum structures from public course pag
   assert.equal(result.snapshot.curriculumStructures[0]?.status, "active");
   assert.equal(result.snapshot.curriculumStructures[1]?.status, "inactive");
   assert.equal(result.snapshot.curriculumStructures[0]?.curriculumId, "2477782");
+  assert.match(
+    result.snapshot.curriculumStructures[0]?.sourcePageContentDigest ?? "",
+    /^[a-f0-9]{64}$/,
+  );
+  assert.equal(
+    result.snapshot.curriculumStructures[0]?.sourcePageOrigin,
+    "live",
+  );
+  assert.equal(
+    result.snapshot.curriculumStructures[0]?.sourcePageFinalUrl,
+    "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+  );
 });

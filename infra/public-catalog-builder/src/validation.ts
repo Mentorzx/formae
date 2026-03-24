@@ -69,6 +69,25 @@ export function validateCatalogSnapshot(snapshot: PublicCatalogSnapshot): void {
       `Unknown curriculum source: ${entry.sourceId}.`,
     );
     assert(
+      entry.sourcePageOrigin === "fixture" || entry.sourcePageOrigin === "live",
+      `Invalid curriculum page origin: ${entry.sourcePageOrigin}.`,
+    );
+    assert(
+      typeof entry.sourcePageFinalUrl === "string" &&
+        entry.sourcePageFinalUrl.length > 0,
+      "Curriculum page final URL cannot be empty.",
+    );
+    assert(
+      typeof entry.sourcePageFetchedAt === "string" &&
+        entry.sourcePageFetchedAt.length > 0,
+      "Curriculum page fetchedAt cannot be empty.",
+    );
+    assert(
+      typeof entry.sourcePageContentDigest === "string" &&
+        DIGEST_PATTERN.test(entry.sourcePageContentDigest),
+      `Invalid curriculum page content digest: ${entry.sourcePageContentDigest}.`,
+    );
+    assert(
       CURRICULUM_CODE_PATTERN.test(entry.code),
       `Malformed curriculum code: ${entry.code}.`,
     );

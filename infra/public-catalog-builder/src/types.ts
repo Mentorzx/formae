@@ -58,6 +58,10 @@ export interface PublicCatalogCurriculumStructureEntry {
   sourceId: string;
   sourceTitle: string;
   sourceUrl: string;
+  sourcePageOrigin?: PublicCatalogSourceOrigin;
+  sourcePageFinalUrl?: string;
+  sourcePageFetchedAt?: string;
+  sourcePageContentDigest?: string;
   evidence: string[];
 }
 
