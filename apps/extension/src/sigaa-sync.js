@@ -23,6 +23,13 @@ const CAPTURE_VIEWS = [
     portalActionId: "form-portal-discente:lnkMinhasNotas",
     expectedPattern: /Relat[oó]rio de Notas|Situa[cç][aã]o/i,
   },
+  {
+    id: "history",
+    label: "Consultar Histórico",
+    portalActionId: "form-portal-discente:lnkConsultarHistorico",
+    expectedPattern:
+      /Relat[oó]rio de Notas|Hist[oó]rico|Per[ií]odo|Situa[cç][aã]o/i,
+  },
 ];
 const COMPONENT_CODE_PATTERN = /\b([A-Z]{3,5}\d{2,3})\b/;
 const SCHEDULE_CODE_PATTERN = /\b([2-7]+[MTN]\d{1,2})\b/g;
@@ -62,6 +69,7 @@ export async function runAutomaticSigaaSync({
         label: view.label,
         routeHint: capturedView.currentUrl,
         text: capturedView.text,
+        extractedHistory: capturedView.extractedHistory,
       });
     } catch (error) {
       warnings.push(
@@ -163,6 +171,15 @@ export function buildStructuredSigaaCapture({
             text: capturedView.text,
             extractedTurmas: extractTurmaEntries(capturedView.text),
           }
+    : capturedView.id === "history"
+          ? {
+              id: capturedView.id,
+              label: capturedView.label,
+              routeHint: capturedView.routeHint,
+              text: capturedView.text,
+              extractedHistory:
+                capturedView.extractedHistory ?? extractHistoryEntries(capturedView.text),
+            }
         : {
             id: capturedView.id,
             label: capturedView.label,
@@ -253,6 +270,7 @@ async function captureSigaaView({
       portalProfile,
       currentUrl: captured?.currentUrl ?? pageState.currentUrl,
       text: capturedText,
+      extractedHistory: captured?.extractedHistory ?? null,
     };
   } finally {
     for (const trackedTabId of trackedTabIds) {
@@ -527,11 +545,14 @@ function submitPortalActionInPage(input) {
 }
 
 function captureVisibleTextInPage(input) {
+  const extractedHistory = extractHistoryTableRowsInPage();
+
   return {
     label: input.label,
     currentUrl: window.location.href,
     text: normalizeTextWithLines(document.body?.innerText ?? ""),
     title: document.title ?? "",
+    extractedHistory: extractedHistory.length > 0 ? extractedHistory : null,
   };
 }
 
@@ -574,6 +595,81 @@ function extractGradeEntries(text) {
     .filter(Boolean);
 }
 
+function extractHistoryEntries(text) {
+  return splitMeaningfulLines(text)
+    .map((rawLine) => {
+      const period = rawLine.match(/^\d{4}\.\d\b/)?.[0] ?? null;
+      if (!period) {
+        return null;
+      }
+
+      const gradeMatch = rawLine.match(
+        /^(?<period>\d{4}\.\d)\s+(?<componentName>.+?)\s+(?<gradeValue>\d{1,2}(?:[.,]\d{1,2})?|--)\s+(?<absences>\d+|--)\s+(?<statusText>APROVADO|REPROVADO|CANCELADO|TRANCADO|CURSANDO|MATRICULADO|APTO|INAPTO|EM CURSO|EM ANDAMENTO)\s*$/i,
+      );
+
+      if (!gradeMatch?.groups) {
+        return null;
+      }
+
+      return {
+        academicPeriod: gradeMatch.groups.period,
+        componentName: gradeMatch.groups.componentName.trim(),
+        gradeValue: gradeMatch.groups.gradeValue,
+        absences: gradeMatch.groups.absences,
+        statusText: gradeMatch.groups.statusText.toUpperCase(),
+        rawLine,
+      };
+    })
+    .filter(Boolean);
+}
+
+function extractHistoryTableRowsInPage() {
+  const tables = Array.from(document.querySelectorAll("table"));
+
+  for (const table of tables) {
+    const headerCells = Array.from(table.querySelectorAll("thead th")).map((cell) =>
+      normalizeVisibleCellText(cell.textContent ?? ""),
+    );
+
+    if (
+      headerCells.length < 4 ||
+      !headerCells.some((value) => /periodo|per[ií]odo/i.test(value)) ||
+      !headerCells.some((value) => /situacao|situa[cç][aã]o/i.test(value))
+    ) {
+      continue;
+    }
+
+    const rows = Array.from(table.querySelectorAll("tbody tr"))
+      .map((row) => {
+        const cells = Array.from(row.querySelectorAll("td")).map((cell) =>
+          normalizeVisibleCellText(cell.textContent ?? ""),
+        );
+
+        if (cells.length < 5) {
+          return null;
+        }
+
+        const [academicPeriod, componentName, gradeValue, absences, statusText] = cells;
+
+        return {
+          academicPeriod,
+          componentName,
+          gradeValue,
+          absences,
+          statusText,
+          rawLine: cells.join(" "),
+        };
+      })
+      .filter(Boolean);
+
+    if (rows.length > 0) {
+      return rows;
+    }
+  }
+
+  return [];
+}
+
 function splitMeaningfulLines(text) {
   return normalizeTextWithLines(text)
     .split("\n")
@@ -592,4 +688,8 @@ function normalizeTextWithLines(value) {
 
 function uniqueValues(values) {
   return Array.from(new Set(values));
+}
+
+function normalizeVisibleCellText(value) {
+  return value.replace(/\s+/g, " ").trim();
 }

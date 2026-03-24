@@ -24,6 +24,11 @@ test("buildCombinedCaptureText prefixes profile and captured sections", () => {
         label: "Minhas Notas",
         text: "ENGC50 SISTEMAS MICROPROCESSADOS APROVADO",
       },
+      {
+        id: "history",
+        label: "Consultar Histórico",
+        text: "2026.1 ENGC50 SISTEMAS MICROPROCESSADOS 10,0 0 APROVADO",
+      },
     ],
     warnings: ["Aviso: grades parciais."],
   });
@@ -31,10 +36,11 @@ test("buildCombinedCaptureText prefixes profile and captured sections", () => {
   assert.match(combined, /Aluno\(a\): Alex de Lira Neto/);
   assert.match(combined, /\[Minhas Turmas\]/);
   assert.match(combined, /\[Minhas Notas\]/);
+  assert.match(combined, /\[Consultar Histórico\]/);
   assert.match(combined, /Aviso: grades parciais\./);
 });
 
-test("buildStructuredSigaaCapture extracts turma and grade records", () => {
+test("buildStructuredSigaaCapture extracts turma, grade and history records", () => {
   const structuredCapture = buildStructuredSigaaCapture({
     portalProfile: {
       studentName: "Alex de Lira Neto",
@@ -60,6 +66,15 @@ test("buildStructuredSigaaCapture extracts turma and grade records", () => {
           "ENGC41 ALGORITMOS E ESTRUTURAS DE DADOS REPROVADO",
         ].join("\n"),
       },
+      {
+        id: "history",
+        label: "Consultar Histórico",
+        routeHint: "https://sigaa.ufba.br/sigaa/mobile/touch/historico.jsf",
+        text: [
+          "2026.1 ENGC63 PROCESSAMENTO DIGITAL DE SINAIS 10,0 0 APROVADO",
+          "2025.2 ENGC41 ALGORITMOS E ESTRUTURAS DE DADOS -- 4 REPROVADO",
+        ].join("\n"),
+      },
     ],
   });
 
@@ -74,4 +89,8 @@ test("buildStructuredSigaaCapture extracts turma and grade records", () => {
   assert.equal(structuredCapture.views[1].id, "grades");
   assert.equal(structuredCapture.views[1].extractedGrades.length, 2);
   assert.equal(structuredCapture.views[1].extractedGrades[1].statusText, "REPROVADO");
+  assert.equal(structuredCapture.views[2].id, "history");
+  assert.equal(structuredCapture.views[2].extractedHistory.length, 2);
+  assert.equal(structuredCapture.views[2].extractedHistory[0].academicPeriod, "2026.1");
+  assert.equal(structuredCapture.views[2].extractedHistory[1].statusText, "REPROVADO");
 });
