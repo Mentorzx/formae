@@ -243,7 +243,7 @@ export async function openManualImportSnapshotFromVault(
     );
   }
 
-  return plaintext;
+  return normalizeManualImportStoredSnapshot(plaintext);
 }
 
 export async function openLocalStudentSnapshotBundleFromVault(
@@ -261,7 +261,10 @@ export async function openLocalStudentSnapshotBundleFromVault(
     );
   }
 
-  return plaintext;
+  return {
+    ...plaintext,
+    manualImport: normalizeManualImportStoredSnapshot(plaintext.manualImport),
+  };
 }
 
 function buildSealedVaultState(
@@ -310,6 +313,15 @@ function buildLocalStudentSnapshotBundleAadContext(
   bundle: LocalStudentSnapshotBundle,
 ): string {
   return `formae:student-snapshot:${bundle.manualImport.timingProfileId}:${bundle.manualImport.snapshotId}`;
+}
+
+function normalizeManualImportStoredSnapshot(
+  snapshot: ManualImportStoredSnapshot,
+): ManualImportStoredSnapshot {
+  return {
+    ...snapshot,
+    preferredCurriculumSeedId: snapshot.preferredCurriculumSeedId ?? null,
+  };
 }
 
 async function migrateLegacySnapshotIfNeeded(

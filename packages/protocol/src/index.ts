@@ -221,6 +221,7 @@ export interface ManualImportStoredSnapshot {
   rawInput: string;
   detectedScheduleCodes: string[];
   detectedComponentCodes: string[];
+  preferredCurriculumSeedId?: string | null;
   matchedCatalogComponentCodes: string[];
   previewWarnings: string[];
   normalizedSchedules: ManualImportNormalizedSchedule[];

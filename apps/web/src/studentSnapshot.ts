@@ -54,6 +54,7 @@ export function buildStudentSnapshotFromManualImport(
 ): StudentSnapshot {
   const curriculumResolution = resolveCurriculumSeed(
     input.manualImport.detectedComponentCodes,
+    input.manualImport.preferredCurriculumSeedId ?? null,
   );
   const resolvedCurriculum =
     curriculumResolution.selectedMatch?.curriculum ?? null;

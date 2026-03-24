@@ -21,6 +21,7 @@ describe("manualSnapshotStore vault helpers", () => {
       rawInput: "MATA37 35N12",
       detectedScheduleCodes: ["35N12"],
       detectedComponentCodes: ["MATA37"],
+      preferredCurriculumSeedId: null,
       matchedCatalogComponentCodes: ["MATA37"],
       previewWarnings: [],
       normalizedSchedules: [
@@ -74,6 +75,7 @@ describe("manualSnapshotStore vault helpers", () => {
         rawInput: "MATA37 35N12",
         detectedScheduleCodes: ["35N12"],
         detectedComponentCodes: ["MATA37"],
+        preferredCurriculumSeedId: null,
         matchedCatalogComponentCodes: ["MATA37"],
         previewWarnings: [],
         normalizedSchedules: [],

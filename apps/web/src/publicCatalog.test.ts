@@ -42,6 +42,20 @@ describe("publicCatalog", () => {
     expect(resolution.reason).toMatch(/apenas 1 componente/i);
   });
 
+  it("honors a manual curriculum override and suppresses automatic review", () => {
+    const resolution = resolveCurriculumSeed(
+      ["BIOD01", "MATA37"],
+      "ufba-trilha-interdisciplinar-2026-seed",
+    );
+
+    expect(resolution.selectedMatch?.curriculum.id).toBe(
+      "ufba-trilha-interdisciplinar-2026-seed",
+    );
+    expect(resolution.selectionMode).toBe("manual-override");
+    expect(resolution.requiresReview).toBe(false);
+    expect(resolution.reason).toMatch(/fixada manualmente/i);
+  });
+
   it("returns null when there is no overlap with any seed curriculum", () => {
     expect(findBestCurriculumSeed(["ZZZ999"])).toBeNull();
   });

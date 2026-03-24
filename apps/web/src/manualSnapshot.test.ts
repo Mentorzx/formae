@@ -29,6 +29,7 @@ describe("buildManualImportStoredSnapshot", () => {
       rawInput: "MATA37 3M23 5T23",
       detectedScheduleCodes: ["3M23", "5T23"],
       detectedComponentCodes: ["MATA37"],
+      preferredCurriculumSeedId: null,
       matchedCatalogComponentCodes: ["MATA37"],
       previewWarnings: [],
       normalizedSchedules: [],

@@ -23,6 +23,7 @@ import {
 } from "../manualSnapshotStore";
 import {
   type CurriculumSeedResolutionConfidence,
+  type CurriculumSeedSelectionMode,
   findCatalogMatches,
   resolveCurriculumSeed,
 } from "../publicCatalog";
@@ -74,6 +75,9 @@ export function ImportPage() {
   const [vaultState, setVaultState] = useState<ManualImportVaultState | null>(
     null,
   );
+  const [preferredCurriculumSeedId, setPreferredCurriculumSeedId] = useState<
+    string | null
+  >(null);
   const [localSnapshotStatus, setLocalSnapshotStatus] =
     useState<LocalSnapshotStatus>("checking");
   const [localSnapshotMessage, setLocalSnapshotMessage] = useState<
@@ -96,6 +100,9 @@ export function ImportPage() {
       setLatestSnapshot(loadedSnapshot.bundle?.manualImport ?? null);
       setLatestBundle(loadedSnapshot.bundle);
       setVaultState(nextVaultState);
+      setPreferredCurriculumSeedId(
+        loadedSnapshot.bundle?.manualImport.preferredCurriculumSeedId ?? null,
+      );
       setLocalSnapshotStatus("idle");
     })().catch((error: unknown) => {
       if (cancelled) {
@@ -192,6 +199,7 @@ export function ImportPage() {
       timingProfileId: preview.timingProfileId,
       preview,
       normalizedSchedules: parserState.normalizedSchedules,
+      preferredCurriculumSeedId,
       matchedCatalogComponentCodes: matchedComponentCodes,
     });
   }, [
@@ -199,33 +207,60 @@ export function ImportPage() {
     matchedComponentCodes,
     parserState.normalizedSchedules,
     parserState.status,
+    preferredCurriculumSeedId,
     preview,
     rawInput,
     requiresParser,
   ]);
+  const currentSnapshotOverride =
+    latestBundle &&
+    preferredCurriculumSeedId !==
+      (latestBundle.manualImport.preferredCurriculumSeedId ?? null)
+      ? {
+          ...latestBundle.manualImport,
+          preferredCurriculumSeedId,
+        }
+      : null;
+  const draftManualSnapshot = currentManualSnapshot ?? currentSnapshotOverride;
+  const draftMatchedComponents = useMemo(
+    () =>
+      draftManualSnapshot
+        ? findCatalogMatches(draftManualSnapshot.detectedComponentCodes)
+        : [],
+    [draftManualSnapshot],
+  );
   const currentBundle = useMemo(
     () =>
-      currentManualSnapshot
+      draftManualSnapshot
         ? buildLocalStudentSnapshotBundle({
-            manualImport: currentManualSnapshot,
-            matchedCatalogComponents: matchedComponents,
+            manualImport: draftManualSnapshot,
+            matchedCatalogComponents: draftMatchedComponents,
           })
         : null,
-    [currentManualSnapshot, matchedComponents],
+    [draftManualSnapshot, draftMatchedComponents],
   );
   const displayedBundle = currentBundle ?? latestBundle;
   const curriculumResolution = resolveCurriculumSeed(
-    currentManualSnapshot?.detectedComponentCodes ??
+    draftManualSnapshot?.detectedComponentCodes ??
       displayedBundle?.manualImport.detectedComponentCodes ??
       preview.detectedComponentCodes,
+    draftManualSnapshot?.preferredCurriculumSeedId ??
+      displayedBundle?.manualImport.preferredCurriculumSeedId ??
+      null,
   );
-  const canSaveSnapshot =
+  const hasSnapshotDraftFromText =
     rawInput === deferredRawInput &&
     rawInput.trim().length > 0 &&
     (preview.detectedComponentCodes.length > 0 ||
       preview.detectedScheduleCodes.length > 0) &&
-    (!requiresParser || parserState.status === "ready") &&
-    currentBundle !== null;
+    (!requiresParser || parserState.status === "ready");
+  const hasCurriculumPreferenceChange =
+    latestBundle !== null &&
+    preferredCurriculumSeedId !==
+      (latestBundle.manualImport.preferredCurriculumSeedId ?? null);
+  const canSaveSnapshot =
+    currentBundle !== null &&
+    (hasSnapshotDraftFromText || hasCurriculumPreferenceChange);
 
   async function handleSaveSnapshot() {
     if (!canSaveSnapshot || !currentBundle) {
@@ -274,6 +309,9 @@ export function ImportPage() {
       normalizedSchedules: latestBundle.manualImport.normalizedSchedules,
       errorMessage: null,
     });
+    setPreferredCurriculumSeedId(
+      latestBundle.manualImport.preferredCurriculumSeedId ?? null,
+    );
     setLocalSnapshotStatus("restored");
     setLocalSnapshotMessage(
       `Snapshot restaurado do navegador. Ultimo save: ${formatLocalDateTime(
@@ -291,6 +329,7 @@ export function ImportPage() {
       setLatestSnapshot(null);
       setLatestBundle(null);
       setVaultState(nextVaultState);
+      setPreferredCurriculumSeedId(null);
       setLocalSnapshotStatus("cleared");
       setLocalSnapshotMessage("Snapshot salvo removido do navegador.");
     } catch (error: unknown) {
@@ -326,7 +365,17 @@ export function ImportPage() {
               id="manual-import"
               className="import-textarea"
               value={rawInput}
-              onChange={(event) => setRawInput(event.target.value)}
+              onChange={(event) => {
+                const nextRawInput = event.target.value;
+                setRawInput(nextRawInput);
+
+                if (
+                  latestBundle &&
+                  nextRawInput !== latestBundle.manualImport.rawInput
+                ) {
+                  setPreferredCurriculumSeedId(null);
+                }
+              }}
               placeholder="Exemplo: MATA37 - Introducao a Logica de Programacao - 3M23 5T23"
             />
           </label>
@@ -398,7 +447,9 @@ export function ImportPage() {
                 ? "Aguarde a analise local terminar antes de salvar."
                 : preview.detectedComponentCodes.length === 0 &&
                     preview.detectedScheduleCodes.length === 0
-                  ? "Cole um trecho com componentes ou codigos de horario para gerar um snapshot util."
+                  ? hasCurriculumPreferenceChange
+                    ? "A preferencia manual da grade pode ser salva mesmo sem alterar o texto restaurado."
+                    : "Cole um trecho com componentes ou codigos de horario para gerar um snapshot util."
                   : requiresParser && parserState.status !== "ready"
                     ? "O parser precisa concluir a normalizacao dos horarios antes do save."
                     : "Nenhum snapshot pode ser salvo com o estado atual."}
@@ -557,6 +608,9 @@ export function ImportPage() {
                       curriculumResolution.confidence,
                     )}`}
                   >
+                    {formatCurriculumSelectionMode(
+                      curriculumResolution.selectionMode,
+                    )}{" "}
                     Grade{" "}
                     {formatCurriculumConfidence(
                       curriculumResolution.confidence,
@@ -605,27 +659,93 @@ export function ImportPage() {
               <article className="soft-card">
                 <p className="micro-label">Candidatas de grade</p>
                 {curriculumResolution.selectedMatch ? (
-                  <ul className="list">
-                    <li>
-                      <strong>
-                        {curriculumResolution.selectedMatch.curriculum.name}
-                      </strong>{" "}
-                      · {curriculumResolution.selectedMatch.matchedCount} match
-                      ·{" "}
-                      {Math.round(
-                        curriculumResolution.selectedMatch
-                          .detectedCoverageRatio * 100,
-                      )}
-                      % dos codigos detectados
-                    </li>
-                    {curriculumResolution.alternativeMatches.map((match) => (
-                      <li key={match.curriculum.id}>
-                        {match.curriculum.name} · {match.matchedCount} match ·{" "}
-                        {Math.round(match.detectedCoverageRatio * 100)}% dos
-                        codigos detectados
+                  <>
+                    <div className="action-row subsection">
+                      <button
+                        type="button"
+                        className="action-button action-button-secondary"
+                        onClick={() => setPreferredCurriculumSeedId(null)}
+                      >
+                        Usar ranking automatico
+                      </button>
+                    </div>
+                    <ul className="list">
+                      <li>
+                        <div className="action-row">
+                          <button
+                            type="button"
+                            className="action-button action-button-secondary"
+                            onClick={() =>
+                              setPreferredCurriculumSeedId(
+                                curriculumResolution.selectedMatch?.curriculum
+                                  .id ?? null,
+                              )
+                            }
+                          >
+                            Fixar esta grade
+                          </button>
+                          {preferredCurriculumSeedId ===
+                          curriculumResolution.selectedMatch.curriculum.id ? (
+                            <span className="status-pill status-pill-ready">
+                              Manual
+                            </span>
+                          ) : null}
+                        </div>
+                        <strong>
+                          {curriculumResolution.selectedMatch.curriculum.name}
+                        </strong>{" "}
+                        · {curriculumResolution.selectedMatch.matchedCount}{" "}
+                        match ·{" "}
+                        {Math.round(
+                          curriculumResolution.selectedMatch
+                            .detectedCoverageRatio * 100,
+                        )}
+                        % dos codigos detectados
                       </li>
-                    ))}
-                  </ul>
+                      {curriculumResolution.alternativeMatches.map((match) => (
+                        <li key={match.curriculum.id}>
+                          <div className="action-row">
+                            <button
+                              type="button"
+                              className="action-button action-button-secondary"
+                              onClick={() =>
+                                setPreferredCurriculumSeedId(
+                                  match.curriculum.id,
+                                )
+                              }
+                            >
+                              Fixar esta grade
+                            </button>
+                            {preferredCurriculumSeedId ===
+                            match.curriculum.id ? (
+                              <span className="status-pill status-pill-ready">
+                                Manual
+                              </span>
+                            ) : null}
+                          </div>
+                          {match.curriculum.name} · {match.matchedCount} match ·{" "}
+                          {Math.round(match.detectedCoverageRatio * 100)}% dos
+                          codigos detectados
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : displayedBundle ? (
+                  <>
+                    <div className="action-row subsection">
+                      <button
+                        type="button"
+                        className="action-button action-button-secondary"
+                        onClick={() => setPreferredCurriculumSeedId(null)}
+                      >
+                        Voltar ao ranking automatico
+                      </button>
+                    </div>
+                    <p>
+                      Nenhuma grade seed teve sobreposicao suficiente com os
+                      codigos detectados ate agora.
+                    </p>
+                  </>
                 ) : (
                   <p>
                     Nenhuma grade seed teve sobreposicao suficiente com os
@@ -917,4 +1037,14 @@ function formatCurriculumConfidenceClassName(
   }
 
   return "status-pill-review";
+}
+
+function formatCurriculumSelectionMode(
+  selectionMode: CurriculumSeedSelectionMode,
+): string {
+  if (selectionMode === "manual-override") {
+    return "Manual";
+  }
+
+  return "Auto";
 }

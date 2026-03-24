@@ -51,6 +51,7 @@ export interface PublicCatalogCurriculumMatch {
 }
 
 export type CurriculumSeedResolutionConfidence = "high" | "medium" | "low";
+export type CurriculumSeedSelectionMode = "automatic" | "manual-override";
 
 export interface CurriculumSeedResolution {
   selectedMatch: PublicCatalogCurriculumMatch | null;
@@ -59,6 +60,7 @@ export interface CurriculumSeedResolution {
   isAmbiguous: boolean;
   requiresReview: boolean;
   reason: string;
+  selectionMode: CurriculumSeedSelectionMode;
 }
 
 export interface PublicCatalogIndex {
@@ -100,9 +102,11 @@ export function findCatalogMatches(
 
 export function findBestCurriculumSeed(
   componentCodes: string[],
+  preferredCurriculumSeedId: string | null = null,
 ): PublicCatalogCurriculumSeed | null {
   return (
-    resolveCurriculumSeed(componentCodes).selectedMatch?.curriculum ?? null
+    resolveCurriculumSeed(componentCodes, preferredCurriculumSeedId)
+      .selectedMatch?.curriculum ?? null
   );
 }
 
@@ -123,8 +127,31 @@ export function rankCurriculumSeeds(
 
 export function resolveCurriculumSeed(
   componentCodes: string[],
+  preferredCurriculumSeedId: string | null = null,
 ): CurriculumSeedResolution {
   const rankedMatches = rankCurriculumSeeds(componentCodes);
+  const preferredCurriculum = preferredCurriculumSeedId
+    ? findCurriculumSeedById(preferredCurriculumSeedId)
+    : null;
+
+  if (preferredCurriculum) {
+    const selectedMatch = createCurriculumMatch(preferredCurriculum, [
+      ...new Set(componentCodes),
+    ]);
+
+    return {
+      selectedMatch,
+      alternativeMatches: rankedMatches
+        .filter((match) => match.curriculum.id !== preferredCurriculum.id)
+        .slice(0, 3),
+      confidence: resolveCurriculumConfidence(selectedMatch, false),
+      isAmbiguous: false,
+      requiresReview: false,
+      reason: buildManualCurriculumOverrideReason(selectedMatch),
+      selectionMode: "manual-override",
+    };
+  }
+
   const selectedMatch = rankedMatches[0] ?? null;
   const alternativeMatches = rankedMatches.slice(1, 4);
 
@@ -136,6 +163,7 @@ export function resolveCurriculumSeed(
       isAmbiguous: false,
       requiresReview: false,
       reason: "Nenhum componente detectado ainda para estimar a grade seed.",
+      selectionMode: "automatic",
     };
   }
 
@@ -148,6 +176,7 @@ export function resolveCurriculumSeed(
       requiresReview: true,
       reason:
         "Nenhuma grade seed publica teve sobreposicao com os componentes detectados.",
+      selectionMode: "automatic",
     };
   }
 
@@ -171,7 +200,18 @@ export function resolveCurriculumSeed(
       alternativeMatches,
       isAmbiguous,
     }),
+    selectionMode: "automatic",
   };
+}
+
+export function findCurriculumSeedById(
+  curriculumSeedId: string,
+): PublicCatalogCurriculumSeed | null {
+  return (
+    publicCatalog.curricula.find(
+      (curriculum) => curriculum.id === curriculumSeedId,
+    ) ?? null
+  );
 }
 
 function createCurriculumMatch(
@@ -282,4 +322,14 @@ function buildCurriculumResolutionReason({
   }
 
   return `A grade seed ${selectedId} foi a unica candidata com coincidencia local.`;
+}
+
+function buildManualCurriculumOverrideReason(
+  selectedMatch: PublicCatalogCurriculumMatch,
+): string {
+  if (selectedMatch.matchedCount === 0) {
+    return `Grade seed fixada manualmente: ${selectedMatch.curriculum.id}, ainda sem sobreposicao com os componentes detectados.`;
+  }
+
+  return `Grade seed fixada manualmente: ${selectedMatch.curriculum.id} com ${selectedMatch.matchedCount} componente(s) em comum.`;
 }

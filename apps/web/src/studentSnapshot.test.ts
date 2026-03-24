@@ -213,4 +213,57 @@ describe("buildLocalStudentSnapshotBundle", () => {
       ]),
     );
   });
+
+  it("honors a manually preferred curriculum seed in the projected snapshot", () => {
+    const bundle = buildLocalStudentSnapshotBundle({
+      derivedAt: "2026-03-24T01:10:00.000Z",
+      manualImport: {
+        schemaVersion: 1,
+        snapshotId: "manual-override",
+        savedAt: "2026-03-24T01:09:00.000Z",
+        source: "plain-text",
+        timingProfileId: "Ufba2025",
+        rawInput: [
+          "MATA37 - Introducao a Logica de Programacao - APROVADO",
+          "BIOD01 - Fundamentos de Anatomia - CURSANDO",
+        ].join("\n"),
+        detectedScheduleCodes: [],
+        detectedComponentCodes: ["BIOD01", "MATA37"],
+        preferredCurriculumSeedId: "ufba-trilha-interdisciplinar-2026-seed",
+        matchedCatalogComponentCodes: ["BIOD01", "MATA37"],
+        previewWarnings: [],
+        normalizedSchedules: [],
+      },
+      matchedCatalogComponents: [
+        {
+          code: "BIOD01",
+          title: "Fundamentos de Anatomia",
+          sourceId: "sigaa-public",
+          scheduleCode: "35N12",
+          canonicalScheduleCode: "35N12",
+          summary: "Disciplina seed",
+        },
+        {
+          code: "MATA37",
+          title: "Introducao a Logica de Programacao",
+          sourceId: "sigaa-public",
+          scheduleCode: "3M23 5T23",
+          canonicalScheduleCode: "3M23 5T23",
+          summary: "Disciplina seed",
+        },
+      ],
+    });
+
+    expect(bundle.studentSnapshot.curriculum.curriculumId).toBe(
+      "ufba-trilha-interdisciplinar-2026-seed",
+    );
+    expect(bundle.studentSnapshot.curriculum.name).toBe(
+      "Trilha interdisciplinar UFBA seed local",
+    );
+    expect(
+      bundle.studentSnapshot.pendingRequirements.some(
+        (requirement) => requirement.id === "curriculum-seed-review",
+      ),
+    ).toBe(false);
+  });
 });

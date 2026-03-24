@@ -12,6 +12,7 @@ interface BuildManualImportSnapshotInput {
   timingProfileId: TimingProfileId;
   preview: ManualImportPreview;
   normalizedSchedules: ManualImportNormalizedSchedule[];
+  preferredCurriculumSeedId?: string | null;
   matchedCatalogComponentCodes: string[];
   savedAt?: string;
   snapshotId?: string;
@@ -29,6 +30,7 @@ export function buildManualImportStoredSnapshot(
     rawInput: input.rawInput,
     detectedScheduleCodes: input.preview.detectedScheduleCodes,
     detectedComponentCodes: input.preview.detectedComponentCodes,
+    preferredCurriculumSeedId: input.preferredCurriculumSeedId ?? null,
     matchedCatalogComponentCodes: input.matchedCatalogComponentCodes,
     previewWarnings: input.preview.warnings,
     normalizedSchedules: input.normalizedSchedules,

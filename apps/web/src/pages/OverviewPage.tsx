@@ -17,6 +17,7 @@ import {
 } from "../localStudentSnapshot";
 import {
   type CurriculumSeedResolutionConfidence,
+  type CurriculumSeedSelectionMode,
   resolveCurriculumSeed,
 } from "../publicCatalog";
 import {
@@ -88,6 +89,7 @@ export function OverviewPage() {
   const curriculumResolution = overviewState.bundle
     ? resolveCurriculumSeed(
         overviewState.bundle.manualImport.detectedComponentCodes,
+        overviewState.bundle.manualImport.preferredCurriculumSeedId ?? null,
       )
     : null;
 
@@ -293,6 +295,14 @@ export function OverviewPage() {
                       : "nao avaliada"}
                   </li>
                   <li>
+                    Selecao da grade:{" "}
+                    {curriculumResolution
+                      ? formatCurriculumSelectionMode(
+                          curriculumResolution.selectionMode,
+                        )
+                      : "nao avaliada"}
+                  </li>
+                  <li>
                     Catalogo coberto:{" "}
                     {overviewState.summary.matchedCatalogCount}/
                     {overviewState.summary.componentCount}
@@ -333,6 +343,9 @@ export function OverviewPage() {
                           curriculumResolution.confidence,
                         )}`}
                       >
+                        {formatCurriculumSelectionMode(
+                          curriculumResolution.selectionMode,
+                        )}{" "}
                         Confianca{" "}
                         {formatCurriculumConfidence(
                           curriculumResolution.confidence,
@@ -633,4 +646,14 @@ function formatCurriculumConfidenceClassName(
   }
 
   return "status-pill-review";
+}
+
+function formatCurriculumSelectionMode(
+  selectionMode: CurriculumSeedSelectionMode,
+): string {
+  if (selectionMode === "manual-override") {
+    return "manual";
+  }
+
+  return "automatica";
 }
