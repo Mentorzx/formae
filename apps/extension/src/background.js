@@ -4,6 +4,7 @@ import {
   isSigaaSessionExpired,
 } from "./login-session.js";
 import { runAutomaticSigaaSync } from "./sigaa-sync.js";
+import { extensionApi } from "./runtime.js";
 
 const syncState = {
   session: null,
@@ -11,13 +12,13 @@ const syncState = {
   latestNormalizedSnapshot: null,
 };
 
-chrome.runtime.onInstalled.addListener(() => {
+extensionApi.runtime.onInstalled.addListener(() => {
   syncState.session = null;
   syncState.latestRawPayload = null;
   syncState.latestNormalizedSnapshot = null;
 });
 
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+extensionApi.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (!isBridgeMessage(message)) {
     return false;
   }

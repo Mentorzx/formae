@@ -1,5 +1,11 @@
 import { createRawSigaaPayloadMessage } from "./bridge.js";
 import { isSigaaSessionExpired, sanitizeSigaaSession } from "./login-session.js";
+import {
+  createTab,
+  executeScript,
+  getTab,
+  removeTab,
+} from "./runtime.js";
 
 const SIGAA_LOGIN_URL = "https://sigaa.ufba.br/sigaa/mobile/touch/login.jsf";
 const DEFAULT_CAPTURE_TIMEOUT_MS = 45_000;
@@ -174,7 +180,7 @@ async function captureSigaaView({
   label,
   timeoutMs,
 }) {
-  const tab = await chrome.tabs.create({
+  const tab = await createTab({
     url: SIGAA_LOGIN_URL,
     active: false,
   });
@@ -234,7 +240,7 @@ async function waitForTabComplete(tabId, timeoutMs) {
   const deadline = Date.now() + timeoutMs;
 
   while (Date.now() < deadline) {
-    const tab = await chrome.tabs.get(tabId).catch(() => null);
+  const tab = await getTab(tabId).catch(() => null);
     if (tab?.status === "complete") {
       return;
     }
@@ -296,7 +302,7 @@ async function waitForAuthenticatedPortal(tabId, timeoutMs) {
 }
 
 async function executeTabScript(tabId, func, arg) {
-  const results = await chrome.scripting.executeScript({
+  const results = await executeScript({
     target: { tabId },
     func,
     args: arg === undefined ? [] : [arg],
@@ -310,7 +316,7 @@ async function closeTab(tabId) {
     return;
   }
 
-  await chrome.tabs.remove(tabId).catch(() => {});
+  await removeTab(tabId).catch(() => {});
 }
 
 function sleep(durationMs) {

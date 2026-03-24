@@ -6,14 +6,19 @@
   "action": {
     "default_title": "Formae SIGAA Sync"
   },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "formae-extension@formae.local",
+      "strict_min_version": "128.0"
+    }
+  },
   "background": {
     "service_worker": "src/background.js",
     "type": "module"
   },
-  "permissions": ["scripting", "storage", "tabs"],
+  "permissions": ["storage", "tabs"],
   "host_permissions": [
     "https://sigaa.ufba.br/*",
-    "http://localhost:*/*",
     "https://*.github.io/*"
   ],
   "externally_connectable": {

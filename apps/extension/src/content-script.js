@@ -1,29 +1,31 @@
+import { EXTENSION_BRIDGE_SOURCE, PAGE_BRIDGE_SOURCE } from "./page-bridge.js";
+import { sendRuntimeMessage } from "./runtime.js";
+
 bootstrapContentScript();
 
 function bootstrapContentScript() {
   const cleanup = installPageBridgeRelay((request) => {
-    chrome.runtime.sendMessage(request.envelope, (response) => {
-      const runtimeError = chrome.runtime.lastError;
-      const reply =
-        runtimeError && !response
-          ? {
-              ok: false,
-              error: runtimeError.message,
-            }
-          : response;
-
-      window.postMessage(
-        createExtensionBridgeResponse(request.requestId, reply),
-        window.location.origin,
-      );
-    });
+    sendRuntimeMessage(request.envelope)
+      .then((response) => {
+        window.postMessage(
+          createExtensionBridgeResponse(request.requestId, response),
+          window.location.origin,
+        );
+      })
+      .catch((error) => {
+        window.postMessage(
+          createExtensionBridgeResponse(request.requestId, {
+            ok: false,
+            error: error instanceof Error ? error.message : String(error),
+          }),
+          window.location.origin,
+        );
+      });
   });
 
   return cleanup;
 }
 
-const PAGE_BRIDGE_SOURCE = "formae-web-page";
-const EXTENSION_BRIDGE_SOURCE = "formae-extension";
 const BRIDGE_KINDS = new Set([
   "RequestSync",
   "ProvideEphemeralCredentials",
