@@ -26,12 +26,15 @@ import { buildPlannerConnectionPaths } from "../plannerConnections";
 import {
   buildPlannerRelationHighlights,
   createPlannerBoardFromProgress,
+  describePlannerTermLabel,
   type PlannerBoard,
   type PlannerBoardTermView,
   type PlannerComponentCard,
+  type PlannerFilterSummary,
   type PlannerRelationHighlights,
   type PlannerTerm,
   projectPlannerBoard,
+  summarizePlannerFilters,
   validatePlannerMove,
 } from "../plannerModel";
 import {
@@ -91,19 +94,28 @@ export function PlannerPage() {
   });
   const [plannerState, setPlannerState] = useState(() => loadPlannerState());
   const [board, setBoard] = useState<PlannerBoard | null>(null);
-  const [queryDraft, setQueryDraft] = useState(
-    plannerState.preferences.filterDraft?.query ?? "",
-  );
+  const storedFilterDraft = plannerState.preferences.filterDraft;
+  const [queryDraft, setQueryDraft] = useState(storedFilterDraft?.query ?? "");
   const deferredQuery = useDeferredValue(queryDraft);
   const [selectedStatuses, setSelectedStatuses] = useState<
     ComponentAcademicStatus[]
-  >(ALL_COMPONENT_STATUSES);
-  const [showAvailableOnly, setShowAvailableOnly] = useState(false);
-  const [showScheduledOnly, setShowScheduledOnly] = useState(false);
-  const [showReviewOnly, setShowReviewOnly] = useState(false);
+  >(
+    storedFilterDraft?.selectedStatuses?.length
+      ? storedFilterDraft.selectedStatuses
+      : ALL_COMPONENT_STATUSES,
+  );
+  const [showAvailableOnly, setShowAvailableOnly] = useState(
+    storedFilterDraft?.showAvailableOnly ?? false,
+  );
+  const [showScheduledOnly, setShowScheduledOnly] = useState(
+    storedFilterDraft?.showScheduledOnly ?? false,
+  );
+  const [showReviewOnly, setShowReviewOnly] = useState(
+    storedFilterDraft?.showReviewOnly ?? false,
+  );
   const [selectedComponentCode, setSelectedComponentCode] = useState<
     string | null
-  >(plannerState.preferences.filterDraft?.focusComponentCode ?? null);
+  >(storedFilterDraft?.focusComponentCode ?? null);
   const [hoveredComponentCode, setHoveredComponentCode] = useState<
     string | null
   >(null);
@@ -200,24 +212,45 @@ export function PlannerPage() {
 
   const connectedOnly =
     plannerState.preferences.filterDraft?.connectedOnly ?? false;
-  const focusComponentCode = hoveredComponentCode ?? selectedComponentCode;
+  const focusComponentCode = selectedComponentCode ?? hoveredComponentCode;
 
   useEffect(() => {
+    const hasActiveFilters =
+      deferredQuery.trim().length > 0 ||
+      connectedOnly ||
+      selectedComponentCode !== null ||
+      selectedStatuses.length < ALL_COMPONENT_STATUSES.length ||
+      showAvailableOnly ||
+      showScheduledOnly ||
+      showReviewOnly;
+
     setPlannerState((currentState) =>
       updatePlannerState(currentState, {
-        filterDraft:
-          deferredQuery.trim().length > 0 ||
-          connectedOnly ||
-          selectedComponentCode
-            ? {
-                query: deferredQuery,
-                connectedOnly,
-                focusComponentCode: selectedComponentCode,
-              }
-            : null,
+        filterDraft: hasActiveFilters
+          ? {
+              query: deferredQuery,
+              connectedOnly,
+              focusComponentCode: selectedComponentCode,
+              selectedStatuses:
+                selectedStatuses.length < ALL_COMPONENT_STATUSES.length
+                  ? selectedStatuses
+                  : [],
+              showAvailableOnly,
+              showScheduledOnly,
+              showReviewOnly,
+            }
+          : null,
       }),
     );
-  }, [connectedOnly, deferredQuery, selectedComponentCode]);
+  }, [
+    connectedOnly,
+    deferredQuery,
+    selectedComponentCode,
+    selectedStatuses,
+    showAvailableOnly,
+    showReviewOnly,
+    showScheduledOnly,
+  ]);
 
   const componentIndex = useMemo(
     () =>
@@ -251,6 +284,52 @@ export function PlannerPage() {
     focusComponentCode,
     plannerState.preferences.compact,
     selectedStatuses,
+  ]);
+
+  const plannerFilterSummary = useMemo(() => {
+    if (!board || !projectedBoard) {
+      return {
+        activeFilterCount: 0,
+        totalComponentCount: 0,
+        visibleComponentCount: 0,
+        hiddenComponentCount: 0,
+        totalCountsByStatus: {
+          completed: 0,
+          inProgress: 0,
+          review: 0,
+        },
+        visibleCountsByStatus: {
+          completed: 0,
+          inProgress: 0,
+          review: 0,
+        },
+        emptyStateTitle: null,
+        emptyStateMessage: null,
+        emptyStateHints: [],
+      };
+    }
+
+    return summarizePlannerFilters({
+      board,
+      projectedBoard,
+      query: deferredQuery,
+      selectedStatuses,
+      focusComponentCode,
+      connectedOnly,
+      showAvailableOnly,
+      showScheduledOnly,
+      showReviewOnly,
+    });
+  }, [
+    board,
+    connectedOnly,
+    deferredQuery,
+    focusComponentCode,
+    projectedBoard,
+    selectedStatuses,
+    showAvailableOnly,
+    showReviewOnly,
+    showScheduledOnly,
   ]);
 
   const firstPlannedTermId =
@@ -542,6 +621,11 @@ export function PlannerPage() {
   }
 
   const currentSummary = loadState.summary;
+  const focusSummaryLabel = selectedComponentCode
+    ? `Foco travado em ${selectedComponentCode}`
+    : hoveredComponentCode
+      ? `Pre-visualizando ${hoveredComponentCode}`
+      : "Passe o mouse ou fixe uma disciplina";
 
   return (
     <div className="page-grid planner-shell">
@@ -717,6 +801,11 @@ export function PlannerPage() {
                 : "Foco alto nas relacoes"}
             </button>
           </div>
+          <p className="muted-note">
+            {plannerState.preferences.compact
+              ? "Modo compacto reduz a densidade visual dos cartões sem esconder dependências."
+              : "Modo detalhado mantém a leitura completa de dependências, pendências e horários."}
+          </p>
         </div>
 
         <div className="planner-search-row">
@@ -786,6 +875,13 @@ export function PlannerPage() {
                       query: deferredQuery,
                       connectedOnly: !connectedOnly,
                       focusComponentCode: selectedComponentCode,
+                      selectedStatuses:
+                        selectedStatuses.length < ALL_COMPONENT_STATUSES.length
+                          ? selectedStatuses
+                          : [],
+                      showAvailableOnly,
+                      showScheduledOnly,
+                      showReviewOnly,
                     },
                   }),
                 );
@@ -809,7 +905,7 @@ export function PlannerPage() {
                 );
               }}
             >
-              {formatAcademicStatusLabel(status)}
+              {formatPlannerStatusChipLabel(status, plannerFilterSummary)}
             </button>
           ))}
           <button
@@ -822,6 +918,7 @@ export function PlannerPage() {
               setShowScheduledOnly(false);
               setQueryDraft("");
               setSelectedComponentCode(null);
+              setHoveredComponentCode(null);
               setPlannerState((currentState) =>
                 updatePlannerState(currentState, {
                   filterDraft: null,
@@ -831,6 +928,19 @@ export function PlannerPage() {
           >
             Limpar filtros
           </button>
+        </div>
+
+        <div className="tag-grid compact-grid">
+          <span className="tag">
+            {plannerFilterSummary.visibleComponentCount}/
+            {plannerFilterSummary.totalComponentCount} visiveis
+          </span>
+          <span className="tag">
+            {plannerFilterSummary.hiddenComponentCount} ocultos
+          </span>
+          <span className="tag">
+            {plannerFilterSummary.activeFilterCount} filtros ativos
+          </span>
         </div>
 
         {feedback.message ? (
@@ -896,6 +1006,55 @@ export function PlannerPage() {
             correspondencia local, nao como confirmacao oficial do SIGAA.
           </div>
 
+          {plannerFilterSummary.visibleComponentCount === 0 ? (
+            <section className="soft-card">
+              <p className="micro-label">Nenhum resultado visivel</p>
+              <h3>{plannerFilterSummary.emptyStateTitle}</h3>
+              <p>{plannerFilterSummary.emptyStateMessage}</p>
+              <ul className="list">
+                {plannerFilterSummary.emptyStateHints.map((hint) => (
+                  <li key={hint}>{hint}</li>
+                ))}
+              </ul>
+              <div className="action-row">
+                <button
+                  type="button"
+                  className="action-button action-button-secondary"
+                  onClick={() => {
+                    setSelectedStatuses(ALL_COMPONENT_STATUSES);
+                    setShowAvailableOnly(false);
+                    setShowReviewOnly(false);
+                    setShowScheduledOnly(false);
+                    setQueryDraft("");
+                    setSelectedComponentCode(null);
+                    setHoveredComponentCode(null);
+                    setPlannerState((currentState) =>
+                      updatePlannerState(currentState, {
+                        filterDraft: null,
+                      }),
+                    );
+                  }}
+                >
+                  Reabrir todos os componentes
+                </button>
+                <button
+                  type="button"
+                  className="action-button"
+                  onClick={() => {
+                    setSelectedComponentCode(null);
+                    setPlannerState((currentState) =>
+                      updatePlannerState(currentState, {
+                        filterDraft: null,
+                      }),
+                    );
+                  }}
+                >
+                  Limpar foco fixado
+                </button>
+              </div>
+            </section>
+          ) : null}
+
           <div className="planner-board-stage" ref={boardStageRef}>
             {relationHighlights && linkLayerState.paths.length > 0 ? (
               <svg
@@ -923,6 +1082,11 @@ export function PlannerPage() {
 
             <div className="planner-board-grid">
               {visibleTerms.map((term, termIndex) => {
+                const displayLabel = describePlannerTermLabel(
+                  board,
+                  term,
+                  termIndex,
+                );
                 const dropValidation =
                   draggedComponentCode &&
                   board.cardsByCode[draggedComponentCode]
@@ -930,7 +1094,12 @@ export function PlannerPage() {
                     : null;
                 const displayedTitle =
                   plannerState.preferences.termLabels[term.id] ??
-                  suggestPlannerTermTitle(board, term, termIndex);
+                  displayLabel.title;
+                const dragConflict =
+                  draggedComponentCode &&
+                  board.cardsByCode[draggedComponentCode]
+                    ? validatePlannerMove(board, draggedComponentCode, term.id)
+                    : null;
 
                 return (
                   <fieldset
@@ -1015,7 +1184,7 @@ export function PlannerPage() {
                             }}
                           />
                         </label>
-                        <p>{describePlannerTerm(term)}</p>
+                        <p>{displayLabel.subtitle}</p>
                       </div>
                     </header>
 
@@ -1024,10 +1193,27 @@ export function PlannerPage() {
                       <span>{term.componentCodes.length} totais</span>
                     </div>
 
+                    {dragConflict && draggedComponentCode ? (
+                      <p
+                        className={
+                          dragConflict.canMove
+                            ? "muted-note"
+                            : "status-banner status-banner-error"
+                        }
+                        role={dragConflict.canMove ? undefined : "status"}
+                      >
+                        {dragConflict.canMove
+                          ? `Mover ${draggedComponentCode} para ${displayedTitle} parece consistente com as dependencias locais.`
+                          : `Bloqueio de movimento: ${draggedComponentCode} nao pode ir para ${displayedTitle} enquanto ${dragConflict.blockingPrerequisiteCodes.join(", ")} nao estiverem antes.`}
+                      </p>
+                    ) : null}
+
                     <div className="planner-card-stack">
                       {term.visibleComponentCodes.length === 0 ? (
                         <div className="planner-empty-slot">
-                          Nenhum componente visivel neste recorte.
+                          {plannerFilterSummary.visibleComponentCount === 0
+                            ? "Todos os componentes ficaram ocultos pelos filtros atuais."
+                            : `Nenhum componente visivel neste ${displayLabel.title.toLowerCase()}.`}
                         </div>
                       ) : (
                         term.visibleComponentCodes.map((componentCode) => {
@@ -1182,11 +1368,7 @@ export function PlannerPage() {
         <aside className="planner-sidebar">
           <section className="panel planner-side-panel">
             <p className="micro-label">Visao de dependencias</p>
-            <h3>
-              {focusComponentCode
-                ? `Rede local de ${focusComponentCode}`
-                : "Passe o mouse ou fixe uma disciplina"}
-            </h3>
+            <h3>{focusSummaryLabel}</h3>
             <p>
               {focusComponentCode
                 ? "Prerequisitos diretos ficam destacados em verde; disciplinas liberadas pela selecionada aparecem em azul."
@@ -1545,63 +1727,6 @@ function formatTermKindLabel(kind: PlannerTerm["kind"]) {
   }
 }
 
-function describePlannerTerm(term: PlannerTerm) {
-  switch (term.kind) {
-    case "completed":
-      return "Historico ja reconhecido no snapshot local.";
-    case "in-progress":
-      return "Componentes ativos no periodo atual.";
-    case "planned":
-      return "Coluna de planejamento arrastavel.";
-    case "review":
-      return "Itens que ainda precisam de encaixe ou revisao.";
-    default:
-      return "Leitura local da trilha.";
-  }
-}
-
-function suggestPlannerTermTitle(
-  board: PlannerBoard,
-  term: PlannerTerm,
-  termIndex: number,
-) {
-  if (term.kind === "completed") {
-    return "Concluidas";
-  }
-
-  if (term.kind === "in-progress") {
-    return `Agora · ${formatAcademicTermOffset(0)}`;
-  }
-
-  if (term.kind === "review") {
-    return "Revisar encaixe";
-  }
-
-  const plannedPosition = board.terms
-    .slice(0, termIndex + 1)
-    .filter((currentTerm) => currentTerm.kind === "planned").length;
-
-  return formatAcademicTermOffset(plannedPosition);
-}
-
-function formatAcademicTermOffset(offset: number) {
-  const now = new Date();
-  let year = now.getFullYear();
-  let term = now.getMonth() < 6 ? 1 : 2;
-
-  for (let currentOffset = 0; currentOffset < offset; currentOffset += 1) {
-    if (term === 1) {
-      term = 2;
-      continue;
-    }
-
-    year += 1;
-    term = 1;
-  }
-
-  return `${year}.${term}`;
-}
-
 function mapTermKindToTone(kind: PlannerTerm["kind"]): PlannerStatusTone {
   switch (kind) {
     case "completed":
@@ -1842,14 +1967,16 @@ function handlePlannerDrop(input: {
 
     return {
       tone: "error" as const,
-      message: `Esse encaixe quebra a ordem local de prerequisitos.${blockedList}`,
+      message: `Esse encaixe quebra a ordem local de prerequisitos para ${
+        targetTerm.title || targetTerm.id
+      }.${blockedList}`,
       nextBoard: null,
     };
   }
 
   return {
     tone: "ready" as const,
-    message: `${input.componentCode} movida para ${input.targetTermId}.`,
+    message: `${input.componentCode} movida para ${targetTerm.title || input.targetTermId}.`,
     nextBoard: movePlannerCard(
       input.board,
       input.componentCode,
@@ -1922,4 +2049,15 @@ function formatFocusPriority(
 
 function uniqueValues(values: string[]) {
   return Array.from(new Set(values));
+}
+
+function formatPlannerStatusChipLabel(
+  status: ComponentAcademicStatus,
+  summary: PlannerFilterSummary,
+) {
+  const label = formatAcademicStatusLabel(status);
+  const visibleCount = summary.visibleCountsByStatus[status] ?? 0;
+  const totalCount = summary.totalCountsByStatus[status] ?? 0;
+
+  return `${label} (${visibleCount}/${totalCount})`;
 }

@@ -3,7 +3,9 @@ import {
   buildPlannerDependencyGraph,
   buildPlannerRelationHighlights,
   createPlannerBoardFromProgress,
+  describePlannerTermLabel,
   projectPlannerBoard,
+  summarizePlannerFilters,
   validatePlannerMove,
 } from "./plannerModel";
 import type { StudentProgressSummary } from "./studentProgress";
@@ -80,6 +82,73 @@ describe("plannerModel", () => {
     expect(projected.hiddenComponentCodes).toContain("MATA01");
     expect(projected.terms[3]?.visibleComponentCodes).toEqual(["MATA05"]);
     expect(projected.terms[3]?.hiddenComponentCodes).toEqual([]);
+  });
+
+  it("describes planner terms using estimated academic periods", () => {
+    const summary = createSummary();
+    const board = createPlannerBoardFromProgress(summary);
+    const activeTerm = board.terms[1];
+    const firstPlannedTerm = board.terms[2];
+
+    expect(activeTerm).toBeDefined();
+    expect(firstPlannedTerm).toBeDefined();
+    expect(
+      describePlannerTermLabel(
+        board,
+        activeTerm as (typeof board.terms)[number],
+        1,
+      ),
+    ).toEqual({
+      title: "Agora",
+      subtitle: "Período ativo estimado: 2026.1",
+    });
+    expect(
+      describePlannerTermLabel(
+        board,
+        firstPlannedTerm as (typeof board.terms)[number],
+        2,
+      ),
+    ).toEqual({
+      title: "Plano 1",
+      subtitle: "Semestre estimado: 2026.2",
+    });
+  });
+
+  it("summarizes planner filters with empty-state guidance", () => {
+    const summary = createSummary();
+    const board = createPlannerBoardFromProgress(summary);
+    const projected = projectPlannerBoard(board, {
+      query: "xyz",
+      statuses: ["review"],
+      compact: true,
+    });
+
+    const filterSummary = summarizePlannerFilters({
+      board,
+      projectedBoard: projected,
+      query: "xyz",
+      selectedStatuses: ["review"],
+      focusComponentCode: null,
+      connectedOnly: false,
+      showAvailableOnly: false,
+      showScheduledOnly: false,
+      showReviewOnly: false,
+    });
+
+    expect(filterSummary.activeFilterCount).toBe(2);
+    expect(filterSummary.visibleComponentCount).toBe(0);
+    expect(filterSummary.totalCountsByStatus).toEqual({
+      completed: 1,
+      inProgress: 1,
+      review: 3,
+    });
+    expect(filterSummary.visibleCountsByStatus).toEqual({
+      completed: 0,
+      inProgress: 0,
+      review: 0,
+    });
+    expect(filterSummary.emptyStateTitle).toContain("busca");
+    expect(filterSummary.emptyStateHints.length).toBeGreaterThan(0);
   });
 });
 

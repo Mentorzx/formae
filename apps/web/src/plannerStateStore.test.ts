@@ -32,6 +32,10 @@ describe("plannerStateStore", () => {
         query: "  redes  ",
         connectedOnly: true,
         focusComponentCode: " MATA05 ",
+        selectedStatuses: ["completed", "review", "ignored"],
+        showAvailableOnly: 1 as unknown as boolean,
+        showScheduledOnly: false,
+        showReviewOnly: true,
       },
       studentNumber: "219216387" as unknown as string,
       rawAcademicPayload: {
@@ -51,6 +55,10 @@ describe("plannerStateStore", () => {
           query: "redes",
           connectedOnly: true,
           focusComponentCode: "MATA05",
+          selectedStatuses: ["completed", "review"],
+          showAvailableOnly: true,
+          showScheduledOnly: false,
+          showReviewOnly: true,
         },
       },
     });
@@ -69,6 +77,10 @@ describe("plannerStateStore", () => {
         query: "estruturas",
         connectedOnly: false,
         focusComponentCode: null,
+        selectedStatuses: ["completed", "inProgress"],
+        showAvailableOnly: false,
+        showScheduledOnly: true,
+        showReviewOnly: false,
       },
     });
 
@@ -91,6 +103,10 @@ describe("plannerStateStore", () => {
           query: "estruturas",
           connectedOnly: false,
           focusComponentCode: null,
+          selectedStatuses: ["completed", "inProgress"],
+          showAvailableOnly: false,
+          showScheduledOnly: true,
+          showReviewOnly: false,
         },
       },
     });

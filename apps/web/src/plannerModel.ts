@@ -70,6 +70,23 @@ export interface PlannerBoardView {
   hiddenComponentCodes: string[];
 }
 
+export interface PlannerTermDisplayLabel {
+  title: string;
+  subtitle: string;
+}
+
+export interface PlannerFilterSummary {
+  activeFilterCount: number;
+  totalComponentCount: number;
+  visibleComponentCount: number;
+  hiddenComponentCount: number;
+  totalCountsByStatus: Record<ComponentAcademicStatus, number>;
+  visibleCountsByStatus: Record<ComponentAcademicStatus, number>;
+  emptyStateTitle: string | null;
+  emptyStateMessage: string | null;
+  emptyStateHints: string[];
+}
+
 export interface PlannerMoveValidation {
   canMove: boolean;
   reason: string | null;
@@ -353,6 +370,211 @@ export function projectPlannerBoard(
   };
 }
 
+export function describePlannerTermLabel(
+  board: PlannerBoard,
+  term: PlannerTerm,
+  termIndex: number,
+): PlannerTermDisplayLabel {
+  const generatedAt = parsePlannerAcademicPeriod(board.generatedAt);
+  const plannedTermOrdinal =
+    term.kind === "planned" ? getPlannedOrdinal(board, termIndex) : null;
+
+  switch (term.kind) {
+    case "completed":
+      return {
+        title: "Concluídos",
+        subtitle: `Histórico local de ${generatedAt.periodLabel}`,
+      };
+    case "in-progress":
+      return {
+        title: "Agora",
+        subtitle: `Período ativo estimado: ${generatedAt.periodLabel}`,
+      };
+    case "planned":
+      return {
+        title:
+          plannedTermOrdinal === null ? "Plano" : `Plano ${plannedTermOrdinal}`,
+        subtitle: `Semestre estimado: ${formatAcademicPeriod(
+          advanceAcademicPeriod(generatedAt, plannedTermOrdinal ?? 0),
+        )}`,
+      };
+    case "review":
+      return {
+        title: "Revisar encaixe",
+        subtitle: `Componentes sem trilha confiável em ${generatedAt.periodLabel}`,
+      };
+    default:
+      return {
+        title: term.title,
+        subtitle: generatedAt.periodLabel,
+      };
+  }
+}
+
+export function summarizePlannerFilters(input: {
+  board: PlannerBoard;
+  projectedBoard: PlannerBoardView;
+  query: string;
+  selectedStatuses: ComponentAcademicStatus[];
+  focusComponentCode: string | null;
+  connectedOnly: boolean;
+  showAvailableOnly: boolean;
+  showScheduledOnly: boolean;
+  showReviewOnly: boolean;
+}): PlannerFilterSummary {
+  const totalCountsByStatus = countStatuses(input.board.cardsByCode);
+  const visibleCountsByStatus = countStatusesFromCodes(
+    input.board.cardsByCode,
+    input.projectedBoard.visibleComponentCodes,
+  );
+  const totalComponentCount = Object.keys(input.board.cardsByCode).length;
+  const visibleComponentCount =
+    input.projectedBoard.visibleComponentCodes.length;
+  const hiddenComponentCount = input.projectedBoard.hiddenComponentCodes.length;
+  const activeFilterCount = countActivePlannerFilters(input);
+
+  if (visibleComponentCount > 0) {
+    return {
+      activeFilterCount,
+      totalComponentCount,
+      visibleComponentCount,
+      hiddenComponentCount,
+      totalCountsByStatus,
+      visibleCountsByStatus,
+      emptyStateTitle: null,
+      emptyStateMessage: null,
+      emptyStateHints: [],
+    };
+  }
+
+  const trimmedQuery = input.query.trim();
+
+  if (trimmedQuery.length > 0) {
+    return {
+      activeFilterCount,
+      totalComponentCount,
+      visibleComponentCount,
+      hiddenComponentCount,
+      totalCountsByStatus,
+      visibleCountsByStatus,
+      emptyStateTitle: "Nenhum componente corresponde à busca",
+      emptyStateMessage: `A busca "${trimmedQuery}" ocultou todos os componentes do planner.`,
+      emptyStateHints: [
+        "Tente abreviar o texto de busca.",
+        "Remova o filtro de foco para ver a grade inteira.",
+        "Limpe os chips de status se estiver filtrando demais.",
+      ],
+    };
+  }
+
+  if (input.connectedOnly && input.focusComponentCode) {
+    return {
+      activeFilterCount,
+      totalComponentCount,
+      visibleComponentCount,
+      hiddenComponentCount,
+      totalCountsByStatus,
+      visibleCountsByStatus,
+      emptyStateTitle: `Sem vizinhos visíveis para ${input.focusComponentCode}`,
+      emptyStateMessage:
+        "O foco atual não deixou prerequisitos ou dependentes visíveis com estes filtros.",
+      emptyStateHints: [
+        "Clique no componente outra vez para desfazer o foco fixado.",
+        "Desative 'So relacionadas' para voltar à trilha completa.",
+      ],
+    };
+  }
+
+  if (input.showAvailableOnly) {
+    return {
+      activeFilterCount,
+      totalComponentCount,
+      visibleComponentCount,
+      hiddenComponentCount,
+      totalCountsByStatus,
+      visibleCountsByStatus,
+      emptyStateTitle: "Nada ficou liberado agora",
+      emptyStateMessage:
+        "O recorte atual não encontrou nenhum componente pronto para o próximo encaixe.",
+      emptyStateHints: [
+        "Desative 'So liberadas agora'.",
+        "Reveja o semestre planejado para encontrar outra linha de avanço.",
+      ],
+    };
+  }
+
+  if (input.showScheduledOnly) {
+    return {
+      activeFilterCount,
+      totalComponentCount,
+      visibleComponentCount,
+      hiddenComponentCount,
+      totalCountsByStatus,
+      visibleCountsByStatus,
+      emptyStateTitle: "Nenhum componente com horario visível",
+      emptyStateMessage:
+        "Os filtros atuais esconderam todos os componentes que já têm carga horária associada.",
+      emptyStateHints: [
+        "Desative 'Com horario local'.",
+        "Use a busca para reencontrar um componente específico.",
+      ],
+    };
+  }
+
+  if (input.showReviewOnly) {
+    return {
+      activeFilterCount,
+      totalComponentCount,
+      visibleComponentCount,
+      hiddenComponentCount,
+      totalCountsByStatus,
+      visibleCountsByStatus,
+      emptyStateTitle: "Revisão vazia neste recorte",
+      emptyStateMessage:
+        "Nenhum item em revisão permaneceu visível com os filtros atuais.",
+      emptyStateHints: [
+        "Desative 'Em revisao'.",
+        "Limpe os filtros para voltar ao mapa completo.",
+      ],
+    };
+  }
+
+  if (input.selectedStatuses.length > 0 && input.selectedStatuses.length < 3) {
+    return {
+      activeFilterCount,
+      totalComponentCount,
+      visibleComponentCount,
+      hiddenComponentCount,
+      totalCountsByStatus,
+      visibleCountsByStatus,
+      emptyStateTitle: "Status filtrado demais",
+      emptyStateMessage:
+        "Os status selecionados esconderam todos os componentes visíveis neste recorte.",
+      emptyStateHints: [
+        "Reative todos os chips de status.",
+        "Combine o filtro de status com a busca local para um recorte mais preciso.",
+      ],
+    };
+  }
+
+  return {
+    activeFilterCount,
+    totalComponentCount,
+    visibleComponentCount,
+    hiddenComponentCount,
+    totalCountsByStatus,
+    visibleCountsByStatus,
+    emptyStateTitle: "Planner vazio com estes filtros",
+    emptyStateMessage:
+      "Os filtros atuais esconderam tudo. Isso normalmente acontece quando o foco ou os status ficaram restritivos demais.",
+    emptyStateHints: [
+      "Limpe a busca local.",
+      "Volte os chips de status para todos os componentes.",
+      "Desative o foco por relacionamentos.",
+    ],
+  };
+}
+
 function buildPlannerCards(
   summary: StudentProgressSummary,
   dependencyGraph: PlannerDependencyGraph,
@@ -565,4 +787,130 @@ function createEmptyCodeMap(codes: string[]): Record<string, string[]> {
 
 function uniqueValues(values: string[]): string[] {
   return Array.from(new Set(values));
+}
+
+function countStatuses(cardsByCode: Record<string, PlannerComponentCard>) {
+  return countStatusesFromCodes(cardsByCode, Object.keys(cardsByCode));
+}
+
+function countStatusesFromCodes(
+  cardsByCode: Record<string, PlannerComponentCard>,
+  codes: string[],
+) {
+  const counts: Record<ComponentAcademicStatus, number> = {
+    completed: 0,
+    inProgress: 0,
+    review: 0,
+  };
+
+  for (const code of codes) {
+    const card = cardsByCode[code];
+    if (!card) {
+      continue;
+    }
+
+    counts[card.academicStatus] += 1;
+  }
+
+  return counts;
+}
+
+function countActivePlannerFilters(input: {
+  query: string;
+  selectedStatuses: ComponentAcademicStatus[];
+  focusComponentCode: string | null;
+  connectedOnly: boolean;
+  showAvailableOnly: boolean;
+  showScheduledOnly: boolean;
+  showReviewOnly: boolean;
+}) {
+  const defaultStatuses = 3;
+  let activeFilterCount = 0;
+
+  if (input.query.trim().length > 0) {
+    activeFilterCount += 1;
+  }
+
+  if (
+    input.selectedStatuses.length > 0 &&
+    input.selectedStatuses.length < defaultStatuses
+  ) {
+    activeFilterCount += 1;
+  }
+
+  if (input.focusComponentCode) {
+    activeFilterCount += 1;
+  }
+
+  if (input.connectedOnly) {
+    activeFilterCount += 1;
+  }
+
+  if (input.showAvailableOnly) {
+    activeFilterCount += 1;
+  }
+
+  if (input.showScheduledOnly) {
+    activeFilterCount += 1;
+  }
+
+  if (input.showReviewOnly) {
+    activeFilterCount += 1;
+  }
+
+  return activeFilterCount;
+}
+
+function parsePlannerAcademicPeriod(value: string): {
+  year: number;
+  semester: 1 | 2;
+  periodLabel: string;
+} {
+  const parsed = new Date(value);
+  const year = Number.isNaN(parsed.getTime())
+    ? new Date().getFullYear()
+    : parsed.getFullYear();
+  const semester: 1 | 2 = Number.isNaN(parsed.getTime())
+    ? 1
+    : parsed.getMonth() < 6
+      ? 1
+      : 2;
+
+  return {
+    year,
+    semester,
+    periodLabel: formatAcademicPeriod({ year, semester }),
+  };
+}
+
+function advanceAcademicPeriod(
+  period: { year: number; semester: 1 | 2 },
+  offset: number,
+) {
+  let year = period.year;
+  let semester: 1 | 2 = period.semester;
+
+  for (let index = 0; index < offset; index += 1) {
+    if (semester === 1) {
+      semester = 2;
+      continue;
+    }
+
+    year += 1;
+    semester = 1;
+  }
+
+  return { year, semester };
+}
+
+function formatAcademicPeriod(period: { year: number; semester: 1 | 2 }) {
+  return `${period.year}.${period.semester}`;
+}
+
+function getPlannedOrdinal(board: PlannerBoard, termIndex: number) {
+  const plannedTermsBeforeCurrent = board.terms
+    .slice(0, termIndex + 1)
+    .filter((term) => term.kind === "planned").length;
+
+  return plannedTermsBeforeCurrent > 0 ? plannedTermsBeforeCurrent : null;
 }

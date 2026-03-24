@@ -1,9 +1,15 @@
+import type { ComponentAcademicStatus } from "./studentProgress";
+
 export const PLANNER_STATE_STORAGE_KEY = "formae:planner-state:v1";
 
 export interface PlannerFilterDraft {
   query: string;
   connectedOnly: boolean;
   focusComponentCode: string | null;
+  selectedStatuses: ComponentAcademicStatus[];
+  showAvailableOnly: boolean;
+  showScheduledOnly: boolean;
+  showReviewOnly: boolean;
 }
 
 export interface PlannerUiPreferences {
@@ -28,6 +34,10 @@ export interface PlannerFilterDraftInput {
   query?: unknown;
   connectedOnly?: unknown;
   focusComponentCode?: unknown;
+  selectedStatuses?: unknown;
+  showAvailableOnly?: unknown;
+  showScheduledOnly?: unknown;
+  showReviewOnly?: unknown;
 }
 
 export interface PlannerStatePersistenceRecord {
@@ -192,8 +202,20 @@ function sanitizeFilterDraft(
     draft.focusComponentCode.trim().length > 0
       ? draft.focusComponentCode.trim()
       : null;
+  const selectedStatuses = sanitizeSelectedStatuses(draft.selectedStatuses);
+  const showAvailableOnly = Boolean(draft.showAvailableOnly);
+  const showScheduledOnly = Boolean(draft.showScheduledOnly);
+  const showReviewOnly = Boolean(draft.showReviewOnly);
 
-  if (query.length === 0 && !connectedOnly && !focusComponentCode) {
+  if (
+    query.length === 0 &&
+    !connectedOnly &&
+    !focusComponentCode &&
+    selectedStatuses.length === 0 &&
+    !showAvailableOnly &&
+    !showScheduledOnly &&
+    !showReviewOnly
+  ) {
     return null;
   }
 
@@ -201,7 +223,37 @@ function sanitizeFilterDraft(
     query,
     connectedOnly,
     focusComponentCode,
+    selectedStatuses,
+    showAvailableOnly,
+    showScheduledOnly,
+    showReviewOnly,
   };
+}
+
+function sanitizeSelectedStatuses(
+  selectedStatuses: unknown,
+): ComponentAcademicStatus[] {
+  if (!Array.isArray(selectedStatuses)) {
+    return [];
+  }
+
+  const allowedStatuses: ComponentAcademicStatus[] = [
+    "completed",
+    "inProgress",
+    "review",
+  ];
+  const allowedSet = new Set(allowedStatuses);
+
+  return Array.from(
+    new Set(
+      selectedStatuses.flatMap((status) =>
+        typeof status === "string" &&
+        allowedSet.has(status as ComponentAcademicStatus)
+          ? [status as ComponentAcademicStatus]
+          : [],
+      ),
+    ),
+  );
 }
 
 function sanitizeTermLabels(
@@ -250,6 +302,12 @@ function clonePlannerState(state: PlannerState): PlannerState {
             connectedOnly: state.preferences.filterDraft.connectedOnly,
             focusComponentCode:
               state.preferences.filterDraft.focusComponentCode,
+            selectedStatuses: [
+              ...state.preferences.filterDraft.selectedStatuses,
+            ],
+            showAvailableOnly: state.preferences.filterDraft.showAvailableOnly,
+            showScheduledOnly: state.preferences.filterDraft.showScheduledOnly,
+            showReviewOnly: state.preferences.filterDraft.showReviewOnly,
           }
         : null,
     },
