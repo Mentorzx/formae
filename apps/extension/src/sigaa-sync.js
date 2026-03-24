@@ -32,9 +32,12 @@ const CAPTURE_VIEWS = [
   },
 ];
 const COMPONENT_CODE_PATTERN = /\b([A-Z]{3,5}\d{2,3})\b/;
+const COMPONENT_CODE_SCAN_PATTERN = /\b([A-Z]{3,5}\d{2,3})\b/g;
 const SCHEDULE_CODE_PATTERN = /\b([2-7]+[MTN]\d{1,2})\b/g;
 const GRADE_STATUS_PATTERN =
   /\b(APROVADO|REPROVADO|CANCELADO|TRANCADO|CURSANDO|MATRICULADO|APTO|INAPTO|EM CURSO|EM ANDAMENTO)\b/i;
+const HISTORY_ROW_PATTERN =
+  /^(?<period>\d{4}\.\d)\s+(?<componentName>.+?)\s+(?<gradeValue>\d{1,2}(?:[.,]\d{1,2})?|--)\s+(?<absences>\d+|--)\s+(?<statusText>APROVADO|REPROVADO|CANCELADO|TRANCADO|CURSANDO|MATRICULADO|APTO|INAPTO|EM CURSO|EM ANDAMENTO)\s*$/i;
 
 export async function runAutomaticSigaaSync({
   syncSessionId,
@@ -545,7 +548,8 @@ function submitPortalActionInPage(input) {
 }
 
 function captureVisibleTextInPage(input) {
-  const extractedHistory = extractHistoryTableRowsInPage();
+  const extractedHistory =
+    extractHistoryTableRowsInPage() ?? extractHistoryEntries(document.body?.innerText ?? "");
 
   return {
     label: input.label,
@@ -557,55 +561,39 @@ function captureVisibleTextInPage(input) {
 }
 
 function extractTurmaEntries(text) {
-  return splitMeaningfulLines(text)
-    .map((rawLine) => {
-      const componentCode = rawLine.match(COMPONENT_CODE_PATTERN)?.[1] ?? null;
-      if (!componentCode) {
-        return null;
-      }
+  return splitComponentSegments(text).map(({ componentCode, rawSegment }) => {
+    const scheduleCodes = uniqueValues(
+      Array.from(rawSegment.matchAll(SCHEDULE_CODE_PATTERN), (match) => match[1]),
+    );
 
-      const scheduleCodes = uniqueValues(
-        Array.from(rawLine.matchAll(SCHEDULE_CODE_PATTERN), (match) => match[1]),
-      );
-
-      return {
-        componentCode,
-        scheduleCodes,
-        rawLine,
-      };
-    })
-    .filter(Boolean);
+    return {
+      componentCode,
+      componentName: extractComponentName(rawSegment, componentCode),
+      scheduleCodes,
+      rawLine: rawSegment,
+    };
+  });
 }
 
 function extractGradeEntries(text) {
-  return splitMeaningfulLines(text)
-    .map((rawLine) => {
-      const componentCode = rawLine.match(COMPONENT_CODE_PATTERN)?.[1] ?? null;
-      if (!componentCode) {
-        return null;
-      }
+  return splitComponentSegments(text).map(({ componentCode, rawSegment }) => {
+    const statusText = rawSegment.match(GRADE_STATUS_PATTERN)?.[1] ?? null;
+    const gradeValue = extractGradeValue(rawSegment, statusText);
 
-      const statusText = rawLine.match(GRADE_STATUS_PATTERN)?.[1] ?? null;
-      return {
-        componentCode,
-        statusText,
-        rawLine,
-      };
-    })
-    .filter(Boolean);
+    return {
+      componentCode,
+      componentName: extractComponentName(rawSegment, componentCode, statusText),
+      gradeValue,
+      statusText,
+      rawLine: rawSegment,
+    };
+  });
 }
 
 function extractHistoryEntries(text) {
-  return splitMeaningfulLines(text)
+  return splitHistorySegments(text)
     .map((rawLine) => {
-      const period = rawLine.match(/^\d{4}\.\d\b/)?.[0] ?? null;
-      if (!period) {
-        return null;
-      }
-
-      const gradeMatch = rawLine.match(
-        /^(?<period>\d{4}\.\d)\s+(?<componentName>.+?)\s+(?<gradeValue>\d{1,2}(?:[.,]\d{1,2})?|--)\s+(?<absences>\d+|--)\s+(?<statusText>APROVADO|REPROVADO|CANCELADO|TRANCADO|CURSANDO|MATRICULADO|APTO|INAPTO|EM CURSO|EM ANDAMENTO)\s*$/i,
-      );
+      const gradeMatch = rawLine.match(HISTORY_ROW_PATTERN);
 
       if (!gradeMatch?.groups) {
         return null;
@@ -667,7 +655,7 @@ function extractHistoryTableRowsInPage() {
     }
   }
 
-  return [];
+  return null;
 }
 
 function splitMeaningfulLines(text) {
@@ -675,6 +663,41 @@ function splitMeaningfulLines(text) {
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean);
+}
+
+function splitComponentSegments(text) {
+  const normalizedText = normalizeTextWithLines(text);
+  const matches = Array.from(normalizedText.matchAll(COMPONENT_CODE_SCAN_PATTERN));
+
+  if (matches.length === 0) {
+    return [];
+  }
+
+  return matches.map((match, index) => {
+    const startIndex = match.index ?? 0;
+    const endIndex = matches[index + 1]?.index ?? normalizedText.length;
+
+    return {
+      componentCode: match[1],
+      rawSegment: normalizedText.slice(startIndex, endIndex).trim(),
+    };
+  });
+}
+
+function splitHistorySegments(text) {
+  const normalizedText = normalizeTextWithLines(text);
+  const matches = Array.from(normalizedText.matchAll(/\b\d{4}\.\d\b/g));
+
+  if (matches.length === 0) {
+    return splitMeaningfulLines(normalizedText);
+  }
+
+  return matches.map((match, index) => {
+    const startIndex = match.index ?? 0;
+    const endIndex = matches[index + 1]?.index ?? normalizedText.length;
+
+    return normalizedText.slice(startIndex, endIndex).trim();
+  });
 }
 
 function normalizeTextWithLines(value) {
@@ -690,6 +713,39 @@ function uniqueValues(values) {
   return Array.from(new Set(values));
 }
 
+function extractComponentName(rawSegment, componentCode, terminalToken = null) {
+  const terminalTokenPattern = terminalToken
+    ? new RegExp(escapeRegex(terminalToken), "i")
+    : null;
+
+  const withoutCode = rawSegment.replace(componentCode, "").trim();
+  const withoutTerminal = terminalTokenPattern
+    ? withoutCode.replace(terminalTokenPattern, "").trim()
+    : withoutCode;
+  const withoutScheduleMarker = withoutTerminal.replace(
+    /\b(?:Horario|Horário)\s*:\s*.*$/i,
+    "",
+  ).trim();
+
+  return withoutScheduleMarker.replace(/^[\s:\-–—]+|[\s:\-–—]+$/g, "") || null;
+}
+
+function extractGradeValue(rawSegment, statusText) {
+  const withoutStatus = statusText
+    ? rawSegment.replace(new RegExp(escapeRegex(statusText), "i"), "").trim()
+    : rawSegment;
+  const matches = Array.from(
+    withoutStatus.matchAll(/\b(\d{1,2}(?:[.,]\d{1,2})?|--)\b/g),
+    (match) => match[1],
+  );
+
+  return matches.at(-1) ?? null;
+}
+
 function normalizeVisibleCellText(value) {
   return value.replace(/\s+/g, " ").trim();
+}
+
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

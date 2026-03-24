@@ -13,7 +13,7 @@ Extensao MV3 para sincronizacao local com o SIGAA. O foco continua sendo manter 
 - `src/credential-store.js` e `src/login-session.js` com sessao efemera em memoria
 - `src/dom-contract.js` com contrato de seletores e classificacao de pagina
 - `src/page-bridge.js` com helpers para a ponte de pagina
-- `src/sigaa-sync.js` com o runtime automatico que autentica localmente e captura `Minhas Turmas`, `Minhas Notas` e `Consultar Histórico`
+- `src/sigaa-sync.js` com o runtime automatico que autentica localmente e captura `Minhas Turmas`, `Minhas Notas` e `Consultar Histórico`, mesmo quando o SIGAA cola varios registros em uma unica linha
 - `src/runtime.js` com compatibilidade `browser`/`chrome`
 
 ## Como a extensao conversa com a web app
@@ -22,7 +22,7 @@ Extensao MV3 para sincronizacao local com o SIGAA. O foco continua sendo manter 
 2. O background guarda a sessão apenas em memória e expõe um estado resumido sem senha.
 3. A PWA envia apenas `RequestSync` via `window.postMessage`.
 4. O content script recebe o envelope e o repassa para o service worker.
-5. O runtime abre abas locais do SIGAA, autentica, captura as views esperadas, incluindo o relatório de histórico quando disponível, e devolve um `RawSigaaPayload`.
+5. O runtime abre abas locais do SIGAA, autentica, captura as views esperadas, incluindo o relatório de histórico quando disponível, segmenta capturas com varios registros em uma unica linha e devolve um `RawSigaaPayload`.
 6. Depois do sync a sessão efêmera é consumida e removida da memória.
 
 ## Firefox e Chrome

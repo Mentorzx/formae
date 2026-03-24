@@ -52,28 +52,22 @@ test("buildStructuredSigaaCapture extracts turma, grade and history records", ()
         id: "classes",
         label: "Minhas Turmas",
         routeHint: "https://sigaa.ufba.br/sigaa/mobile/touch/menu.jsf",
-        text: [
-          "ENGC63 - PROCESSAMENTO DIGITAL DE SINAIS - Horario: 35N12",
-          "ENGC41 - ALGORITMOS E ESTRUTURAS DE DADOS - Horario: 35N34",
-        ].join("\n"),
+        text:
+          "ENGC63 - PROCESSAMENTO DIGITAL DE SINAIS - Horario: 35N12 ENGC41 - ALGORITMOS E ESTRUTURAS DE DADOS - Horario: 35N34",
       },
       {
         id: "grades",
         label: "Minhas Notas",
         routeHint: "https://sigaa.ufba.br/sigaa/mobile/touch/menu.jsf",
-        text: [
-          "ENGC63 PROCESSAMENTO DIGITAL DE SINAIS APROVADO",
-          "ENGC41 ALGORITMOS E ESTRUTURAS DE DADOS REPROVADO",
-        ].join("\n"),
+        text:
+          "ENGC63 PROCESSAMENTO DIGITAL DE SINAIS APROVADO ENGC41 ALGORITMOS E ESTRUTURAS DE DADOS REPROVADO",
       },
       {
         id: "history",
         label: "Consultar Histórico",
         routeHint: "https://sigaa.ufba.br/sigaa/mobile/touch/historico.jsf",
-        text: [
-          "2026.1 ENGC63 PROCESSAMENTO DIGITAL DE SINAIS 10,0 0 APROVADO",
-          "2025.2 ENGC41 ALGORITMOS E ESTRUTURAS DE DADOS -- 4 REPROVADO",
-        ].join("\n"),
+        text:
+          "2026.1 ENGC63 PROCESSAMENTO DIGITAL DE SINAIS 10,0 0 APROVADO 2025.2 ENGC41 ALGORITMOS E ESTRUTURAS DE DADOS -- 4 REPROVADO",
       },
     ],
   });
@@ -86,11 +80,52 @@ test("buildStructuredSigaaCapture extracts turma, grade and history records", ()
   assert.deepEqual(structuredCapture.views[0].extractedTurmas[0].scheduleCodes, [
     "35N12",
   ]);
+  assert.equal(structuredCapture.views[0].extractedTurmas[1].componentCode, "ENGC41");
   assert.equal(structuredCapture.views[1].id, "grades");
   assert.equal(structuredCapture.views[1].extractedGrades.length, 2);
   assert.equal(structuredCapture.views[1].extractedGrades[1].statusText, "REPROVADO");
+  assert.equal(structuredCapture.views[1].extractedGrades[0].componentName, "PROCESSAMENTO DIGITAL DE SINAIS");
   assert.equal(structuredCapture.views[2].id, "history");
   assert.equal(structuredCapture.views[2].extractedHistory.length, 2);
   assert.equal(structuredCapture.views[2].extractedHistory[0].academicPeriod, "2026.1");
   assert.equal(structuredCapture.views[2].extractedHistory[1].statusText, "REPROVADO");
+});
+
+test("buildStructuredSigaaCapture keeps multiple component records from one long line", () => {
+  const structuredCapture = buildStructuredSigaaCapture({
+    portalProfile: null,
+    capturedViews: [
+      {
+        id: "classes",
+        label: "Minhas Turmas",
+        routeHint: "https://sigaa.ufba.br/sigaa/mobile/touch/menu.jsf",
+        text:
+          "ENGC63 - PROCESSAMENTO DIGITAL DE SINAIS - Horario: 35N12 ENGC41 - ALGORITMOS E ESTRUTURAS DE DADOS - Horario: 35N34 ENGC70 - REDES DE COMPUTADORES - Horario: 24M12",
+      },
+      {
+        id: "grades",
+        label: "Minhas Notas",
+        routeHint: "https://sigaa.ufba.br/sigaa/mobile/touch/menu.jsf",
+        text:
+          "ENGC63 PROCESSAMENTO DIGITAL DE SINAIS APROVADO ENGC41 ALGORITMOS E ESTRUTURAS DE DADOS REPROVADO ENGC70 REDES DE COMPUTADORES CURSANDO",
+      },
+    ],
+  });
+
+  assert.equal(structuredCapture.views[0].extractedTurmas.length, 3);
+  assert.deepEqual(structuredCapture.views[0].extractedTurmas.map((entry) => entry.componentCode), [
+    "ENGC63",
+    "ENGC41",
+    "ENGC70",
+  ]);
+  assert.deepEqual(structuredCapture.views[0].extractedTurmas[2].scheduleCodes, [
+    "24M12",
+  ]);
+  assert.equal(structuredCapture.views[1].extractedGrades.length, 3);
+  assert.deepEqual(structuredCapture.views[1].extractedGrades.map((entry) => entry.componentCode), [
+    "ENGC63",
+    "ENGC41",
+    "ENGC70",
+  ]);
+  assert.equal(structuredCapture.views[1].extractedGrades[2].statusText, "CURSANDO");
 });
