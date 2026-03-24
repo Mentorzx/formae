@@ -1,0 +1,292 @@
+{
+  "schemaVersion": 1,
+  "builderVersion": "0.1.0",
+  "generatedAt": "2026-03-24T04:15:34.679Z",
+  "institution": "UFBA",
+  "timingProfileId": "Ufba2025",
+  "sources": [
+    {
+      "id": "sigaa-root",
+      "title": "SIGAA UFBA",
+      "kind": "html",
+      "url": "https://sigaa.ufba.br/",
+      "fixture": "sigaa-root.html",
+      "notes": []
+    },
+    {
+      "id": "sigaa-public-turmas",
+      "title": "SIGAA Publico - Turmas",
+      "kind": "html",
+      "url": "https://sigaa.ufba.br/sigaa/public/turmas/listar.jsf",
+      "fixture": "sigaa-public-turmas.html",
+      "notes": []
+    },
+    {
+      "id": "ufba-sim-horarios",
+      "title": "UFBA SIM - Codigos de horario",
+      "kind": "html",
+      "url": "https://ufbasim.ufba.br/hor%C3%A1rios-de-aula-c%C3%B3digos-na-tabela-de-hor%C3%A1rios-do-sigaa",
+      "fixture": "ufba-sim-schedule-codes.html",
+      "notes": []
+    },
+    {
+      "id": "ihac-faixas-de-horario",
+      "title": "IHAC UFBA - Faixas de horario",
+      "kind": "html",
+      "url": "https://ihac.ufba.br/pt/10212/",
+      "fixture": "ihac-ufba-timetable.html",
+      "notes": []
+    }
+  ],
+  "pages": [
+    {
+      "sourceId": "sigaa-root",
+      "sourceTitle": "SIGAA UFBA",
+      "sourceUrl": "https://sigaa.ufba.br/",
+      "finalUrl": "https://sigaa.ufba.br/",
+      "fetchedAt": "2026-03-24T04:15:34.679Z",
+      "origin": "fixture",
+      "title": "SIGAA UFBA",
+      "headingCount": 1,
+      "linkCount": 2,
+      "textExcerpt": "SIGAA - Sistema Integrado de Gestão de Atividades Acadêmicas Consulta de turmas Validador de documentos Portal público da UFBA para turmas, componentes e serviços institucionais.",
+      "componentCodes": [],
+      "scheduleCodes": [],
+      "timeSlotCodes": []
+    },
+    {
+      "sourceId": "sigaa-public-turmas",
+      "sourceTitle": "SIGAA Publico - Turmas",
+      "sourceUrl": "https://sigaa.ufba.br/sigaa/public/turmas/listar.jsf",
+      "finalUrl": "https://sigaa.ufba.br/sigaa/public/turmas/listar.jsf",
+      "fetchedAt": "2026-03-24T04:15:34.679Z",
+      "origin": "fixture",
+      "title": "SIGAA publico - turmas",
+      "headingCount": 3,
+      "linkCount": 0,
+      "textExcerpt": "Turmas publicas Introducao a Logica de Programacao 3M23 5T23 Fundamentos de Anatomia 35N12",
+      "componentCodes": [
+        "BIOD01",
+        "MATA37"
+      ],
+      "scheduleCodes": [
+        "35N12",
+        "3M235T23"
+      ],
+      "timeSlotCodes": []
+    },
+    {
+      "sourceId": "ufba-sim-horarios",
+      "sourceTitle": "UFBA SIM - Codigos de horario",
+      "sourceUrl": "https://ufbasim.ufba.br/hor%C3%A1rios-de-aula-c%C3%B3digos-na-tabela-de-hor%C3%A1rios-do-sigaa",
+      "finalUrl": "https://ufbasim.ufba.br/hor%C3%A1rios-de-aula-c%C3%B3digos-na-tabela-de-hor%C3%A1rios-do-sigaa",
+      "fetchedAt": "2026-03-24T04:15:34.679Z",
+      "origin": "fixture",
+      "title": "UFBA SIM - Codigos de horario no SIGAA",
+      "headingCount": 1,
+      "linkCount": 0,
+      "textExcerpt": "Como entender os horarios do SIGAA Dia(s) + Turno + Horario(s). DiaCodigo Segunda2 Terca3 Quarta4 Quinta5 Sexta6 Sabado7 Exemplos: 35N12, 2M12, 3M23 5T23.",
+      "componentCodes": [],
+      "scheduleCodes": [
+        "2M12",
+        "35N12",
+        "3M235T23"
+      ],
+      "timeSlotCodes": []
+    },
+    {
+      "sourceId": "ihac-faixas-de-horario",
+      "sourceTitle": "IHAC UFBA - Faixas de horario",
+      "sourceUrl": "https://ihac.ufba.br/pt/10212/",
+      "finalUrl": "https://ihac.ufba.br/pt/10212/",
+      "fetchedAt": "2026-03-24T04:15:34.679Z",
+      "origin": "fixture",
+      "title": "IHAC UFBA - Faixas de horario",
+      "headingCount": 1,
+      "linkCount": 0,
+      "textExcerpt": "Quadro de horarios TurnoSlotHorario NoiteN118:30-19:25 NoiteN219:25-20:20 NoiteN320:20-21:15 NoiteN421:15-22:10",
+      "componentCodes": [],
+      "scheduleCodes": [],
+      "timeSlotCodes": [
+        "N1",
+        "N2",
+        "N3",
+        "N4"
+      ]
+    }
+  ],
+  "components": [
+    {
+      "code": "BIOD01",
+      "title": "Fundamentos de Anatomia",
+      "sourceId": "sigaa-public-turmas",
+      "sourceTitle": "SIGAA Publico - Turmas",
+      "sourceUrl": "https://sigaa.ufba.br/sigaa/public/turmas/listar.jsf",
+      "scheduleCode": "35N12",
+      "canonicalScheduleCode": "35N12",
+      "evidence": [
+        "Fundamentos de Anatomia",
+        "35N12",
+        "Fundamentos de Anatomia 35N12"
+      ]
+    },
+    {
+      "code": "MATA37",
+      "title": "Introducao a Logica de Programacao",
+      "sourceId": "sigaa-public-turmas",
+      "sourceTitle": "SIGAA Publico - Turmas",
+      "sourceUrl": "https://sigaa.ufba.br/sigaa/public/turmas/listar.jsf",
+      "scheduleCode": "3M23 5T23",
+      "canonicalScheduleCode": "3M23 5T23",
+      "evidence": [
+        "Introducao a Logica de Programacao",
+        "3M23 5T23",
+        "Introducao a Logica de Programacao 3M23 5T23"
+      ]
+    }
+  ],
+  "scheduleGuide": [
+    {
+      "code": "2",
+      "description": "Segunda",
+      "sourceId": "ufba-sim-horarios",
+      "sourceTitle": "UFBA SIM - Codigos de horario",
+      "sourceUrl": "https://ufbasim.ufba.br/hor%C3%A1rios-de-aula-c%C3%B3digos-na-tabela-de-hor%C3%A1rios-do-sigaa",
+      "evidence": [
+        "Segunda",
+        "2"
+      ]
+    },
+    {
+      "code": "2M12",
+      "description": "Exemplo de codigo de horario extraido do texto da pagina.",
+      "sourceId": "ufba-sim-horarios",
+      "sourceTitle": "UFBA SIM - Codigos de horario",
+      "sourceUrl": "https://ufbasim.ufba.br/hor%C3%A1rios-de-aula-c%C3%B3digos-na-tabela-de-hor%C3%A1rios-do-sigaa",
+      "evidence": [
+        "2M12"
+      ]
+    },
+    {
+      "code": "3",
+      "description": "Terca",
+      "sourceId": "ufba-sim-horarios",
+      "sourceTitle": "UFBA SIM - Codigos de horario",
+      "sourceUrl": "https://ufbasim.ufba.br/hor%C3%A1rios-de-aula-c%C3%B3digos-na-tabela-de-hor%C3%A1rios-do-sigaa",
+      "evidence": [
+        "Terca",
+        "3"
+      ]
+    },
+    {
+      "code": "35N12",
+      "description": "Exemplo de codigo de horario extraido do texto da pagina.",
+      "sourceId": "ufba-sim-horarios",
+      "sourceTitle": "UFBA SIM - Codigos de horario",
+      "sourceUrl": "https://ufbasim.ufba.br/hor%C3%A1rios-de-aula-c%C3%B3digos-na-tabela-de-hor%C3%A1rios-do-sigaa",
+      "evidence": [
+        "35N12"
+      ]
+    },
+    {
+      "code": "3M235T23",
+      "description": "Exemplo de codigo de horario extraido do texto da pagina.",
+      "sourceId": "ufba-sim-horarios",
+      "sourceTitle": "UFBA SIM - Codigos de horario",
+      "sourceUrl": "https://ufbasim.ufba.br/hor%C3%A1rios-de-aula-c%C3%B3digos-na-tabela-de-hor%C3%A1rios-do-sigaa",
+      "evidence": [
+        "3M235T23"
+      ]
+    },
+    {
+      "code": "4",
+      "description": "Quarta",
+      "sourceId": "ufba-sim-horarios",
+      "sourceTitle": "UFBA SIM - Codigos de horario",
+      "sourceUrl": "https://ufbasim.ufba.br/hor%C3%A1rios-de-aula-c%C3%B3digos-na-tabela-de-hor%C3%A1rios-do-sigaa",
+      "evidence": [
+        "Quarta",
+        "4"
+      ]
+    },
+    {
+      "code": "5",
+      "description": "Quinta",
+      "sourceId": "ufba-sim-horarios",
+      "sourceTitle": "UFBA SIM - Codigos de horario",
+      "sourceUrl": "https://ufbasim.ufba.br/hor%C3%A1rios-de-aula-c%C3%B3digos-na-tabela-de-hor%C3%A1rios-do-sigaa",
+      "evidence": [
+        "Quinta",
+        "5"
+      ]
+    },
+    {
+      "code": "6",
+      "description": "Sexta",
+      "sourceId": "ufba-sim-horarios",
+      "sourceTitle": "UFBA SIM - Codigos de horario",
+      "sourceUrl": "https://ufbasim.ufba.br/hor%C3%A1rios-de-aula-c%C3%B3digos-na-tabela-de-hor%C3%A1rios-do-sigaa",
+      "evidence": [
+        "Sexta",
+        "6"
+      ]
+    },
+    {
+      "code": "7",
+      "description": "Sabado",
+      "sourceId": "ufba-sim-horarios",
+      "sourceTitle": "UFBA SIM - Codigos de horario",
+      "sourceUrl": "https://ufbasim.ufba.br/hor%C3%A1rios-de-aula-c%C3%B3digos-na-tabela-de-hor%C3%A1rios-do-sigaa",
+      "evidence": [
+        "Sabado",
+        "7"
+      ]
+    }
+  ],
+  "timeSlots": [
+    {
+      "slot": "N1",
+      "turn": "night",
+      "label": "Noite",
+      "startTime": "18:30",
+      "endTime": "19:25",
+      "sourceId": "ihac-faixas-de-horario",
+      "sourceTitle": "IHAC UFBA - Faixas de horario",
+      "sourceUrl": "https://ihac.ufba.br/pt/10212/"
+    },
+    {
+      "slot": "N2",
+      "turn": "night",
+      "label": "Noite",
+      "startTime": "19:25",
+      "endTime": "20:20",
+      "sourceId": "ihac-faixas-de-horario",
+      "sourceTitle": "IHAC UFBA - Faixas de horario",
+      "sourceUrl": "https://ihac.ufba.br/pt/10212/"
+    },
+    {
+      "slot": "N3",
+      "turn": "night",
+      "label": "Noite",
+      "startTime": "20:20",
+      "endTime": "21:15",
+      "sourceId": "ihac-faixas-de-horario",
+      "sourceTitle": "IHAC UFBA - Faixas de horario",
+      "sourceUrl": "https://ihac.ufba.br/pt/10212/"
+    },
+    {
+      "slot": "N4",
+      "turn": "night",
+      "label": "Noite",
+      "startTime": "21:15",
+      "endTime": "22:10",
+      "sourceId": "ihac-faixas-de-horario",
+      "sourceTitle": "IHAC UFBA - Faixas de horario",
+      "sourceUrl": "https://ihac.ufba.br/pt/10212/"
+    }
+  ],
+  "notes": [
+    "First-pass public catalog snapshot built from official public pages.",
+    "This artifact is intentionally separate from the private student snapshot pipeline."
+  ]
+}

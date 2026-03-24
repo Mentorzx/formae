@@ -4,5 +4,5 @@ Diretorio reservado para snapshots publicos versionados.
 
 - Nenhum dado privado deve ser gravado aqui.
 - Saidas do catalog builder precisam ser deterministicas e auditaveis.
-- O v0 deixa apenas a estrutura e o contrato operacional.
-
+- `public-catalog.snapshot.json` e o artefato gerado pelo builder public-first.
+- `catalog-index.json` continua como seed manual do app ate a migracao completa do consumo.

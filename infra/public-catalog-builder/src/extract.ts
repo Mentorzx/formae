@@ -1,0 +1,272 @@
+import * as cheerio from "cheerio";
+
+import type {
+  PublicCatalogComponentCandidate,
+  PublicCatalogPageSnapshot,
+  PublicCatalogScheduleGuideEntry,
+  PublicCatalogSourceDefinition,
+  PublicCatalogTimeSlotEntry,
+} from "./types.js";
+
+const COMPONENT_CODE_PATTERN = /\b[A-Z]{2,5}\d{2,3}\b/g;
+const SCHEDULE_CODE_PATTERN = /\b[2-7]{1,2}(?:[MTN]\d{1,2})(?:\s+[2-7]{1,2}(?:[MTN]\d{1,2}))*\b/g;
+
+export interface ExtractedPublicSourceData {
+  page: PublicCatalogPageSnapshot;
+  components: PublicCatalogComponentCandidate[];
+  scheduleGuide: PublicCatalogScheduleGuideEntry[];
+  timeSlots: PublicCatalogTimeSlotEntry[];
+}
+
+export function extractPublicSourceData(
+  source: PublicCatalogSourceDefinition,
+  html: string,
+  fetchedAt: string,
+  finalUrl: string,
+  origin: "fixture" | "live",
+): ExtractedPublicSourceData {
+  const $ = cheerio.load(html);
+  const bodyText = normalizeWhitespace($("body").text());
+  const componentCandidates = extractComponentCandidates($, source);
+  const scheduleGuide = extractScheduleGuide($, source, bodyText);
+  const timeSlots = extractTimeSlots($, source);
+  const title = normalizeWhitespace($("title").first().text()) || source.title;
+  const headings = $("h1,h2,h3").length;
+  const links = $("a").length;
+
+  return {
+    page: {
+      sourceId: source.id,
+      sourceTitle: source.title,
+      sourceUrl: source.url,
+      finalUrl,
+      fetchedAt,
+      origin,
+      title,
+      headingCount: headings,
+      linkCount: links,
+      textExcerpt: createExcerpt(bodyText),
+      componentCodes: uniqueSorted([
+        ...componentCandidates.map((candidate) => candidate.code),
+      ]),
+      scheduleCodes: uniqueSorted(extractCodes(bodyText, SCHEDULE_CODE_PATTERN)),
+      timeSlotCodes: uniqueSorted(timeSlots.map((slot) => slot.slot)),
+    },
+    components: componentCandidates,
+    scheduleGuide,
+    timeSlots,
+  };
+}
+
+function extractComponentCandidates(
+  $: cheerio.CheerioAPI,
+  source: PublicCatalogSourceDefinition,
+): PublicCatalogComponentCandidate[] {
+  const candidates: PublicCatalogComponentCandidate[] = [];
+
+  $("article[data-component-code]").each((_index, element) => {
+    const article = $(element);
+    const rawCode = article.attr("data-component-code");
+    if (!rawCode) {
+      return;
+    }
+
+    const code = sanitizeCode(rawCode);
+    const title =
+      normalizeWhitespace(article.find("h2").first().text()) ||
+      normalizeWhitespace(article.text());
+    const scheduleCode = normalizeWhitespace(
+      article.find(".schedule-code").first().text(),
+    );
+
+    if (!code) {
+      return;
+    }
+
+    candidates.push({
+      code,
+      title: title || code,
+      sourceId: source.id,
+      sourceTitle: source.title,
+      sourceUrl: source.url,
+      scheduleCode: scheduleCode || null,
+      canonicalScheduleCode: scheduleCode || null,
+      evidence: compactEvidence([
+        title,
+        scheduleCode,
+        normalizeWhitespace(article.text()),
+      ]),
+    });
+  });
+
+  return dedupeCandidates(candidates);
+}
+
+function extractScheduleGuide(
+  $: cheerio.CheerioAPI,
+  source: PublicCatalogSourceDefinition,
+  bodyText: string,
+): PublicCatalogScheduleGuideEntry[] {
+  if (source.id !== "ufba-sim-horarios") {
+    return [];
+  }
+
+  const guideEntries: PublicCatalogScheduleGuideEntry[] = [];
+
+  $("table tr").each((_index, row) => {
+    const cells = $(row)
+      .find("td")
+      .map((_cellIndex, cell) => normalizeWhitespace($(cell).text()))
+      .get()
+      .filter(Boolean);
+
+    if (cells.length < 2) {
+      return;
+    }
+
+    const code = sanitizeCode(cells.at(-1) ?? "");
+    const description = cells.slice(0, -1).join(" - ");
+
+    if (!/^\d$/.test(code)) {
+      return;
+    }
+
+    guideEntries.push({
+      code,
+      description,
+      sourceId: source.id,
+      sourceTitle: source.title,
+      sourceUrl: source.url,
+      evidence: [description, code],
+    });
+  });
+
+  for (const code of extractCodes(bodyText, SCHEDULE_CODE_PATTERN)) {
+    guideEntries.push({
+      code,
+      description: "Exemplo de codigo de horario extraido do texto da pagina.",
+      sourceId: source.id,
+      sourceTitle: source.title,
+      sourceUrl: source.url,
+      evidence: [code],
+    });
+  }
+
+  return dedupeScheduleGuide(guideEntries);
+}
+
+function extractTimeSlots(
+  $: cheerio.CheerioAPI,
+  source: PublicCatalogSourceDefinition,
+): PublicCatalogTimeSlotEntry[] {
+  if (source.id !== "ihac-faixas-de-horario") {
+    return [];
+  }
+
+  const entries: PublicCatalogTimeSlotEntry[] = [];
+
+  $("table tr").each((_index, row) => {
+    const cells = $(row)
+      .find("td")
+      .map((_cellIndex, cell) => normalizeWhitespace($(cell).text()))
+      .get()
+      .filter(Boolean);
+
+    if (cells.length < 3) {
+      return;
+    }
+
+    const slot = sanitizeCode(cells[1] ?? "");
+    const timeRange = cells[2] ?? "";
+    const [startTime, endTime] = timeRange.split("-").map((part) => part.trim());
+
+    if (!/^[MTN]\d$/.test(slot) || !startTime || !endTime) {
+      return;
+    }
+
+    entries.push({
+      slot,
+      turn: slot.startsWith("M")
+        ? "morning"
+        : slot.startsWith("T")
+          ? "afternoon"
+          : "night",
+      label: cells[0] ?? slot,
+      startTime,
+      endTime,
+      sourceId: source.id,
+      sourceTitle: source.title,
+      sourceUrl: source.url,
+    });
+  });
+
+  return entries;
+}
+
+function extractCodes(text: string, pattern: RegExp): string[] {
+  return Array.from(text.matchAll(pattern), (match) => sanitizeCode(match[0]));
+}
+
+function createExcerpt(text: string, maxLength = 280): string {
+  if (text.length <= maxLength) {
+    return text;
+  }
+
+  return `${text.slice(0, maxLength - 1).trimEnd()}…`;
+}
+
+function normalizeWhitespace(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function sanitizeCode(value: string): string {
+  return value.replace(/\s+/g, "").trim().toUpperCase();
+}
+
+function uniqueSorted(values: string[]): string[] {
+  return Array.from(new Set(values)).sort((left, right) =>
+    left.localeCompare(right),
+  );
+}
+
+function dedupeCandidates(
+  candidates: PublicCatalogComponentCandidate[],
+): PublicCatalogComponentCandidate[] {
+  const byCode = new Map<string, PublicCatalogComponentCandidate>();
+
+  for (const candidate of candidates) {
+    if (!byCode.has(candidate.code)) {
+      byCode.set(candidate.code, candidate);
+    }
+  }
+
+  return Array.from(byCode.values()).sort((left, right) =>
+    left.code.localeCompare(right.code),
+  );
+}
+
+function dedupeScheduleGuide(
+  entries: PublicCatalogScheduleGuideEntry[],
+): PublicCatalogScheduleGuideEntry[] {
+  const seen = new Set<string>();
+  const deduped: PublicCatalogScheduleGuideEntry[] = [];
+
+  for (const entry of entries) {
+    const key = `${entry.code}:${entry.description}`;
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    deduped.push(entry);
+  }
+
+  return deduped.sort((left, right) => left.code.localeCompare(right.code));
+}
+
+function compactEvidence(values: string[]): string[] {
+  return values
+    .map((value) => normalizeWhitespace(value))
+    .filter((value, index, array) => value.length > 0 && array.indexOf(value) === index)
+    .slice(0, 4);
+}
