@@ -193,7 +193,7 @@ async function handleBridgeMessage(message, context) {
   }
 }
 
-function isAllowedExternalSender(sender) {
+export function isAllowedExternalSender(sender) {
   const senderUrl = sender?.url;
 
   if (!senderUrl) {
@@ -210,7 +210,6 @@ function isAllowedExternalSender(sender) {
 
   return (
     origin === "https://mentorzx.github.io" ||
-    /^http:\/\/localhost(?::\d+)?$/u.test(origin) ||
-    /^http:\/\/127\.0\.0\.1(?::\d+)?$/u.test(origin)
+    /^http:\/\/localhost(?::\d+)?$/u.test(origin)
   );
 }

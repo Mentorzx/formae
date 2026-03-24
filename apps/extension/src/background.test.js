@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   isExternalBridgeMessageKindAllowed,
+  isAllowedExternalSender,
   shouldRequireApprovalForRequestSync,
 } from "./background.js";
 
@@ -46,5 +47,18 @@ test("page-triggered sync always requires popup approval while internal popup sy
       },
     ),
     true,
+  );
+});
+
+test("external senders are limited to localhost and GitHub Pages", () => {
+  assert.equal(
+    isAllowedExternalSender({ url: "https://mentorzx.github.io/formae/" }),
+    true,
+  );
+  assert.equal(isAllowedExternalSender({ url: "http://localhost:5173/" }), true);
+  assert.equal(isAllowedExternalSender({ url: "http://127.0.0.1:5173/" }), false);
+  assert.equal(
+    isAllowedExternalSender({ url: "https://sigaa.ufba.br/" }),
+    false,
   );
 });
