@@ -4,7 +4,7 @@ import { buildCatalogSnapshot } from "./builder.js";
 import { parseCliOptions } from "./config.js";
 import { writeCatalogSnapshot } from "./output.js";
 
-const BUILDER_VERSION = "0.1.0";
+const BUILDER_VERSION = "0.2.0";
 
 async function main(): Promise<void> {
   const options = parseCliOptions(process.argv.slice(2));

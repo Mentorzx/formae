@@ -2,6 +2,7 @@ import * as cheerio from "cheerio";
 
 import type {
   PublicCatalogComponentCandidate,
+  PublicCatalogPageCoreSnapshot,
   PublicCatalogPageSnapshot,
   PublicCatalogScheduleGuideEntry,
   PublicCatalogSourceDefinition,
@@ -10,9 +11,10 @@ import type {
 
 const COMPONENT_CODE_PATTERN = /\b[A-Z]{2,5}\d{2,3}\b/g;
 const SCHEDULE_CODE_PATTERN = /\b[2-7]{1,2}(?:[MTN]\d{1,2})(?:\s+[2-7]{1,2}(?:[MTN]\d{1,2}))*\b/g;
+const SCHEDULE_SEGMENT_PATTERN = /[2-7]{1,2}[MTN]\d{1,2}/g;
 
 export interface ExtractedPublicSourceData {
-  page: PublicCatalogPageSnapshot;
+  page: PublicCatalogPageCoreSnapshot;
   components: PublicCatalogComponentCandidate[];
   scheduleGuide: PublicCatalogScheduleGuideEntry[];
   timeSlots: PublicCatalogTimeSlotEntry[];
@@ -49,7 +51,7 @@ export function extractPublicSourceData(
       componentCodes: uniqueSorted([
         ...componentCandidates.map((candidate) => candidate.code),
       ]),
-      scheduleCodes: uniqueSorted(extractCodes(bodyText, SCHEDULE_CODE_PATTERN)),
+      scheduleCodes: uniqueSorted(extractScheduleCodes(bodyText)),
       timeSlotCodes: uniqueSorted(timeSlots.map((slot) => slot.slot)),
     },
     components: componentCandidates,
@@ -71,11 +73,11 @@ function extractComponentCandidates(
       return;
     }
 
-    const code = sanitizeCode(rawCode);
+    const code = sanitizeToken(rawCode);
     const title =
       normalizeWhitespace(article.find("h2").first().text()) ||
       normalizeWhitespace(article.text());
-    const scheduleCode = normalizeWhitespace(
+    const scheduleCode = normalizeScheduleCode(
       article.find(".schedule-code").first().text(),
     );
 
@@ -89,13 +91,9 @@ function extractComponentCandidates(
       sourceId: source.id,
       sourceTitle: source.title,
       sourceUrl: source.url,
-      scheduleCode: scheduleCode || null,
-      canonicalScheduleCode: scheduleCode || null,
-      evidence: compactEvidence([
-        title,
-        scheduleCode,
-        normalizeWhitespace(article.text()),
-      ]),
+      scheduleCode,
+      canonicalScheduleCode: scheduleCode,
+      evidence: compactEvidence([title, scheduleCode, normalizeWhitespace(article.text())]),
     });
   });
 
@@ -124,7 +122,7 @@ function extractScheduleGuide(
       return;
     }
 
-    const code = sanitizeCode(cells.at(-1) ?? "");
+    const code = sanitizeToken(cells.at(-1) ?? "");
     const description = cells.slice(0, -1).join(" - ");
 
     if (!/^\d$/.test(code)) {
@@ -141,7 +139,7 @@ function extractScheduleGuide(
     });
   });
 
-  for (const code of extractCodes(bodyText, SCHEDULE_CODE_PATTERN)) {
+  for (const code of extractScheduleCodes(bodyText)) {
     guideEntries.push({
       code,
       description: "Exemplo de codigo de horario extraido do texto da pagina.",
@@ -176,7 +174,7 @@ function extractTimeSlots(
       return;
     }
 
-    const slot = sanitizeCode(cells[1] ?? "");
+    const slot = sanitizeToken(cells[1] ?? "");
     const timeRange = cells[2] ?? "";
     const [startTime, endTime] = timeRange.split("-").map((part) => part.trim());
 
@@ -203,8 +201,10 @@ function extractTimeSlots(
   return entries;
 }
 
-function extractCodes(text: string, pattern: RegExp): string[] {
-  return Array.from(text.matchAll(pattern), (match) => sanitizeCode(match[0]));
+function extractScheduleCodes(text: string): string[] {
+  return Array.from(text.matchAll(SCHEDULE_CODE_PATTERN), (match) =>
+    normalizeScheduleCode(match[0]),
+  ).filter((code): code is string => Boolean(code));
 }
 
 function createExcerpt(text: string, maxLength = 280): string {
@@ -219,7 +219,18 @@ function normalizeWhitespace(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
 
-function sanitizeCode(value: string): string {
+function normalizeScheduleCode(value: string): string | null {
+  const compact = value.replace(/\s+/g, "").trim().toUpperCase();
+  const segments = compact.match(SCHEDULE_SEGMENT_PATTERN);
+
+  if (!segments || segments.join("") !== compact) {
+    return null;
+  }
+
+  return segments.join(" ");
+}
+
+function sanitizeToken(value: string): string {
   return value.replace(/\s+/g, "").trim().toUpperCase();
 }
 
@@ -264,9 +275,9 @@ function dedupeScheduleGuide(
   return deduped.sort((left, right) => left.code.localeCompare(right.code));
 }
 
-function compactEvidence(values: string[]): string[] {
+function compactEvidence(values: Array<string | null | undefined>): string[] {
   return values
-    .map((value) => normalizeWhitespace(value))
+    .map((value) => (value ? normalizeWhitespace(value) : ""))
     .filter((value, index, array) => value.length > 0 && array.indexOf(value) === index)
     .slice(0, 4);
 }

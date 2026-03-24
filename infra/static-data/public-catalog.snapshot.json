@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "builderVersion": "0.1.0",
-  "generatedAt": "2026-03-24T04:16:04.630Z",
+  "builderVersion": "0.2.0",
+  "generatedAt": "2026-03-24T05:13:58.969Z",
   "institution": "UFBA",
   "timingProfileId": "Ufba2025",
   "sources": [
@@ -20,6 +20,28 @@
       "url": "https://sigaa.ufba.br/sigaa/public/turmas/listar.jsf",
       "fixture": "sigaa-public-turmas.html",
       "notes": []
+    },
+    {
+      "id": "eng-civil-portal",
+      "title": "CURSO DE ENGENHARIA CIVIL / EPOLI",
+      "kind": "html",
+      "url": "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?id=1876833&lc=pt_BR",
+      "fixture": null,
+      "notes": [
+        "Fonte publica oficial do curso de Engenharia Civil da EPOLI.",
+        "Seed vivo para provenance e baseline de curso publico."
+      ]
+    },
+    {
+      "id": "eng-civil-curriculo",
+      "title": "CURSO DE ENGENHARIA CIVIL / EPOLI - Curriculos",
+      "kind": "html",
+      "url": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+      "fixture": null,
+      "notes": [
+        "Fonte publica oficial da estrutura curricular da Engenharia Civil da EPOLI.",
+        "Seed vivo para baseline de matriz publica."
+      ]
     },
     {
       "id": "ufba-sim-horarios",
@@ -44,7 +66,7 @@
       "sourceTitle": "SIGAA UFBA",
       "sourceUrl": "https://sigaa.ufba.br/",
       "finalUrl": "https://sigaa.ufba.br/",
-      "fetchedAt": "2026-03-24T04:16:04.630Z",
+      "fetchedAt": "2026-03-24T05:13:58.969Z",
       "origin": "fixture",
       "title": "SIGAA UFBA",
       "headingCount": 1,
@@ -52,14 +74,20 @@
       "textExcerpt": "SIGAA - Sistema Integrado de Gestão de Atividades Acadêmicas Consulta de turmas Validador de documentos Portal público da UFBA para turmas, componentes e serviços institucionais.",
       "componentCodes": [],
       "scheduleCodes": [],
-      "timeSlotCodes": []
+      "timeSlotCodes": [],
+      "contentDigest": "88baa63a3a27baed6ab6795ff42b6b3c7b7253e233d49ef9ea5b88d24fb70ea1",
+      "contentLength": 564,
+      "contentType": "text/html; charset=utf-8",
+      "httpStatus": 200,
+      "responseEtag": null,
+      "responseLastModified": null
     },
     {
       "sourceId": "sigaa-public-turmas",
       "sourceTitle": "SIGAA Publico - Turmas",
       "sourceUrl": "https://sigaa.ufba.br/sigaa/public/turmas/listar.jsf",
       "finalUrl": "https://sigaa.ufba.br/sigaa/public/turmas/listar.jsf",
-      "fetchedAt": "2026-03-24T04:16:04.630Z",
+      "fetchedAt": "2026-03-24T05:13:58.969Z",
       "origin": "fixture",
       "title": "SIGAA publico - turmas",
       "headingCount": 3,
@@ -71,16 +99,64 @@
       ],
       "scheduleCodes": [
         "35N12",
-        "3M235T23"
+        "3M23 5T23"
       ],
-      "timeSlotCodes": []
+      "timeSlotCodes": [],
+      "contentDigest": "e9fb6257cac440166cba5b3a9bc961306f3b8c249319c1b6f8948c27632e196d",
+      "contentLength": 598,
+      "contentType": "text/html; charset=utf-8",
+      "httpStatus": 200,
+      "responseEtag": null,
+      "responseLastModified": null
+    },
+    {
+      "sourceId": "eng-civil-portal",
+      "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI",
+      "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?id=1876833&lc=pt_BR",
+      "finalUrl": "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?id=1876833&lc=pt_BR",
+      "fetchedAt": "2026-03-24T05:13:58.969Z",
+      "origin": "live",
+      "title": "SIGAA - Sistema Integrado de Gestão de Atividades Acadêmicas",
+      "headingCount": 0,
+      "linkCount": 22,
+      "textExcerpt": "var marcar = function(idCheck) { checkBox = getEl(idCheck); checkBox.dom.checked = true; } window.onload = function() { document.getElementById('fechar-painel-erros').onclick = function(){ document.getElementById('painel-erros').parentNode.removeChild(document.getElementById('pa…",
+      "componentCodes": [],
+      "scheduleCodes": [],
+      "timeSlotCodes": [],
+      "contentDigest": "e2b277b4828b38c4b8e0525431f8181b7140a0b9362885b8e9d4601f39c253f2",
+      "contentLength": 34176,
+      "contentType": "text/html;charset=ISO-8859-1",
+      "httpStatus": 200,
+      "responseEtag": null,
+      "responseLastModified": null
+    },
+    {
+      "sourceId": "eng-civil-curriculo",
+      "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI - Curriculos",
+      "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+      "finalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+      "fetchedAt": "2026-03-24T05:13:58.969Z",
+      "origin": "live",
+      "title": "SIGAA - Sistema Integrado de Gestão de Atividades Acadêmicas",
+      "headingCount": 0,
+      "linkCount": 55,
+      "textExcerpt": "var marcar = function(idCheck) { checkBox = getEl(idCheck); checkBox.dom.checked = true; } window.onload = function() { document.getElementById('fechar-painel-erros').onclick = function(){ document.getElementById('painel-erros').parentNode.removeChild(document.getElementById('pa…",
+      "componentCodes": [],
+      "scheduleCodes": [],
+      "timeSlotCodes": [],
+      "contentDigest": "749b82469689467a9a0f2cea40ba11cab7d440f7083764acf18c7ba71c9bdb98",
+      "contentLength": 52260,
+      "contentType": "text/html;charset=ISO-8859-1",
+      "httpStatus": 200,
+      "responseEtag": null,
+      "responseLastModified": null
     },
     {
       "sourceId": "ufba-sim-horarios",
       "sourceTitle": "UFBA SIM - Codigos de horario",
       "sourceUrl": "https://ufbasim.ufba.br/hor%C3%A1rios-de-aula-c%C3%B3digos-na-tabela-de-hor%C3%A1rios-do-sigaa",
       "finalUrl": "https://ufbasim.ufba.br/hor%C3%A1rios-de-aula-c%C3%B3digos-na-tabela-de-hor%C3%A1rios-do-sigaa",
-      "fetchedAt": "2026-03-24T04:16:04.630Z",
+      "fetchedAt": "2026-03-24T05:13:58.969Z",
       "origin": "fixture",
       "title": "UFBA SIM - Codigos de horario no SIGAA",
       "headingCount": 1,
@@ -90,16 +166,22 @@
       "scheduleCodes": [
         "2M12",
         "35N12",
-        "3M235T23"
+        "3M23 5T23"
       ],
-      "timeSlotCodes": []
+      "timeSlotCodes": [],
+      "contentDigest": "16a066ff7a61589916035eadbf6cb19225f3ee8bb4a76921e3d481f6b3f73bd4",
+      "contentLength": 789,
+      "contentType": "text/html; charset=utf-8",
+      "httpStatus": 200,
+      "responseEtag": null,
+      "responseLastModified": null
     },
     {
       "sourceId": "ihac-faixas-de-horario",
       "sourceTitle": "IHAC UFBA - Faixas de horario",
       "sourceUrl": "https://ihac.ufba.br/pt/10212/",
       "finalUrl": "https://ihac.ufba.br/pt/10212/",
-      "fetchedAt": "2026-03-24T04:16:04.630Z",
+      "fetchedAt": "2026-03-24T05:13:58.969Z",
       "origin": "fixture",
       "title": "IHAC UFBA - Faixas de horario",
       "headingCount": 1,
@@ -112,7 +194,13 @@
         "N2",
         "N3",
         "N4"
-      ]
+      ],
+      "contentDigest": "4f956b7fb90f2eca3295ce76cf3c828f281a96e2620c2883d9eb5f00213a75d4",
+      "contentLength": 622,
+      "contentType": "text/html; charset=utf-8",
+      "httpStatus": 200,
+      "responseEtag": null,
+      "responseLastModified": null
     }
   ],
   "components": [
@@ -189,13 +277,13 @@
       ]
     },
     {
-      "code": "3M235T23",
+      "code": "3M23 5T23",
       "description": "Exemplo de codigo de horario extraido do texto da pagina.",
       "sourceId": "ufba-sim-horarios",
       "sourceTitle": "UFBA SIM - Codigos de horario",
       "sourceUrl": "https://ufbasim.ufba.br/hor%C3%A1rios-de-aula-c%C3%B3digos-na-tabela-de-hor%C3%A1rios-do-sigaa",
       "evidence": [
-        "3M235T23"
+        "3M23 5T23"
       ]
     },
     {

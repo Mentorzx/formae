@@ -33,14 +33,11 @@ export function resolveSourceFixturePath(
   source: PublicCatalogSourceDefinition,
   fixturesDir: string | null,
 ): string | null {
-  if (!fixturesDir) {
+  if (!fixturesDir || !source.fixture) {
     return null;
   }
 
-  return path.resolve(
-    fixturesDir,
-    source.fixture ?? `${source.id}.html`,
-  );
+  return path.resolve(fixturesDir, source.fixture);
 }
 
 function normalizeSourceEntry(

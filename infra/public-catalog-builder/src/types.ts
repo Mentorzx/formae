@@ -17,6 +17,28 @@ export interface PublicCatalogPageSnapshot {
   finalUrl: string;
   fetchedAt: string;
   origin: PublicCatalogSourceOrigin;
+  contentDigest: string;
+  contentLength: number;
+  contentType: string | null;
+  httpStatus: number | null;
+  responseEtag: string | null;
+  responseLastModified: string | null;
+  title: string;
+  headingCount: number;
+  linkCount: number;
+  textExcerpt: string;
+  componentCodes: string[];
+  scheduleCodes: string[];
+  timeSlotCodes: string[];
+}
+
+export interface PublicCatalogPageCoreSnapshot {
+  sourceId: string;
+  sourceTitle: string;
+  sourceUrl: string;
+  finalUrl: string;
+  fetchedAt: string;
+  origin: PublicCatalogSourceOrigin;
   title: string;
   headingCount: number;
   linkCount: number;
@@ -69,4 +91,17 @@ export interface PublicCatalogSnapshot {
   scheduleGuide: PublicCatalogScheduleGuideEntry[];
   timeSlots: PublicCatalogTimeSlotEntry[];
   notes: string[];
+}
+
+export interface PublicCatalogSourceStatus {
+  sourceId: string;
+  origin: PublicCatalogSourceOrigin;
+  finalUrl: string;
+  title: string;
+  contentDigest: string;
+  contentLength: number;
+  contentType: string | null;
+  httpStatus: number | null;
+  responseEtag: string | null;
+  responseLastModified: string | null;
 }

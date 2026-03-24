@@ -61,7 +61,84 @@ test("buildCatalogSnapshot extracts public component and schedule fixtures", asy
   assert.ok(result.snapshot.scheduleGuide.some((item) => item.code === "35N12"));
   assert.ok(result.snapshot.timeSlots.some((item) => item.slot === "N1"));
   assert.ok(
-    result.snapshot.pages.find((page) => page.sourceId === "sigaa-public-turmas")
-      ?.componentCodes.includes("MATA37"),
+    result.snapshot.components.some(
+      (item) => item.canonicalScheduleCode === "3M23 5T23",
+    ),
   );
+  assert.ok(
+    result.snapshot.pages.find((page) => page.sourceId === "sigaa-public-turmas")
+      ?.scheduleCodes.includes("3M23 5T23"),
+  );
+});
+
+test("buildCatalogSnapshot records provenance for a live public source", async () => {
+  const result = await buildCatalogSnapshot({
+    sources: [
+      {
+        id: "eng-civil-portal",
+        title: "CURSO DE ENGENHARIA CIVIL / EPOLI",
+        kind: "html",
+        url: "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?id=1876833&lc=pt_BR",
+        fixture: null,
+        notes: [],
+      },
+    ],
+    fixturesDir: null,
+    builderVersion: "test",
+    now: new Date("2026-03-24T00:00:00.000Z"),
+    fetchImpl: async () =>
+      ({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        url: "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?id=1876833&lc=pt_BR",
+        headers: {
+          get(name: string) {
+            if (name === "content-type") {
+              return "text/html; charset=utf-8";
+            }
+
+            if (name === "etag") {
+              return '"abc123"';
+            }
+
+            if (name === "last-modified") {
+              return "Tue, 24 Mar 2026 00:00:00 GMT";
+            }
+
+            return null;
+          },
+        },
+        async text() {
+          return [
+            "<!doctype html>",
+            "<html lang=\"pt-BR\">",
+            "<head><meta charset=\"utf-8\"><title>CURSO DE ENGENHARIA CIVIL / EPOLI</title></head>",
+            "<body><main><h1>CURSO DE ENGENHARIA CIVIL / EPOLI</h1><p>Apresentacao</p></main></body>",
+            "</html>",
+          ].join("");
+        },
+      }) as unknown as Response,
+  });
+
+  const page = result.snapshot.pages[0];
+  if (!page) {
+    throw new Error("Expected live page snapshot.");
+  }
+
+  assert.equal(page.origin, "live");
+  assert.match(page.contentDigest, /^[a-f0-9]{64}$/);
+  assert.equal(page.httpStatus, 200);
+  const sourceStatus = result.sourceStatuses[0];
+  if (!sourceStatus) {
+    throw new Error("Expected live source status.");
+  }
+
+  assert.equal(sourceStatus.responseEtag, '"abc123"');
+  const source = result.snapshot.sources[0];
+  if (!source) {
+    throw new Error("Expected live source definition.");
+  }
+
+  assert.equal(source.id, "eng-civil-portal");
 });

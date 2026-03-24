@@ -9,6 +9,20 @@ sources:
     kind: html
     url: https://sigaa.ufba.br/sigaa/public/turmas/listar.jsf
     fixture: sigaa-public-turmas.html
+  - id: eng-civil-portal
+    title: CURSO DE ENGENHARIA CIVIL / EPOLI
+    kind: html
+    url: https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?id=1876833&lc=pt_BR
+    notes:
+      - Fonte publica oficial do curso de Engenharia Civil da EPOLI.
+      - Seed vivo para provenance e baseline de curso publico.
+  - id: eng-civil-curriculo
+    title: CURSO DE ENGENHARIA CIVIL / EPOLI - Curriculos
+    kind: html
+    url: https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR
+    notes:
+      - Fonte publica oficial da estrutura curricular da Engenharia Civil da EPOLI.
+      - Seed vivo para baseline de matriz publica.
   - id: ufba-sim-horarios
     title: UFBA SIM - Codigos de horario
     kind: html

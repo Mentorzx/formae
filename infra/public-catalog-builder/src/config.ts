@@ -13,7 +13,8 @@ export function parseCliOptions(argv: string[]): CliOptions {
     command: "build",
     sourcesFilePath: process.env.FORMAE_PUBLIC_CATALOG_SOURCES ?? "./sources.yaml",
     fixturesDir:
-      process.env.FORMAE_PUBLIC_CATALOG_FIXTURES_DIR?.trim() ?? null,
+      process.env.FORMAE_PUBLIC_CATALOG_FIXTURES_DIR?.trim() ??
+      "../../fixtures/public",
     outputPath: process.env.FORMAE_PUBLIC_CATALOG_OUTPUT?.trim() ?? null,
     stdout: false,
   };
@@ -67,7 +68,7 @@ Usage:
 
 Defaults:
   sources file   ./sources.yaml
-  fixtures dir   none (fetch live)
+  fixtures dir   ../../fixtures/public
   output path    ../static-data/public-catalog.snapshot.json
 `);
   process.exit(0);
