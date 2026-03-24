@@ -73,24 +73,23 @@ Para o CI publico, o repositório roda apenas replay offline e seguro, sem crede
 
 ```bash
 cd infra/private-sync-e2e
-pnpm exec tsx --test tests/sanitize.test.ts tests/private-contract-replay.test.ts
+pnpm replay
+pnpm exec tsx --test tests/sanitize.test.ts tests/privateFixtureReplay.test.ts tests/private-contract-replay.test.ts
 pnpm typecheck
 ```
 
-Esse replay abre fixtures HTML locais no Chromium do Playwright para verificar:
+Esse replay combina duas camadas:
+
+- `pnpm replay` valida fixtures privadas redigidas em `../../fixtures/private/sigaa`.
+- `tests/private-contract-replay.test.ts` abre fixtures HTML offline no Chromium do Playwright.
+
+Juntas, elas verificam:
 
 - fallback selectors do login autenticado;
 - contrato do formulario `form-portal-discente`;
 - abertura dos atalhos `Consultar Historico`, `Minhas Turmas` e `Minhas Notas`.
 
 Se esse passo falhar no CI, trate como alarme de drift de seletor ou quebra de contrato do portal autenticado.
-
-6. Para validar os fixtures privados redigidos sem abrir o browser:
-
-```bash
-cd infra/private-sync-e2e
-pnpm replay
-```
 
 ## Configuracao
 

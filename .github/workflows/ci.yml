@@ -59,3 +59,45 @@ jobs:
       - name: Build WASM
         run: pnpm build:wasm
 
+  private-sync-contracts:
+    name: Private Sync Offline Contracts
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/private-sync-e2e
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: infra/private-sync-e2e/pnpm-lock.yaml
+
+      - name: Install private sync harness dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Replay redacted private SIGAA fixture contracts
+        run: pnpm replay
+
+      - name: Install Playwright Chromium for offline replay
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run browser-side selector drift alarms
+        run: pnpm exec tsx --test tests/sanitize.test.ts tests/privateFixtureReplay.test.ts tests/private-contract-replay.test.ts
+
+      - name: Typecheck private sync harness
+        run: pnpm typecheck
+
+      - name: Surface selector drift alarm
+        if: failure()
+        run: |
+          echo "::error title=SIGAA contract drift alarm::Offline private sync replay failed. Investigate redacted fixture drift or browser-side contract breakage in infra/private-sync-e2e/src/privateFixtureReplay.ts and infra/private-sync-e2e/src/sigaa.ts."
