@@ -30,13 +30,11 @@ async function loadWasmScheduleModule(): Promise<WasmScheduleModule> {
   }
 
   wasmModulePromise = (async () => {
-    const moduleUrl = `${import.meta.env.BASE_URL}wasm/formae_wasm_core.js`;
-    const wasmUrl = `${import.meta.env.BASE_URL}wasm/formae_wasm_core_bg.wasm`;
     const wasmModule = (await import(
-      /* @vite-ignore */ moduleUrl
+      "./generated/wasm/formae_wasm_core.js"
     )) as WasmScheduleModule;
 
-    await wasmModule.default(wasmUrl);
+    await wasmModule.default();
     return wasmModule;
   })().catch((error: unknown) => {
     wasmModulePromise = null;

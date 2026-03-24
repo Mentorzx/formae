@@ -1,42 +1,86 @@
-import { SIGAA_HOST } from "./constants.js";
-import {
-  createRawSigaaPayloadMessage,
-  createRequestSyncMessage,
-} from "./bridge.js";
-import { identifySigaaPage, normalizeSigaaText } from "./dom-contract.js";
-import { installPageBridgeRelay } from "./page-bridge.js";
-
 bootstrapContentScript();
 
 function bootstrapContentScript() {
-  const cleanup = installPageBridgeRelay((envelope) => {
-    chrome.runtime.sendMessage(envelope);
+  const cleanup = installPageBridgeRelay((request) => {
+    chrome.runtime.sendMessage(request.envelope, (response) => {
+      const runtimeError = chrome.runtime.lastError;
+      const reply =
+        runtimeError && !response
+          ? {
+              ok: false,
+              error: runtimeError.message,
+            }
+          : response;
+
+      window.postMessage(
+        createExtensionBridgeResponse(request.requestId, reply),
+        window.location.origin,
+      );
+    });
   });
 
-  if (location.hostname === SIGAA_HOST) {
-    const syncSessionId = crypto.randomUUID();
-    const pageKind = identifySigaaPage(location.href);
-    const pageText = normalizeSigaaText(document.body?.innerText ?? "");
+  return cleanup;
+}
 
-    chrome.runtime.sendMessage(
-      createRequestSyncMessage({
-        syncSessionId,
-        reason: pageKind === "login" ? "manual" : "background-refresh",
-        requestedAt: new Date().toISOString(),
-        timingProfileId: "Ufba2025",
-      }),
-    );
+const PAGE_BRIDGE_SOURCE = "formae-web-page";
+const EXTENSION_BRIDGE_SOURCE = "formae-extension";
+const BRIDGE_KINDS = new Set([
+  "RequestSync",
+  "ProvideEphemeralCredentials",
+  "RawSigaaPayload",
+  "NormalizedSnapshot",
+  "StoreEncryptedSnapshot",
+  "WipeLocalVault",
+]);
 
-    chrome.runtime.sendMessage(
-      createRawSigaaPayloadMessage({
-        syncSessionId,
-        source: "dom",
-        capturedAt: new Date().toISOString(),
-        routeHint: location.href,
-        htmlOrText: pageText,
-      }),
-    );
+function installPageBridgeRelay(onMessage) {
+  if (typeof window === "undefined") {
+    return () => {};
   }
 
-  return cleanup;
+  const listener = (event) => {
+    if (!isPageBridgeRequest(event.data)) {
+      return;
+    }
+
+    onMessage(event.data, event);
+  };
+
+  window.addEventListener("message", listener);
+
+  return () => window.removeEventListener("message", listener);
+}
+
+function isPageBridgeRequest(value) {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  return (
+    value.source === PAGE_BRIDGE_SOURCE &&
+    typeof value.requestId === "string" &&
+    isBridgeMessage(value.envelope)
+  );
+}
+
+function isBridgeMessage(value) {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  return (
+    typeof value.kind === "string" &&
+    BRIDGE_KINDS.has(value.kind) &&
+    typeof value.protocolVersion === "number" &&
+    typeof value.payload === "object" &&
+    value.payload !== null
+  );
+}
+
+function createExtensionBridgeResponse(requestId, response) {
+  return {
+    source: EXTENSION_BRIDGE_SOURCE,
+    requestId,
+    response,
+  };
 }

@@ -4,6 +4,7 @@
     "ignoreUnknown": true,
     "includes": [
       "apps/**/*.{ts,tsx,css,json}",
+      "!apps/web/src/generated/**",
       "packages/**/*.{ts,tsx,json}",
       ".github/**/*.yml",
       "*.json"
@@ -27,4 +28,3 @@
     }
   }
 }
-

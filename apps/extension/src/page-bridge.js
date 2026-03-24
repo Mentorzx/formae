@@ -10,6 +10,22 @@ export function createPageBridgeEnvelope(kind, payload) {
   };
 }
 
+export function createPageBridgeRequest(requestId, envelope) {
+  return {
+    source: PAGE_BRIDGE_SOURCE,
+    requestId,
+    envelope,
+  };
+}
+
+export function createExtensionBridgeResponse(requestId, response) {
+  return {
+    source: EXTENSION_BRIDGE_SOURCE,
+    requestId,
+    response,
+  };
+}
+
 export function isPageBridgeEnvelope(value) {
   if (!value || typeof value !== "object") {
     return false;
@@ -22,17 +38,43 @@ export function isPageBridgeEnvelope(value) {
   );
 }
 
+export function isPageBridgeRequest(value) {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const candidate = value;
+  return (
+    candidate.source === PAGE_BRIDGE_SOURCE &&
+    typeof candidate.requestId === "string" &&
+    isBridgeMessage(candidate.envelope)
+  );
+}
+
+export function isExtensionBridgeResponse(value) {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const candidate = value;
+  return (
+    candidate.source === EXTENSION_BRIDGE_SOURCE &&
+    typeof candidate.requestId === "string" &&
+    "response" in candidate
+  );
+}
+
 export function installPageBridgeRelay(onMessage) {
   if (typeof window === "undefined") {
     return () => {};
   }
 
   const listener = (event) => {
-    if (!isPageBridgeEnvelope(event.data)) {
+    if (!isPageBridgeRequest(event.data)) {
       return;
     }
 
-    onMessage(event.data.envelope, event);
+    onMessage(event.data, event);
   };
 
   window.addEventListener("message", listener);

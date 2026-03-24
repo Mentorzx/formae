@@ -1,5 +1,9 @@
 import { isBridgeMessage } from "./bridge.js";
-import { createEphemeralSigaaSession } from "./login-session.js";
+import {
+  createEphemeralSigaaSession,
+  isSigaaSessionExpired,
+} from "./login-session.js";
+import { runAutomaticSigaaSync } from "./sigaa-sync.js";
 
 const syncState = {
   session: null,
@@ -13,12 +17,12 @@ chrome.runtime.onInstalled.addListener(() => {
   syncState.latestNormalizedSnapshot = null;
 });
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (!isBridgeMessage(message)) {
     return false;
   }
 
-  handleBridgeMessage(message, sender)
+  handleBridgeMessage(message)
     .then((response) => sendResponse(response))
     .catch((error) =>
       sendResponse({
@@ -30,15 +34,31 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
-async function handleBridgeMessage(message, sender) {
+async function handleBridgeMessage(message) {
   switch (message.kind) {
     case "RequestSync":
-      return {
-        ok: true,
-        kind: "RequestSync",
+      if (!syncState.session) {
+        return {
+          ok: false,
+          error:
+            "SIGAA credentials are missing in memory. Provide them before starting the sync.",
+        };
+      }
+
+      if (isSigaaSessionExpired(syncState.session)) {
+        syncState.session = null;
+        return {
+          ok: false,
+          error: "The in-memory SIGAA session expired before the sync started.",
+        };
+      }
+
+      const syncResult = await runAutomaticSigaaSync({
         syncSessionId: message.payload.syncSessionId,
-        receivedFrom: sender.url ?? null,
-      };
+        session: syncState.session,
+      });
+      syncState.latestRawPayload = syncResult.rawPayloadMessage.payload;
+      return syncResult.rawPayloadMessage;
     case "ProvideEphemeralCredentials":
       syncState.session = createEphemeralSigaaSession({
         syncSessionId: message.payload.syncSessionId,

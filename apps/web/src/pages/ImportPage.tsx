@@ -11,6 +11,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { buildAutomaticSigaaSyncBundle } from "../automaticSigaaImport";
 import { Metric } from "../components/Metric";
 import { loadLatestProjectedStudentSnapshot } from "../localStudentSnapshot";
 import { createManualImportPreview } from "../manualImport";
@@ -28,6 +29,7 @@ import {
   resolveCurriculumSeed,
 } from "../publicCatalog";
 import { formatMeeting } from "../schedulePresentation";
+import { runAutomaticSigaaSync } from "../sigaaBridge";
 import { buildLocalStudentSnapshotBundle } from "../studentSnapshot";
 import { normalizeScheduleCodesWithWasm } from "../wasmScheduleParser";
 
@@ -41,6 +43,7 @@ type LocalSnapshotStatus =
   | "clearing"
   | "cleared"
   | "error";
+type AutomaticSyncStatus = "idle" | "syncing" | "ready" | "error";
 
 interface ParserState {
   status: ParserStatus;
@@ -81,6 +84,13 @@ export function ImportPage() {
   const [localSnapshotStatus, setLocalSnapshotStatus] =
     useState<LocalSnapshotStatus>("checking");
   const [localSnapshotMessage, setLocalSnapshotMessage] = useState<
+    string | null
+  >(null);
+  const [sigaaUsername, setSigaaUsername] = useState("");
+  const [sigaaPassword, setSigaaPassword] = useState("");
+  const [automaticSyncStatus, setAutomaticSyncStatus] =
+    useState<AutomaticSyncStatus>("idle");
+  const [automaticSyncMessage, setAutomaticSyncMessage] = useState<
     string | null
   >(null);
 
@@ -342,18 +352,157 @@ export function ImportPage() {
     }
   }
 
+  async function handleAutomaticSync() {
+    const usernameOrCpf = sigaaUsername.trim();
+    if (!usernameOrCpf || sigaaPassword.trim().length === 0) {
+      setAutomaticSyncStatus("error");
+      setAutomaticSyncMessage(
+        "Informe usuario ou CPF e a senha do SIGAA para esta sessao local.",
+      );
+      return;
+    }
+
+    setAutomaticSyncStatus("syncing");
+    setAutomaticSyncMessage(null);
+    setLocalSnapshotMessage(null);
+
+    try {
+      const rawPayload = await runAutomaticSigaaSync({
+        usernameOrCpf,
+        password: sigaaPassword,
+        timingProfileId: "Ufba2025",
+      });
+      const { bundle } = await buildAutomaticSigaaSyncBundle({
+        rawPayload,
+        timingProfileId: "Ufba2025",
+      });
+      const nextVaultState = await saveLatestLocalStudentSnapshotBundle(bundle);
+
+      startTransition(() => {
+        setRawInput(bundle.manualImport.rawInput);
+      });
+
+      setParserState({
+        status:
+          bundle.manualImport.normalizedSchedules.length > 0 ? "ready" : "idle",
+        normalizedSchedules: bundle.manualImport.normalizedSchedules,
+        errorMessage: null,
+      });
+      setLatestSnapshot(bundle.manualImport);
+      setLatestBundle(bundle);
+      setVaultState(nextVaultState);
+      setPreferredCurriculumSeedId(
+        bundle.manualImport.preferredCurriculumSeedId ?? null,
+      );
+      setLocalSnapshotStatus("saved");
+      setLocalSnapshotMessage(
+        `Snapshot automatico salvo localmente em ${formatLocalDateTime(
+          bundle.derivedAt,
+        )}.`,
+      );
+      setAutomaticSyncStatus("ready");
+      setAutomaticSyncMessage(
+        "Minhas Turmas e Minhas Notas foram lidas localmente do SIGAA pela extensao.",
+      );
+      setSigaaPassword("");
+    } catch (error: unknown) {
+      setAutomaticSyncStatus("error");
+      setAutomaticSyncMessage(
+        error instanceof Error
+          ? error.message
+          : "Falha ao sincronizar localmente com o SIGAA.",
+      );
+    }
+  }
+
   return (
     <div className="page-grid">
       <section className="hero-card">
         <p className="section-label">Importacao manual inicial</p>
         <h2>
-          Cole texto exportado do SIGAA sem nunca guardar senha em arquivo
+          Importe do SIGAA com extensao local ou cole um trecho sem guardar
+          senha
         </h2>
         <p>
-          Esta previa trabalha apenas com texto colado localmente. O objetivo
-          agora e detectar codigos de horario e componentes para preparar o
-          caminho da importacao manual antes do sync automatico.
+          O sync automatico roda no dispositivo do usuario com uma extensao
+          local, sem backend com PII. Quando a extensao nao estiver carregada, a
+          importacao manual continua disponivel.
         </p>
+      </section>
+
+      <section className="panel">
+        <p className="section-label">Sync automatico local</p>
+        <div className="split-grid">
+          <div className="soft-card">
+            <h3>Conectar com o SIGAA</h3>
+            <p>
+              As credenciais ficam apenas em memoria na extensao durante a
+              sessao atual. Nada disso e salvo no servidor.
+            </p>
+            <div className="field-grid">
+              <label className="input-panel" htmlFor="sigaa-username">
+                <span className="micro-label">Usuario ou CPF</span>
+                <input
+                  id="sigaa-username"
+                  className="text-input"
+                  type="text"
+                  autoComplete="username"
+                  value={sigaaUsername}
+                  onChange={(event) => setSigaaUsername(event.target.value)}
+                  placeholder="CPF ou login do SIGAA"
+                />
+              </label>
+
+              <label className="input-panel" htmlFor="sigaa-password">
+                <span className="micro-label">Senha do SIGAA</span>
+                <input
+                  id="sigaa-password"
+                  className="text-input"
+                  type="password"
+                  autoComplete="current-password"
+                  value={sigaaPassword}
+                  onChange={(event) => setSigaaPassword(event.target.value)}
+                  placeholder="Usada so nesta sessao local"
+                />
+              </label>
+            </div>
+
+            <div className="action-row subsection">
+              <button
+                type="button"
+                className="action-button"
+                onClick={() => void handleAutomaticSync()}
+                disabled={
+                  automaticSyncStatus === "syncing" ||
+                  isLocalSnapshotBusy(localSnapshotStatus)
+                }
+              >
+                {automaticSyncStatus === "syncing"
+                  ? "Sincronizando..."
+                  : "Importar automaticamente"}
+              </button>
+            </div>
+          </div>
+
+          <div className="soft-card">
+            <h3>Contrato desta fase</h3>
+            <ul className="list">
+              <li>Carregue `apps/extension` como extensao MV3 unpacked.</li>
+              <li>
+                A extensao autentica localmente e captura `Minhas Turmas` e
+                `Minhas Notas`.
+              </li>
+              <li>
+                O app reaproveita o mesmo pipeline local de snapshot e vault.
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <AutomaticSyncBanner
+          status={automaticSyncStatus}
+          message={automaticSyncMessage}
+        />
       </section>
 
       <section className="panel">
@@ -968,6 +1117,46 @@ function ParserStatusBanner({
   return (
     <p className="status-banner status-banner-success">
       Parser Rust/WASM carregado e normalizando os codigos detectados.
+    </p>
+  );
+}
+
+function AutomaticSyncBanner({
+  status,
+  message,
+}: {
+  status: AutomaticSyncStatus;
+  message: string | null;
+}) {
+  if (status === "syncing") {
+    return (
+      <p className="status-banner">
+        A extensao esta autenticando localmente e capturando as views privadas
+        do SIGAA.
+      </p>
+    );
+  }
+
+  if (status === "error") {
+    return (
+      <p className="status-banner status-banner-error">
+        {message ??
+          "Falha ao falar com a extensao local ou ao importar do SIGAA."}
+      </p>
+    );
+  }
+
+  if (status === "ready") {
+    return (
+      <p className="status-banner status-banner-success">
+        {message ?? "Sync automatico concluido com sucesso."}
+      </p>
+    );
+  }
+
+  return (
+    <p className="status-banner">
+      O sync automatico depende da extensao local carregada neste navegador.
     </p>
   );
 }
