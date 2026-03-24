@@ -22,6 +22,47 @@ interface LocatorCandidate {
   locator(page: Page): Locator;
 }
 
+export const SIGAA_LOGIN_SELECTOR_CONTRACT = {
+  username: [
+    "label:Usuario",
+    "label:Login",
+    'css:input[name*="user"]',
+    'css:input[type="text"]',
+  ],
+  password: [
+    "label:Senha",
+    'css:input[type="password"]',
+  ],
+  submit: [
+    "role:button/entrar",
+    'css:button[type="submit"]',
+    'css:input[type="submit"]',
+  ],
+} as const;
+
+export const SIGAA_PORTAL_SELECTOR_CONTRACT = {
+  homeForm: '[id="form-portal-discente"]',
+  classesLink: '[id="form-portal-discente:lnkMinhasTurmas"]',
+  notesLink: '[id="form-portal-discente:lnkMinhasNotas"]',
+  historyLink: '[id="form-portal-discente:lnkConsultarHistorico"]',
+  logoutLink: '[id="form-portal-discente:lnkLogOff"]',
+} as const;
+
+export const SIGAA_CLASSES_SELECTOR_CONTRACT = {
+  homeLink: '[id="form-turmas-discente:lnkInicio"]',
+  logoutLink: '[id="form-turmas-discente:lnkSair"]',
+  openClassLink: '[id^="form-turmas-discente:cmdEntrarTurma"]',
+  openAllLink: '[id="form-turmas-discente:lnkVerTodas"]',
+} as const;
+
+export const SIGAA_GRADES_TEXT_CONTRACT = {
+  heading: /relat[oó]rio de notas/i,
+  studentLabel: /aluno\(a\):/i,
+  courseLabel: /curso:/i,
+  approved: /aprovado/i,
+  failed: /reprovado/i,
+} as const;
+
 const USERNAME_CANDIDATES: LocatorCandidate[] = [
   {
     description: "label:Usuario",

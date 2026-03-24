@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>SIGAA Mobile - Notas redatadas</title>
+  </head>
+  <body>
+    <!-- Sanitized from private SIGAA capture; student, course and grades redacted. -->
+    <main>
+      <form id="form-relatorio-notas" method="post" action="/sigaa/mobile/touch/historico.jsf">
+        <section id="identificacao">
+          <p>Relatório de Notas do Aluno(a)</p>
+          <p>Aluno(a): ESTUDANTE REDATADO</p>
+          <p>Curso: CURSO REDATADO</p>
+        </section>
+
+        <table id="relatorio">
+          <thead>
+            <tr>
+              <th>Periodo</th>
+              <th>Disciplina</th>
+              <th>Resultado</th>
+              <th>Faltas</th>
+              <th>Situacao</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>2026.1</td>
+              <td>DISCIPLINA REDATADA 1</td>
+              <td>10,0</td>
+              <td>0</td>
+              <td>APROVADO</td>
+            </tr>
+            <tr>
+              <td>2025.2</td>
+              <td>DISCIPLINA REDATADA 2</td>
+              <td>--</td>
+              <td>--</td>
+              <td>REPROVADO</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <nav>
+          <a id="relatorio:voltar" href="#">Voltar</a>
+          <a id="relatorio:imprimir" href="#">Imprimir</a>
+        </nav>
+      </form>
+    </main>
+  </body>
+</html>

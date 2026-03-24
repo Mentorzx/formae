@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "redaction": {
+    "forbiddenText": [
+      "ALEX DE LIRA NETO",
+      "219216387",
+      "ENGENHARIA DA COMPUTAÇÃO/EPOLI",
+      "ENGC25",
+      "ENGC41",
+      "ECOB40",
+      "ENGG62",
+      "ENGC63"
+    ],
+    "forbiddenPatterns": [
+      "\\b\\d{9}\\b",
+      "jsessionid="
+    ]
+  },
+  "fixtures": [
+    {
+      "id": "login",
+      "file": "login.html",
+      "requiredSelectors": [
+        "form#form-login",
+        "input[type=\"text\"]",
+        "input[type=\"password\"]",
+        "#form-login\\:entrar",
+        "#form-acesso-publico\\:btnPortalPublico"
+      ],
+      "requiredText": [
+        "Usuário:",
+        "Senha:",
+        "Entrar",
+        "Acessar Área Pública"
+      ],
+      "forbiddenText": [
+        "219216387",
+        "ALEX DE LIRA NETO"
+      ]
+    },
+    {
+      "id": "portal-home",
+      "file": "portal-home.html",
+      "requiredSelectors": [
+        "#form-portal-discente",
+        "#form-portal-discente\\:lnkMinhasTurmas",
+        "#form-portal-discente\\:lnkMinhasNotas",
+        "#form-portal-discente\\:lnkConsultarHistorico",
+        "#form-portal-discente\\:lnkLogOff"
+      ],
+      "requiredText": [
+        "Minhas Turmas",
+        "Minhas Notas",
+        "Atestado de Matrícula",
+        "Consultar Histórico",
+        "Sair"
+      ],
+      "forbiddenText": [
+        "219216387",
+        "ALEX DE LIRA NETO",
+        "ENGENHARIA DA COMPUTAÇÃO/EPOLI"
+      ]
+    },
+    {
+      "id": "classes",
+      "file": "classes.html",
+      "requiredSelectors": [
+        "#form-turmas-discente",
+        "#form-turmas-discente\\:lnkInicio",
+        "#form-turmas-discente\\:lnkSair",
+        "#form-turmas-discente\\:lnkVerTodas",
+        "#form-turmas-discente\\:cmdEntrarTurma"
+      ],
+      "requiredText": [
+        "Turmas do Discente",
+        "Ver Todas",
+        "Horário:"
+      ],
+      "forbiddenText": [
+        "ENGC25",
+        "ENGC41",
+        "ECOB40",
+        "ENGG62",
+        "ENGC63",
+        "ALEX DE LIRA NETO"
+      ]
+    },
+    {
+      "id": "grades",
+      "file": "grades.html",
+      "requiredSelectors": [
+        "#form-relatorio-notas",
+        "#identificacao",
+        "#relatorio",
+        "#relatorio\\:voltar",
+        "#relatorio\\:imprimir"
+      ],
+      "requiredText": [
+        "Relatório de Notas do Aluno(a)",
+        "Aluno(a):",
+        "Curso:",
+        "APROVADO",
+        "REPROVADO"
+      ],
+      "forbiddenText": [
+        "219216387",
+        "ALEX DE LIRA NETO",
+        "ENGENHARIA DA COMPUTAÇÃO/EPOLI"
+      ]
+    }
+  ]
+}

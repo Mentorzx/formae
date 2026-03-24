@@ -4,12 +4,13 @@ import path from "node:path";
 import dotenv from "dotenv";
 
 export interface CliOptions {
-  command: "capture" | "web-sync";
+  command: "capture" | "web-sync" | "replay";
   envFile?: string;
   loginUrl?: string;
   captureUrl?: string;
   captureTarget?: "portal-home" | "history" | "classes" | "grades";
   webUrl?: string;
+  fixtureDir?: string;
   outputDir?: string;
   headed: boolean;
   timeoutMs?: number;
@@ -37,6 +38,10 @@ export interface WebSyncConfig {
   envFilesLoaded: string[];
 }
 
+export interface ReplayConfig {
+  fixtureDir: string;
+}
+
 const DEFAULT_LOGIN_URL = "https://sigaa.ufba.br/sigaa/mobile/touch/login.jsf";
 const DEFAULT_WEB_URL = "http://localhost:4173/#/importacao";
 
@@ -54,6 +59,11 @@ export function parseCliOptions(argv: string[]): CliOptions {
     }
 
     if (token === "capture" || token === "web-sync") {
+      options.command = token;
+      continue;
+    }
+
+    if (token === "replay") {
       options.command = token;
       continue;
     }
@@ -101,6 +111,11 @@ export function parseCliOptions(argv: string[]): CliOptions {
 
     if (flag === "--web-url") {
       options.webUrl = readValue();
+      continue;
+    }
+
+    if (flag === "--fixture-dir") {
+      options.fixtureDir = readValue();
       continue;
     }
 
@@ -168,6 +183,15 @@ export function resolveWebSyncConfig(options: CliOptions): WebSyncConfig {
   };
 }
 
+export function resolveReplayConfig(options: CliOptions): ReplayConfig {
+  return {
+    fixtureDir: path.resolve(
+      process.cwd(),
+      options.fixtureDir ?? process.env.FORMAE_PRIVATE_FIXTURE_DIR ?? "../../fixtures/private/sigaa",
+    ),
+  };
+}
+
 function loadLocalEnvFiles(explicitEnvFile?: string): string[] {
   const candidates = [
     explicitEnvFile,
@@ -205,10 +229,12 @@ function printUsageAndExit(): never {
 Usage:
   pnpm capture [--headed] [--env-file <path>] [--login-url <url>] [--capture-url <url>] [--capture-target <portal-home|history|classes|grades>] [--output-dir <dir>] [--timeout-ms <ms>]
   pnpm sync:web [--headed] [--env-file <path>] [--web-url <url>] [--timeout-ms <ms>]
+  pnpm replay [--env-file <path>] [--fixture-dir <dir>]
 
 Defaults:
   login url   ${DEFAULT_LOGIN_URL}
   web url     ${DEFAULT_WEB_URL}
+  fixture dir ../../fixtures/private/sigaa
   env files   ../../.env, ./.env, ./.env.local
   output dir  artifacts/
 `);

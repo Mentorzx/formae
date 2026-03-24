@@ -18,6 +18,7 @@ Tambem valida o fluxo completo `web -> extensao -> SIGAA -> vault local` sem per
 - `src/sanitize.ts`: normaliza URL, DOM e metadados.
 - `src/web-sync.ts`: valida o sync automatico na PWA com a extensao local.
 - `tests/sanitize.test.ts`: testes locais sem browser.
+- `tests/private-contract-replay.test.ts`: replay offline com fixtures HTML para alarmes de seletor e contrato do SIGAA.
 
 ## Como usar
 
@@ -66,6 +67,31 @@ cd infra/private-sync-e2e
 pnpm sync:web
 ```
 
+## Replay offline usado no CI
+
+Para o CI publico, o repositório roda apenas replay offline e seguro, sem credenciais e sem rede privada:
+
+```bash
+cd infra/private-sync-e2e
+pnpm exec tsx --test tests/sanitize.test.ts tests/private-contract-replay.test.ts
+pnpm typecheck
+```
+
+Esse replay abre fixtures HTML locais no Chromium do Playwright para verificar:
+
+- fallback selectors do login autenticado;
+- contrato do formulario `form-portal-discente`;
+- abertura dos atalhos `Consultar Historico`, `Minhas Turmas` e `Minhas Notas`.
+
+Se esse passo falhar no CI, trate como alarme de drift de seletor ou quebra de contrato do portal autenticado.
+
+6. Para validar os fixtures privados redigidos sem abrir o browser:
+
+```bash
+cd infra/private-sync-e2e
+pnpm replay
+```
+
 ## Configuracao
 
 Variaveis aceitas:
@@ -80,6 +106,7 @@ Variaveis aceitas:
 - `FORMAE_E2E_ENV_FILE`
 - `FORMAE_WEB_URL`
 - `FORMAE_EXTENSION_PATH`
+- `FORMAE_PRIVATE_FIXTURE_DIR`
 
 Por padrao, a ferramenta tenta carregar `../../.env`, depois `./.env`, e por ultimo `./.env.local`, sem sobrescrever variaveis ja presentes no ambiente.
 
@@ -95,6 +122,7 @@ Os artefatos vao para `artifacts/<timestamp>/` e incluem:
 
 Somente o DOM sanitizado e os metadados saneados sao persistidos.
 No modo `sync:web`, nada privado e persistido pelo harness: ele apenas imprime um resumo local do teste.
+O modo `replay` apenas percorre `fixtures/private/sigaa/` e falha se algum seletor, texto ou padrao de redacao sair do esperado.
 
 ## Estado validado localmente
 

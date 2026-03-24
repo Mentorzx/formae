@@ -1,9 +1,11 @@
 import {
   parseCliOptions,
   resolveCaptureConfig,
+  resolveReplayConfig,
   resolveWebSyncConfig,
 } from "./config.js";
 import { runCapture } from "./capture.js";
+import { runPrivateFixtureReplay } from "./privateFixtureReplay.js";
 import { runWebSync } from "./web-sync.js";
 
 async function main(): Promise<void> {
@@ -38,6 +40,21 @@ async function main(): Promise<void> {
         `detected components: ${result.detectedComponentCount}`,
         `detected schedules: ${result.detectedScheduleCount}`,
         `duration ms: ${result.durationMs}`,
+      ].join("\n") + "\n",
+    );
+    return;
+  }
+
+  if (options.command === "replay") {
+    const config = resolveReplayConfig(options);
+    const result = await runPrivateFixtureReplay(config.fixtureDir);
+
+    process.stdout.write(
+      [
+        `Fixture replay finished: ${config.fixtureDir}`,
+        `fixtures checked: ${result.fixtureCount}`,
+        `selectors checked: ${result.selectorCount}`,
+        `forbidden patterns checked: ${result.forbiddenPatternCount}`,
       ].join("\n") + "\n",
     );
     return;

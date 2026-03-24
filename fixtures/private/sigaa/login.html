@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>SIGAA Mobile - Login redatado</title>
+  </head>
+  <body>
+    <!-- Sanitized from private SIGAA capture; no identifiers or session data retained. -->
+    <main>
+      <h1>UFBA - SIGAA Mobile</h1>
+      <p>UFBA - SIGAA - Sistema Integrado de Gestão de Atividades Acadêmicas</p>
+      <p>
+        ATENÇÃO! O sistema diferencia letras maiúsculas de minúsculas APENAS na
+        senha.
+      </p>
+
+      <form id="form-login" method="post" action="/sigaa/mobile/touch/login.jsf">
+        <label for="login">Usuário:</label>
+        <input id="login" type="text" name="login" autocomplete="username" />
+
+        <label for="senha">Senha:</label>
+        <input
+          id="senha"
+          type="password"
+          name="senha"
+          autocomplete="current-password"
+        />
+
+        <button id="form-login:entrar" type="submit">Entrar</button>
+      </form>
+
+      <form
+        id="form-acesso-publico"
+        method="post"
+        action="/sigaa/mobile/touch/login.jsf"
+        data-ajax="false"
+      >
+        <button id="form-acesso-publico:btnPortalPublico" type="submit">
+          Acessar Área Pública
+        </button>
+      </form>
+
+      <footer>© 2006-2026</footer>
+      <a href="#">Modo Clássico</a>
+    </main>
+  </body>
+</html>

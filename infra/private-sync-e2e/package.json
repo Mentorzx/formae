@@ -9,15 +9,18 @@
     "capture:headed": "tsx src/cli.ts capture --headed",
     "sync:web": "tsx src/cli.ts web-sync",
     "sync:web:headed": "tsx src/cli.ts web-sync --headed",
-    "test": "tsx --test tests/sanitize.test.ts",
+    "replay": "tsx src/cli.ts replay",
+    "test": "tsx --test tests/sanitize.test.ts tests/privateFixtureReplay.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "dotenv": "^17.2.1",
+    "jsdom": "^27.0.0",
     "playwright": "^1.55.0"
   },
   "devDependencies": {
     "@types/node": "^24.5.2",
+    "@types/jsdom": "^27.0.0",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2"
   }
