@@ -6,6 +6,10 @@ import type {
   ScheduleBlock,
   StudentSnapshot,
 } from "@formae/protocol";
+import {
+  inferManualComponentStatuses,
+  type ManualDetectedComponentInference,
+} from "./manualComponentStatus";
 import type { PublicCatalogComponent } from "./publicCatalog";
 
 interface BuildLocalStudentSnapshotBundleInput {
@@ -42,9 +46,19 @@ interface BuildStudentSnapshotFromManualImportInput {
 export function buildStudentSnapshotFromManualImport(
   input: BuildStudentSnapshotFromManualImportInput,
 ): StudentSnapshot {
+  const componentInferences = inferManualComponentStatuses(
+    input.manualImport.rawInput,
+    input.manualImport.detectedComponentCodes,
+  );
   const components = buildCurriculumComponents(
     input.manualImport,
     input.matchedCatalogComponents,
+  );
+  const completedComponents = components.filter((component) =>
+    hasComponentStatus(component.code, componentInferences, "completed"),
+  );
+  const inProgressComponents = components.filter((component) =>
+    hasComponentStatus(component.code, componentInferences, "inProgress"),
   );
   const scheduleBlocks = buildScheduleBlocks(
     input.manualImport,
@@ -52,6 +66,10 @@ export function buildStudentSnapshotFromManualImport(
   );
   const pendingRequirements = buildPendingRequirements(
     input.manualImport,
+    components,
+    completedComponents,
+    componentInferences,
+    inProgressComponents,
     scheduleBlocks,
     input.matchedCatalogComponents,
   );
@@ -79,8 +97,8 @@ export function buildStudentSnapshotFromManualImport(
       prerequisiteRules: [],
       equivalences: [],
     },
-    completedComponents: [],
-    inProgressComponents: components,
+    completedComponents,
+    inProgressComponents,
     scheduleBlocks,
     pendingRequirements,
     issuedDocuments: [],
@@ -137,11 +155,21 @@ function buildScheduleBlocks(
 
 function buildPendingRequirements(
   manualImport: ManualImportStoredSnapshot,
+  components: Component[],
+  completedComponents: Component[],
+  componentInferences: ManualDetectedComponentInference[],
+  inProgressComponents: Component[],
   scheduleBlocks: ScheduleBlock[],
   matchedCatalogComponents: PublicCatalogComponent[],
 ): PendingRequirement[] {
   const matchedCodes = new Set(
     matchedCatalogComponents.map((component) => component.code),
+  );
+  const completedCodes = new Set(
+    completedComponents.map((component) => component.code),
+  );
+  const inProgressCodes = new Set(
+    inProgressComponents.map((component) => component.code),
   );
   const parserWarnings = scheduleBlocks.flatMap((block) => {
     const normalizedSchedule = manualImport.normalizedSchedules.find(
@@ -165,6 +193,31 @@ function buildPendingRequirements(
     }
   }
 
+  for (const inference of componentInferences) {
+    if (inference.status === "failed") {
+      requirements.push({
+        id: `component-retry:${inference.code}`,
+        title: `Retomar ${inference.code}`,
+        status: "outstanding",
+        details:
+          "A importacao manual detectou sinais de reprovacao, cancelamento ou trancamento para este componente.",
+        relatedComponentCode: inference.code,
+      });
+    }
+
+    if (inference.status === "unknown" || inference.hasConflictingSignals) {
+      requirements.push({
+        id: `component-status:${inference.code}`,
+        title: `Revisar status de ${inference.code}`,
+        status: "outstanding",
+        details: inference.hasConflictingSignals
+          ? "O texto manual traz sinais conflitantes para este componente."
+          : "O texto manual nao trouxe sinais suficientes para classificar este componente como concluido ou em andamento.",
+        relatedComponentCode: inference.code,
+      });
+    }
+  }
+
   for (const scheduleBlock of scheduleBlocks) {
     if (!scheduleBlock.componentCode) {
       requirements.push({
@@ -174,6 +227,22 @@ function buildPendingRequirements(
         details:
           "O horario foi normalizado, mas a importacao manual ainda nao permite associacao confiavel com um componente.",
         relatedComponentCode: null,
+      });
+    }
+  }
+
+  for (const component of components) {
+    const isPending =
+      !completedCodes.has(component.code) &&
+      !inProgressCodes.has(component.code);
+
+    if (isPending) {
+      requirements.push({
+        id: `component:${component.code}`,
+        title: `Concluir ${component.title}`,
+        status: "outstanding",
+        details: `Componente ainda nao concluido nem em andamento: ${component.code}`,
+        relatedComponentCode: component.code,
       });
     }
   }
@@ -191,7 +260,7 @@ function buildPendingRequirements(
     });
   }
 
-  return requirements;
+  return deduplicateRequirements(requirements);
 }
 
 function findComponentCodeForSchedule(
@@ -212,4 +281,30 @@ function findComponentCodeForSchedule(
   }
 
   return null;
+}
+
+function hasComponentStatus(
+  componentCode: string,
+  componentInferences: ManualDetectedComponentInference[],
+  expectedStatus: ManualDetectedComponentInference["status"],
+): boolean {
+  return componentInferences.some(
+    (inference) =>
+      inference.code === componentCode && inference.status === expectedStatus,
+  );
+}
+
+function deduplicateRequirements(
+  requirements: PendingRequirement[],
+): PendingRequirement[] {
+  const seenIds = new Set<string>();
+
+  return requirements.filter((requirement) => {
+    if (seenIds.has(requirement.id)) {
+      return false;
+    }
+
+    seenIds.add(requirement.id);
+    return true;
+  });
 }

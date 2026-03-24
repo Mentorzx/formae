@@ -1,7 +1,7 @@
 import type { ManualImportDraft, ManualImportPreview } from "@formae/protocol";
 
 const scheduleCodePattern = /\b[2-7]+[MTN][1-9]+\b/g;
-const componentCodePattern = /\b[A-Z]{3,5}\d{2}\b/g;
+const componentCodePattern = /\b[A-Z]{3,5}\d{2,3}\b/g;
 
 export function createManualImportPreview(
   draft: ManualImportDraft,

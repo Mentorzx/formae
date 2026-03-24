@@ -4,9 +4,11 @@ import type {
   StudentSnapshot,
 } from "@formae/protocol";
 
+export type ComponentAcademicStatus = "completed" | "inProgress" | "review";
 export type ComponentProgressStatus = "ready" | "partial" | "review";
 
 export interface ComponentProgressItem {
+  academicStatus: ComponentAcademicStatus;
   code: string;
   title: string;
   hasCatalogMatch: boolean;
@@ -19,9 +21,12 @@ export interface StudentProgressSummary {
   studentSnapshot: StudentSnapshot;
   derivedAt: string;
   componentCount: number;
+  completedCount: number;
+  inProgressCount: number;
   matchedCatalogCount: number;
-  resolvedComponentCount: number;
-  resolvedComponentPercent: number;
+  classifiedComponentCount: number;
+  classifiedComponentPercent: number;
+  reviewCount: number;
   scheduleBlockCount: number;
   boundScheduleBlockCount: number;
   unboundScheduleBlockCount: number;
@@ -38,6 +43,16 @@ export function summarizeStudentProgress(
   const pendingByComponent = new Map<string, PendingRequirement[]>();
   const matchedCatalogCodes = new Set(
     bundle.manualImport.matchedCatalogComponentCodes,
+  );
+  const completedCodes = new Set(
+    bundle.studentSnapshot.completedComponents.map(
+      (component) => component.code,
+    ),
+  );
+  const inProgressCodes = new Set(
+    bundle.studentSnapshot.inProgressComponents.map(
+      (component) => component.code,
+    ),
   );
 
   for (const scheduleBlock of bundle.studentSnapshot.scheduleBlocks) {
@@ -63,31 +78,46 @@ export function summarizeStudentProgress(
     pendingByComponent.set(requirement.relatedComponentCode, currentItems);
   }
 
-  const componentItems = bundle.studentSnapshot.inProgressComponents.map(
+  const componentItems = bundle.studentSnapshot.curriculum.components.map(
     (component) => {
       const pendingRequirements = pendingByComponent.get(component.code) ?? [];
       const hasCatalogMatch = matchedCatalogCodes.has(component.code);
       const scheduleBlockCount =
         scheduleBlocksByComponent.get(component.code) ?? 0;
+      const academicStatus = getComponentAcademicStatus(
+        component.code,
+        completedCodes,
+        inProgressCodes,
+      );
 
       return {
+        academicStatus,
         code: component.code,
         title: component.title,
         hasCatalogMatch,
         scheduleBlockCount,
         pendingRequirements,
         status: getComponentProgressStatus({
+          academicStatus,
           hasCatalogMatch,
-          scheduleBlockCount,
           pendingRequirements,
         }),
       };
     },
   );
-  const resolvedComponentCount = componentItems.filter(
-    (item) => item.status === "ready",
+  const classifiedComponentCount = componentItems.filter(
+    (item) => item.academicStatus !== "review",
+  ).length;
+  const completedCount = componentItems.filter(
+    (item) => item.academicStatus === "completed",
+  ).length;
+  const inProgressCount = componentItems.filter(
+    (item) => item.academicStatus === "inProgress",
   ).length;
   const componentCount = componentItems.length;
+  const reviewCount = componentItems.filter(
+    (item) => item.status === "review",
+  ).length;
   const boundScheduleBlockCount = bundle.studentSnapshot.scheduleBlocks.filter(
     (scheduleBlock) => scheduleBlock.componentCode,
   ).length;
@@ -96,13 +126,16 @@ export function summarizeStudentProgress(
     studentSnapshot: bundle.studentSnapshot,
     derivedAt: bundle.derivedAt,
     componentCount,
+    completedCount,
+    inProgressCount,
     matchedCatalogCount: componentItems.filter((item) => item.hasCatalogMatch)
       .length,
-    resolvedComponentCount,
-    resolvedComponentPercent:
+    classifiedComponentCount,
+    classifiedComponentPercent:
       componentCount === 0
         ? 0
-        : Math.round((resolvedComponentCount / componentCount) * 100),
+        : Math.round((classifiedComponentCount / componentCount) * 100),
+    reviewCount,
     scheduleBlockCount: bundle.studentSnapshot.scheduleBlocks.length,
     boundScheduleBlockCount,
     unboundScheduleBlockCount:
@@ -114,20 +147,39 @@ export function summarizeStudentProgress(
 }
 
 function getComponentProgressStatus({
+  academicStatus,
   hasCatalogMatch,
-  scheduleBlockCount,
   pendingRequirements,
 }: {
+  academicStatus: ComponentAcademicStatus;
   hasCatalogMatch: boolean;
-  scheduleBlockCount: number;
   pendingRequirements: PendingRequirement[];
 }): ComponentProgressStatus {
-  if (hasCatalogMatch && pendingRequirements.length === 0) {
+  if (academicStatus === "completed" && pendingRequirements.length === 0) {
     return "ready";
   }
 
-  if (hasCatalogMatch || scheduleBlockCount > 0) {
+  if (
+    academicStatus === "inProgress" ||
+    (academicStatus === "completed" && hasCatalogMatch)
+  ) {
     return "partial";
+  }
+
+  return "review";
+}
+
+function getComponentAcademicStatus(
+  componentCode: string,
+  completedCodes: Set<string>,
+  inProgressCodes: Set<string>,
+): ComponentAcademicStatus {
+  if (completedCodes.has(componentCode)) {
+    return "completed";
+  }
+
+  if (inProgressCodes.has(componentCode)) {
+    return "inProgress";
   }
 
   return "review";

@@ -53,15 +53,7 @@ describe("summarizeStudentProgress", () => {
           prerequisiteRules: [],
           equivalences: [],
         },
-        completedComponents: [],
-        inProgressComponents: [
-          {
-            code: "FIS123",
-            title: "Componente detectado manualmente (FIS123)",
-            credits: 0,
-            workloadHours: 0,
-            componentType: "manual-detected",
-          },
+        completedComponents: [
           {
             code: "MATA37",
             title: "Introducao a Logica de Programacao",
@@ -70,6 +62,7 @@ describe("summarizeStudentProgress", () => {
             componentType: "catalog-seed",
           },
         ],
+        inProgressComponents: [],
         scheduleBlocks: [
           {
             componentCode: "MATA37",
@@ -105,9 +98,12 @@ describe("summarizeStudentProgress", () => {
     });
 
     expect(summary.componentCount).toBe(2);
+    expect(summary.completedCount).toBe(1);
+    expect(summary.inProgressCount).toBe(0);
     expect(summary.matchedCatalogCount).toBe(1);
-    expect(summary.resolvedComponentCount).toBe(1);
-    expect(summary.resolvedComponentPercent).toBe(50);
+    expect(summary.classifiedComponentCount).toBe(1);
+    expect(summary.classifiedComponentPercent).toBe(50);
+    expect(summary.reviewCount).toBe(1);
     expect(summary.boundScheduleBlockCount).toBe(1);
     expect(summary.unboundScheduleBlockCount).toBe(1);
     expect(summary.generalPendingRequirements).toEqual([
@@ -121,6 +117,7 @@ describe("summarizeStudentProgress", () => {
     ]);
     expect(summary.componentItems).toEqual([
       {
+        academicStatus: "review",
         code: "FIS123",
         title: "Componente detectado manualmente (FIS123)",
         hasCatalogMatch: false,
@@ -137,6 +134,7 @@ describe("summarizeStudentProgress", () => {
         status: "review",
       },
       {
+        academicStatus: "completed",
         code: "MATA37",
         title: "Introducao a Logica de Programacao",
         hasCatalogMatch: true,

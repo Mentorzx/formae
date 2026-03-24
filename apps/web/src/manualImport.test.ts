@@ -15,6 +15,17 @@ describe("createManualImportPreview", () => {
     expect(preview.warnings).toEqual([]);
   });
 
+  it("accepts component codes with three trailing digits", () => {
+    const preview = createManualImportPreview({
+      source: "plain-text",
+      rawInput: "FIS123 - Fisica I - REPROVADO",
+      capturedAt: "2026-03-23T21:20:00Z",
+      timingProfileId: "Ufba2025",
+    });
+
+    expect(preview.detectedComponentCodes).toEqual(["FIS123"]);
+  });
+
   it("returns an idle preview when input is empty", () => {
     const preview = createManualImportPreview({
       source: "plain-text",

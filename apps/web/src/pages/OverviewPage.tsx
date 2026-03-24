@@ -16,6 +16,7 @@ import {
   loadLatestProjectedStudentSnapshot,
 } from "../localStudentSnapshot";
 import {
+  type ComponentAcademicStatus,
   type ComponentProgressStatus,
   type StudentProgressSummary,
   summarizeStudentProgress,
@@ -99,20 +100,20 @@ export function OverviewPage() {
           {overviewState.summary ? (
             <>
               <Metric
-                label="Integralizacao inicial"
-                value={`${overviewState.summary.resolvedComponentPercent}%`}
+                label="Classificacao inicial"
+                value={`${overviewState.summary.classifiedComponentPercent}%`}
               />
               <Metric
-                label="Catalogo resolvido"
-                value={`${overviewState.summary.matchedCatalogCount}/${overviewState.summary.componentCount}`}
+                label="Concluidos"
+                value={String(overviewState.summary.completedCount)}
               />
               <Metric
-                label="Horarios vinculados"
-                value={`${overviewState.summary.boundScheduleBlockCount}/${overviewState.summary.scheduleBlockCount}`}
+                label="Em andamento"
+                value={String(overviewState.summary.inProgressCount)}
               />
               <Metric
-                label="Pendencias abertas"
-                value={String(overviewState.summary.pendingRequirementCount)}
+                label="Revisao manual"
+                value={String(overviewState.summary.reviewCount)}
               />
             </>
           ) : (
@@ -151,6 +152,9 @@ export function OverviewPage() {
                   </div>
                   <h3>{component.title}</h3>
                   <div className="fact-row">
+                    <span className="vault-fact">
+                      Estado: {formatAcademicStatus(component.academicStatus)}
+                    </span>
                     <span className="vault-fact">
                       Catalogo: {component.hasCatalogMatch ? "ok" : "pendente"}
                     </span>
@@ -216,6 +220,11 @@ export function OverviewPage() {
                       overviewState.summary.studentSnapshot.curriculum.course
                         .name
                     }
+                  </li>
+                  <li>
+                    Catalogo coberto:{" "}
+                    {overviewState.summary.matchedCatalogCount}/
+                    {overviewState.summary.componentCount}
                   </li>
                   <li>
                     Blocos sem vinculo:{" "}
@@ -361,6 +370,18 @@ function formatComponentProgressStatus(
   }
 
   return "Revisar";
+}
+
+function formatAcademicStatus(status: ComponentAcademicStatus): string {
+  if (status === "completed") {
+    return "concluido";
+  }
+
+  if (status === "inProgress") {
+    return "em andamento";
+  }
+
+  return "nao classificado";
 }
 
 function formatPendingRequirementStatus(

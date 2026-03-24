@@ -517,6 +517,25 @@ export function ImportPage() {
 
             <div className="card-grid subsection">
               <article className="soft-card">
+                <p className="micro-label">Componentes concluidos</p>
+                <ul className="list">
+                  {displayedBundle.studentSnapshot.completedComponents.map(
+                    (component) => (
+                      <li key={component.code}>
+                        {component.code} - {component.title}
+                      </li>
+                    ),
+                  )}
+                </ul>
+                {displayedBundle.studentSnapshot.completedComponents.length ===
+                0 ? (
+                  <p>
+                    Nenhum componente foi classificado como concluido ainda.
+                  </p>
+                ) : null}
+              </article>
+
+              <article className="soft-card">
                 <p className="micro-label">Componentes em andamento</p>
                 <ul className="list">
                   {displayedBundle.studentSnapshot.inProgressComponents.map(
@@ -527,6 +546,10 @@ export function ImportPage() {
                     ),
                   )}
                 </ul>
+                {displayedBundle.studentSnapshot.inProgressComponents.length ===
+                0 ? (
+                  <p>Nenhum componente foi classificado como em andamento.</p>
+                ) : null}
               </article>
 
               <article className="soft-card">
