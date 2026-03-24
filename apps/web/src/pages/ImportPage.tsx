@@ -12,12 +12,11 @@ import {
   useState,
 } from "react";
 import { Metric } from "../components/Metric";
+import { loadLatestProjectedStudentSnapshot } from "../localStudentSnapshot";
 import { createManualImportPreview } from "../manualImport";
 import { buildManualImportStoredSnapshot } from "../manualSnapshot";
 import {
   clearLatestManualImportSnapshot,
-  loadLatestLocalStudentSnapshotBundle,
-  loadLatestManualImportSnapshot,
   loadManualImportVaultState,
   type ManualImportVaultState,
   saveLatestLocalStudentSnapshotBundle,
@@ -81,28 +80,17 @@ export function ImportPage() {
     let cancelled = false;
 
     void (async () => {
-      const [snapshot, persistedBundle, nextVaultState] = await Promise.all([
-        loadLatestManualImportSnapshot(),
-        loadLatestLocalStudentSnapshotBundle(),
+      const [loadedSnapshot, nextVaultState] = await Promise.all([
+        loadLatestProjectedStudentSnapshot(),
         loadManualImportVaultState(),
       ]);
-      const fallbackBundle =
-        !persistedBundle && snapshot
-          ? buildLocalStudentSnapshotBundle({
-              manualImport: snapshot,
-              matchedCatalogComponents: findCatalogMatches(
-                snapshot.detectedComponentCodes,
-              ),
-              derivedAt: snapshot.savedAt,
-            })
-          : null;
 
       if (cancelled) {
         return;
       }
 
-      setLatestSnapshot(snapshot);
-      setLatestBundle(persistedBundle ?? fallbackBundle);
+      setLatestSnapshot(loadedSnapshot.bundle?.manualImport ?? null);
+      setLatestBundle(loadedSnapshot.bundle);
       setVaultState(nextVaultState);
       setLocalSnapshotStatus("idle");
     })().catch((error: unknown) => {

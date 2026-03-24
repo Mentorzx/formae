@@ -58,6 +58,7 @@ pnpm build
 - Browser-local snapshot persistence for manual imports, stored in IndexedDB and restorable without backend state.
 - Versioned local vault baseline with AES-GCM sealing, device-local key material and migration from the earlier cleartext snapshot store.
 - Minimal `StudentSnapshot` projection derived locally from manual imports, including schedule blocks, in-progress components and explicit pending-review items.
+- Overview page wired to the latest local projection, surfacing initial progress, catalog coverage and open pending items directly from browser storage.
 
 ## Local secrets
 

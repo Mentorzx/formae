@@ -136,6 +136,12 @@ a {
   background: rgba(179, 217, 230, 0.38);
 }
 
+.inline-link {
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.15em;
+}
+
 .page-main {
   padding-bottom: 2rem;
 }
@@ -356,6 +362,23 @@ a {
   background: rgba(179, 217, 230, 0.14);
 }
 
+.card-topline,
+.fact-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: space-between;
+}
+
+.fact-row {
+  justify-content: flex-start;
+}
+
+.micro-copy {
+  margin-top: 1rem;
+  color: var(--ink-soft);
+}
+
 .vault-fact-grid {
   display: flex;
   flex-wrap: wrap;
@@ -370,6 +393,35 @@ a {
   background: rgba(255, 255, 255, 0.8);
   font-size: 0.92rem;
   color: var(--ink-soft);
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.status-pill-ready {
+  border-color: rgba(39, 99, 70, 0.18);
+  background: rgba(108, 181, 137, 0.16);
+  color: #1c5f3b;
+}
+
+.status-pill-partial {
+  border-color: rgba(156, 65, 33, 0.16);
+  background: rgba(223, 122, 59, 0.14);
+  color: #8a4727;
+}
+
+.status-pill-review {
+  border-color: rgba(164, 58, 58, 0.18);
+  background: rgba(214, 89, 89, 0.12);
+  color: #8e3535;
 }
 
 .storage-summary p:last-child,
