@@ -301,6 +301,70 @@ a {
   outline-offset: 2px;
 }
 
+.storage-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.action-button {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0.8rem 1rem;
+  background: var(--accent);
+  color: #f9fafb;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    opacity 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.action-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.action-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.action-button-secondary {
+  border-color: rgba(11, 79, 108, 0.18);
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--ink);
+}
+
+.action-button-danger {
+  background: #9c4121;
+}
+
+.storage-summary {
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(11, 79, 108, 0.12);
+  border-radius: 18px;
+  background: rgba(179, 217, 230, 0.14);
+}
+
+.storage-summary p:last-child,
+.storage-hint {
+  margin-bottom: 0;
+}
+
+.storage-hint {
+  margin-top: 0.75rem;
+}
+
 .warnings-card {
   margin-top: 1rem;
 }

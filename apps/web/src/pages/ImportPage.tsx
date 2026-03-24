@@ -1,11 +1,35 @@
-import type { ManualImportNormalizedSchedule } from "@formae/protocol";
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import type {
+  ManualImportNormalizedSchedule,
+  ManualImportStoredSnapshot,
+} from "@formae/protocol";
+import {
+  startTransition,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { createManualImportPreview } from "../manualImport";
+import { buildManualImportStoredSnapshot } from "../manualSnapshot";
+import {
+  clearLatestManualImportSnapshot,
+  loadLatestManualImportSnapshot,
+  saveLatestManualImportSnapshot,
+} from "../manualSnapshotStore";
 import { findCatalogMatches } from "../publicCatalog";
 import { formatMeeting } from "../schedulePresentation";
 import { normalizeScheduleCodesWithWasm } from "../wasmScheduleParser";
 
 type ParserStatus = "idle" | "loading" | "ready" | "error";
+type LocalSnapshotStatus =
+  | "checking"
+  | "idle"
+  | "saving"
+  | "saved"
+  | "restored"
+  | "clearing"
+  | "cleared"
+  | "error";
 
 interface ParserState {
   status: ParserStatus;
@@ -33,6 +57,43 @@ export function ImportPage() {
     normalizedSchedules: [],
     errorMessage: null,
   });
+  const [latestSnapshot, setLatestSnapshot] =
+    useState<ManualImportStoredSnapshot | null>(null);
+  const [localSnapshotStatus, setLocalSnapshotStatus] =
+    useState<LocalSnapshotStatus>("checking");
+  const [localSnapshotMessage, setLocalSnapshotMessage] = useState<
+    string | null
+  >(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void loadLatestManualImportSnapshot()
+      .then((snapshot) => {
+        if (cancelled) {
+          return;
+        }
+
+        setLatestSnapshot(snapshot);
+        setLocalSnapshotStatus("idle");
+      })
+      .catch((error: unknown) => {
+        if (cancelled) {
+          return;
+        }
+
+        setLocalSnapshotStatus("error");
+        setLocalSnapshotMessage(
+          error instanceof Error
+            ? error.message
+            : "Falha ao abrir o snapshot local salvo no navegador.",
+        );
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -90,6 +151,92 @@ export function ImportPage() {
   }, [preview.detectedScheduleCodes, preview.timingProfileId]);
 
   const matchedComponents = findCatalogMatches(preview.detectedComponentCodes);
+  const matchedComponentCodes = matchedComponents.map(
+    (component) => component.code,
+  );
+  const requiresParser = preview.detectedScheduleCodes.length > 0;
+  const canSaveSnapshot =
+    rawInput === deferredRawInput &&
+    rawInput.trim().length > 0 &&
+    (preview.detectedComponentCodes.length > 0 ||
+      preview.detectedScheduleCodes.length > 0) &&
+    (!requiresParser || parserState.status === "ready");
+
+  async function handleSaveSnapshot() {
+    if (!canSaveSnapshot) {
+      return;
+    }
+
+    setLocalSnapshotStatus("saving");
+    setLocalSnapshotMessage(null);
+
+    try {
+      const snapshot = buildManualImportStoredSnapshot({
+        rawInput,
+        source: "plain-text",
+        timingProfileId: preview.timingProfileId,
+        preview,
+        normalizedSchedules: parserState.normalizedSchedules,
+        matchedCatalogComponentCodes: matchedComponentCodes,
+      });
+
+      await saveLatestManualImportSnapshot(snapshot);
+      setLatestSnapshot(snapshot);
+      setLocalSnapshotStatus("saved");
+      setLocalSnapshotMessage(
+        `Snapshot salvo localmente em ${formatLocalDateTime(snapshot.savedAt)}.`,
+      );
+    } catch (error: unknown) {
+      setLocalSnapshotStatus("error");
+      setLocalSnapshotMessage(
+        error instanceof Error
+          ? error.message
+          : "Falha ao salvar o snapshot localmente no navegador.",
+      );
+    }
+  }
+
+  function handleRestoreSnapshot() {
+    if (!latestSnapshot) {
+      return;
+    }
+
+    startTransition(() => {
+      setRawInput(latestSnapshot.rawInput);
+    });
+
+    setParserState({
+      status:
+        latestSnapshot.detectedScheduleCodes.length > 0 ? "ready" : "idle",
+      normalizedSchedules: latestSnapshot.normalizedSchedules,
+      errorMessage: null,
+    });
+    setLocalSnapshotStatus("restored");
+    setLocalSnapshotMessage(
+      `Snapshot restaurado do navegador. Ultimo save: ${formatLocalDateTime(
+        latestSnapshot.savedAt,
+      )}.`,
+    );
+  }
+
+  async function handleClearSnapshot() {
+    setLocalSnapshotStatus("clearing");
+    setLocalSnapshotMessage(null);
+
+    try {
+      await clearLatestManualImportSnapshot();
+      setLatestSnapshot(null);
+      setLocalSnapshotStatus("cleared");
+      setLocalSnapshotMessage("Snapshot salvo removido do navegador.");
+    } catch (error: unknown) {
+      setLocalSnapshotStatus("error");
+      setLocalSnapshotMessage(
+        error instanceof Error
+          ? error.message
+          : "Falha ao limpar o snapshot salvo do navegador.",
+      );
+    }
+  }
 
   return (
     <div className="page-grid">
@@ -127,6 +274,69 @@ export function ImportPage() {
               <li>O processamento desta previa e local ao navegador.</li>
             </ul>
           </div>
+        </div>
+
+        <div className="soft-card subsection">
+          <div className="storage-header">
+            <div>
+              <h3>Snapshot local do navegador</h3>
+              <p>
+                Salva a ultima importacao manual em IndexedDB para retomar o
+                trabalho sem enviar nada ao servidor.
+              </p>
+            </div>
+            <div className="action-row">
+              <button
+                type="button"
+                className="action-button"
+                onClick={() => void handleSaveSnapshot()}
+                disabled={
+                  !canSaveSnapshot || isLocalSnapshotBusy(localSnapshotStatus)
+                }
+              >
+                Salvar snapshot
+              </button>
+              <button
+                type="button"
+                className="action-button action-button-secondary"
+                onClick={handleRestoreSnapshot}
+                disabled={
+                  !latestSnapshot || isLocalSnapshotBusy(localSnapshotStatus)
+                }
+              >
+                Restaurar ultimo
+              </button>
+              <button
+                type="button"
+                className="action-button action-button-danger"
+                onClick={() => void handleClearSnapshot()}
+                disabled={
+                  !latestSnapshot || isLocalSnapshotBusy(localSnapshotStatus)
+                }
+              >
+                Limpar salvo
+              </button>
+            </div>
+          </div>
+
+          <LocalSnapshotBanner
+            status={localSnapshotStatus}
+            latestSnapshot={latestSnapshot}
+            message={localSnapshotMessage}
+          />
+
+          {!canSaveSnapshot ? (
+            <p className="storage-hint">
+              {rawInput !== deferredRawInput
+                ? "Aguarde a analise local terminar antes de salvar."
+                : preview.detectedComponentCodes.length === 0 &&
+                    preview.detectedScheduleCodes.length === 0
+                  ? "Cole um trecho com componentes ou codigos de horario para gerar um snapshot util."
+                  : requiresParser && parserState.status !== "ready"
+                    ? "O parser precisa concluir a normalizacao dos horarios antes do save."
+                    : "Nenhum snapshot pode ser salvo com o estado atual."}
+            </p>
+          ) : null}
         </div>
       </section>
 
@@ -225,6 +435,64 @@ export function ImportPage() {
   );
 }
 
+function LocalSnapshotBanner({
+  status,
+  latestSnapshot,
+  message,
+}: {
+  status: LocalSnapshotStatus;
+  latestSnapshot: ManualImportStoredSnapshot | null;
+  message: string | null;
+}) {
+  if (status === "checking") {
+    return (
+      <p className="status-banner">
+        Verificando se existe um snapshot local...
+      </p>
+    );
+  }
+
+  if (status === "error") {
+    return (
+      <p className="status-banner status-banner-error" role="status">
+        {message ?? "Falha ao acessar o snapshot local do navegador."}
+      </p>
+    );
+  }
+
+  if (message) {
+    return (
+      <p
+        className={`status-banner ${
+          status === "cleared" ? "" : "status-banner-success"
+        }`}
+        role="status"
+      >
+        {message}
+      </p>
+    );
+  }
+
+  if (!latestSnapshot) {
+    return (
+      <p className="status-banner" role="status">
+        Ainda nao existe snapshot salvo neste navegador.
+      </p>
+    );
+  }
+
+  return (
+    <div className="storage-summary" role="status">
+      <p className="micro-label">Ultimo snapshot salvo</p>
+      <p>
+        {formatLocalDateTime(latestSnapshot.savedAt)} ·{" "}
+        {latestSnapshot.detectedComponentCodes.length} componentes ·{" "}
+        {latestSnapshot.detectedScheduleCodes.length} horarios
+      </p>
+    </div>
+  );
+}
+
 function ParserStatusBanner({
   status,
   errorMessage,
@@ -257,4 +525,15 @@ function ParserStatusBanner({
       Parser Rust/WASM carregado e normalizando os codigos detectados.
     </p>
   );
+}
+
+function formatLocalDateTime(value: string): string {
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function isLocalSnapshotBusy(status: LocalSnapshotStatus): boolean {
+  return status === "checking" || status === "saving" || status === "clearing";
 }

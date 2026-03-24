@@ -135,6 +135,20 @@ export interface ManualImportNormalizedSchedule {
   result: ScheduleParseResult;
 }
 
+export interface ManualImportStoredSnapshot {
+  schemaVersion: 1;
+  snapshotId: string;
+  savedAt: string;
+  source: ManualImportSource;
+  timingProfileId: TimingProfileId;
+  rawInput: string;
+  detectedScheduleCodes: string[];
+  detectedComponentCodes: string[];
+  matchedCatalogComponentCodes: string[];
+  previewWarnings: string[];
+  normalizedSchedules: ManualImportNormalizedSchedule[];
+}
+
 export type RequestSyncMessage = BridgeEnvelope<
   "RequestSync",
   RequestSyncPayload

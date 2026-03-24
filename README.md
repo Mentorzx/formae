@@ -55,6 +55,7 @@ pnpm build
 - Contract fixtures and CI workflows for Node, Rust and GitHub Pages deployment.
 - Seeded public catalog data and an initial manual-import preview that works from pasted text.
 - WASM-backed schedule normalization inside the manual-import flow, loaded from the shared Rust core.
+- Browser-local snapshot persistence for manual imports, stored in IndexedDB and restorable without backend state.
 
 ## Local secrets
 
