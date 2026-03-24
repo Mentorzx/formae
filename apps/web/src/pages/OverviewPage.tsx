@@ -140,6 +140,14 @@ export function OverviewPage() {
         overviewState.bundle.manualImport.preferredCurriculumSeedId ?? null,
       )
     : null;
+  const overviewSourceLabel = formatBundleSource(overviewState.bundleSource);
+  const overviewResolutionLabel = curriculumResolution
+    ? curriculumResolution.selectionMode === "manual-override"
+      ? "Grade fixada manualmente"
+      : curriculumResolution.isAmbiguous
+        ? "Selecao automatica ambigua"
+        : "Selecao automatica"
+    : "Sem snapshot local";
 
   async function handleUnlockVaultPasskey() {
     setVaultPasskeyActionStatus("working");
@@ -232,20 +240,63 @@ export function OverviewPage() {
 
   return (
     <div className="page-grid">
-      <section className="hero-card">
-        <p className="section-label">
-          {overviewState.summary ? "Progresso local" : "Primeiro marco"}
-        </p>
-        <h2>
-          {overviewState.summary
-            ? "Integralizacao inicial do snapshot salvo"
-            : "Shell estatico + contratos + parser UFBA 2025"}
-        </h2>
-        <p>
-          {overviewState.summary
-            ? "Esta leitura agora mostra trilha de integralizacao local sobre uma grade seed versionada: o que ja foi concluido, o que segue ativo e quais componentes ainda pedem revisao antes de virar progresso confiavel."
-            : "A v0 existe para reduzir risco tecnico cedo: PWA de leitura local, contratos explicitos, fixtures publicas e o parser de horarios preparado para codigos como 35N12, isto e, terca e quinta de 18:30 a 20:20."}
-        </p>
+      <section className="hero-card accent-panel overview-hero">
+        <div className="hero-split">
+          <div className="hero-copy-block">
+            <p className="section-label">
+              {overviewState.summary ? "Progresso local" : "Primeiro marco"}
+            </p>
+            <h2>
+              {overviewState.summary
+                ? "Integralizacao local com leitura de progresso mais clara"
+                : "Shell estatica, contratos explicitos e parser UFBA 2025"}
+            </h2>
+            <p>
+              {overviewState.summary
+                ? "Agora a visao separa melhor o que ja foi concluido, o que segue ativo e o que pede revisao manual antes de virar progresso confiavel no vault local."
+                : "A v0 existe para reduzir risco tecnico cedo: PWA de leitura local, contratos explicitos, fixtures publicas e o parser de horarios preparado para codigos como 35N12, isto e, terca e quinta de 18:30 a 20:20."}
+            </p>
+
+            <div className="hero-cta-row">
+              <Link to="/importacao" className="action-button">
+                Importar agora
+              </Link>
+              <Link
+                to="/planejador"
+                className="action-button action-button-secondary"
+              >
+                Ver planejador
+              </Link>
+            </div>
+          </div>
+
+          <aside className="hero-callout">
+            <p className="micro-label">Estado atual</p>
+            <h3>{overviewResolutionLabel}</h3>
+            <div className="shell-chip-row">
+              <span className="vault-fact">
+                Origem: {overviewState.summary ? overviewSourceLabel : "nenhuma"}
+              </span>
+              <span className="vault-fact">
+                {overviewState.summary
+                  ? `${overviewState.summary.reviewCount} itens em revisão`
+                  : "Sem snapshot salvo"}
+              </span>
+            </div>
+            {overviewState.summary ? (
+              <p className="micro-copy">
+                Ultima derivacao:{" "}
+                {formatLocalDateTime(overviewState.summary.derivedAt)}
+              </p>
+            ) : (
+              <p className="micro-copy">
+                A tela aguarda um snapshot local para mostrar integralizacao,
+                pendencias e trilhas de curso.
+              </p>
+            )}
+          </aside>
+        </div>
+
         <div className="metric-strip">
           {overviewState.summary ? (
             <>
@@ -274,13 +325,6 @@ export function OverviewPage() {
             </>
           )}
         </div>
-        {overviewState.summary ? (
-          <p className="micro-copy">
-            Ultima derivacao:{" "}
-            {formatLocalDateTime(overviewState.summary.derivedAt)}
-            {" | "}Origem: {formatBundleSource(overviewState.bundleSource)}
-          </p>
-        ) : null}
       </section>
 
       <OverviewSnapshotPanel

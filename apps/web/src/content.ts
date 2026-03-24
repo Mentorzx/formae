@@ -59,3 +59,18 @@ export const officialSources = [
   "SUPAC para matrícula, histórico, vínculo, declarações e fluxos documentais.",
   "Validador público de documentos emitidos pelo SIGAA para verificação local.",
 ] as const;
+
+export const shellHighlights = [
+  {
+    label: "Local-first",
+    value: "Dados privados ficam no dispositivo do usuário.",
+  },
+  {
+    label: "Sync",
+    value: "Extensão MV3 + core Rust/WASM para capturas autenticadas.",
+  },
+  {
+    label: "Deploy",
+    value: "PWA estatica em GitHub Pages com HTTPS e dominio customizado.",
+  },
+] as const;

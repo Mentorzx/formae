@@ -571,20 +571,73 @@ export function ImportPage() {
 
   return (
     <div className="page-grid">
-      <section className="hero-card">
-        <p className="section-label">Importacao manual inicial</p>
-        <h2>
-          Importe do SIGAA com extensao local ou cole um trecho sem guardar
-          senha
-        </h2>
-        <p>
-          O sync automatico roda no dispositivo do usuario com uma extensao
-          local, sem backend com PII. Quando a extensao nao estiver carregada, a
-          importacao manual continua disponivel.
-        </p>
+      <section className="hero-card accent-panel import-hero">
+        <div className="hero-split">
+          <div className="hero-copy-block">
+            <p className="section-label">Importacao manual inicial</p>
+            <h2>
+              Importe do SIGAA com extensao local ou cole um trecho sem guardar
+              senha
+            </h2>
+            <p>
+              O sync automatico roda no dispositivo do usuario com uma
+              extensao local, sem backend com PII. Quando a extensao nao
+              estiver carregada, a importacao manual continua disponivel.
+            </p>
+
+            <div className="hero-cta-row">
+              <button
+                type="button"
+                className="action-button"
+                onClick={() => void handleAutomaticSync()}
+                disabled={
+                  automaticSyncStatus === "syncing" ||
+                  isLocalSnapshotBusy(localSnapshotStatus) ||
+                  isVaultLocked
+                }
+              >
+                {automaticSyncStatus === "syncing"
+                  ? "Sincronizando..."
+                  : "Importar automaticamente"}
+              </button>
+              <button
+                type="button"
+                className="action-button action-button-secondary"
+                onClick={handleRestoreSnapshot}
+                disabled={
+                  !latestBundle || isLocalSnapshotBusy(localSnapshotStatus)
+                }
+              >
+                Restaurar ultimo
+              </button>
+            </div>
+          </div>
+
+          <aside className="hero-callout">
+            <p className="micro-label">Fluxos desta tela</p>
+            <div className="stacked-callout">
+              <article className="signal-card">
+                <strong>Sincronizacao automatica local</strong>
+                <p>
+                  A popup da extensao segura credenciais efemeras, autentica no
+                  navegador do usuario e envia apenas dados normalizados para o
+                  vault local.
+                </p>
+              </article>
+              <article className="signal-card">
+                <strong>Importacao manual</strong>
+                <p>
+                  O texto bruto segue util quando a extensao ainda nao foi
+                  carregada ou quando o usuario quer validar um trecho antes do
+                  sync.
+                </p>
+              </article>
+            </div>
+          </aside>
+        </div>
       </section>
 
-      <section className="panel">
+      <section className="panel import-split-panel">
         <p className="section-label">Sync automatico local</p>
         <div className="split-grid">
           <div className="soft-card">
