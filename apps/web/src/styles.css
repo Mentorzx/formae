@@ -521,6 +521,12 @@ a {
   margin-bottom: 1rem;
 }
 
+.muted-note {
+  margin: 0.75rem 0 0;
+  color: rgba(48, 67, 82, 0.82);
+  font-size: 0.94rem;
+}
+
 .storage-hint {
   margin-top: 0.75rem;
 }

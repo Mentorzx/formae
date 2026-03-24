@@ -108,6 +108,8 @@ describe("buildAutomaticSigaaSyncBundle", () => {
           source: "classes",
         },
       ],
+      historyEntries: [],
+      historyDocument: null,
     });
     expect(result.bundle.studentSnapshot.studentNumber).toBe("219216387");
     expect(result.bundle.studentSnapshot.studentName).toBe("Alex de Lira Neto");
@@ -232,7 +234,7 @@ describe("buildAutomaticSigaaSyncBundle", () => {
     );
   });
 
-  test("ignores optional history capture views without breaking the sync bundle", async () => {
+  test("promotes history-derived component states when they carry a component code", async () => {
     const result = await buildAutomaticSigaaSyncBundle({
       rawPayload: {
         syncSessionId: "sync-3",
@@ -243,7 +245,7 @@ describe("buildAutomaticSigaaSyncBundle", () => {
           "[Minhas Turmas]",
           "ENGC63 - PROCESSAMENTO DIGITAL DE SINAIS - Horário: 35N12",
           "[Consultar Histórico]",
-          "2025.2 PROCESSAMENTO DIGITAL DE SINAIS 10,0 0 APROVADO",
+          "2025.2 ENGC50 SISTEMAS MICROPROCESSADOS 10,0 0 APROVADO",
         ].join("\n"),
         structuredCapture: {
           schemaVersion: 1,
@@ -271,18 +273,31 @@ describe("buildAutomaticSigaaSyncBundle", () => {
               id: "history",
               label: "Consultar Histórico",
               routeHint: "sigaa-mobile:history",
-              text: "2025.2 PROCESSAMENTO DIGITAL DE SINAIS 10,0 0 APROVADO",
+              text: "2025.2 ENGC50 SISTEMAS MICROPROCESSADOS 10,0 0 APROVADO",
               extractedHistory: [
                 {
                   academicPeriod: "2025.2",
-                  componentName: "PROCESSAMENTO DIGITAL DE SINAIS",
+                  componentName: "ENGC50 SISTEMAS MICROPROCESSADOS",
                   gradeValue: "10,0",
                   absences: "0",
                   statusText: "APROVADO",
                   rawLine:
-                    "2025.2 PROCESSAMENTO DIGITAL DE SINAIS 10,0 0 APROVADO",
+                    "2025.2 ENGC50 SISTEMAS MICROPROCESSADOS 10,0 0 APROVADO",
                 },
               ],
+              historyDocument: {
+                currentUrl:
+                  "https://sigaa.ufba.br/sigaa/mobile/touch/gerarHistorico",
+                title: "Relatório de Notas",
+                transportKind: "pdf",
+                hasVisibleHistoryText: true,
+                hasPdfLikeMarker: true,
+                hasAttachmentLikeMarker: false,
+                textLength: 58,
+                sourceCandidates: [],
+                pdfCandidates: [],
+                attachmentCandidates: [],
+              },
             },
           ],
         },
@@ -306,6 +321,9 @@ describe("buildAutomaticSigaaSyncBundle", () => {
     expect(result.bundle.manualImport.detectedComponentCodes).toContain(
       "ENGC63",
     );
+    expect(result.bundle.manualImport.detectedComponentCodes).toContain(
+      "ENGC50",
+    );
     expect(
       result.bundle.manualImport.structuredContext?.componentStates,
     ).toEqual(
@@ -314,7 +332,27 @@ describe("buildAutomaticSigaaSyncBundle", () => {
           code: "ENGC63",
           source: "classes",
         }),
+        expect.objectContaining({
+          code: "ENGC50",
+          source: "history",
+          status: "completed",
+        }),
       ]),
     );
+    expect(
+      result.bundle.manualImport.structuredContext?.historyEntries,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          academicPeriod: "2025.2",
+          componentCode: "ENGC50",
+          normalizedTitle: "SISTEMAS MICROPROCESSADOS",
+        }),
+      ]),
+    );
+    expect(
+      result.bundle.manualImport.structuredContext?.historyDocument
+        ?.transportKind,
+    ).toBe("pdf");
   });
 });

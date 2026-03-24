@@ -1,13 +1,8 @@
 const PAGE_BRIDGE_SOURCE = "formae-web-page";
 const EXTENSION_BRIDGE_SOURCE = "formae-extension";
 const BRIDGE_PROTOCOL_VERSION = 1;
-const ALLOWED_PAGE_BRIDGE_MESSAGE_KINDS = [
-  "RequestSync",
-  "RawSigaaPayload",
-  "NormalizedSnapshot",
-  "StoreEncryptedSnapshot",
-  "WipeLocalVault",
-];
+const ALLOWED_PAGE_BRIDGE_MESSAGE_KINDS = ["RequestSync"];
+const EXTENSION_READY_EVENT = "formae:extension-ready";
 
 bootstrapContentScript();
 
@@ -16,6 +11,7 @@ function bootstrapContentScript() {
     return;
   }
 
+  advertiseExtensionRuntime();
   window.addEventListener("message", (event) => {
     if (
       event.source !== window ||
@@ -42,6 +38,26 @@ function bootstrapContentScript() {
         );
       });
   });
+}
+
+function advertiseExtensionRuntime() {
+  const extensionId =
+    globalThis.browser?.runtime?.id ?? globalThis.chrome?.runtime?.id ?? null;
+
+  if (!extensionId) {
+    return;
+  }
+
+  document.documentElement.dataset.formaeExtensionId = extensionId;
+  document.documentElement.dataset.formaeBridgeMode = "runtime-external";
+  window.dispatchEvent(
+    new CustomEvent(EXTENSION_READY_EVENT, {
+      detail: {
+        extensionId,
+        bridgeMode: "runtime-external",
+      },
+    }),
+  );
 }
 
 function createExtensionBridgeResponse(requestId, response) {

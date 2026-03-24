@@ -301,9 +301,10 @@ export function resolveCurriculumSeed(
     };
   }
 
+  const strongestAlternative = alternativeMatches[0] ?? null;
   const isAmbiguous =
-    alternativeMatches.length > 0 &&
-    haveEquivalentSelectionWeight(selectedMatch, alternativeMatches[0]);
+    strongestAlternative !== null &&
+    haveEquivalentSelectionWeight(selectedMatch, strongestAlternative);
   const confidence = resolveCurriculumConfidence(selectedMatch, isAmbiguous);
   const requiresReview =
     isAmbiguous ||

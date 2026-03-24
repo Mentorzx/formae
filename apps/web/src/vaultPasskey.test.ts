@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   clearVaultPasskeySession,
   createVaultPasskeyCredential,
@@ -16,6 +16,10 @@ describe("vaultPasskey", () => {
       configurable: true,
       value: true,
     });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("registers a local passkey credential and unlocks the session", async () => {
@@ -128,6 +132,32 @@ describe("vaultPasskey", () => {
     expect(() => readAuthenticatorFlags(new Uint8Array([1, 2, 3]))).toThrow(
       /incompletos/i,
     );
+  });
+
+  it("expires the unlocked passkey session after the in-memory ttl", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-24T04:00:00.000Z"));
+
+    Object.defineProperty(globalThis.navigator, "credentials", {
+      configurable: true,
+      value: {
+        create: vi.fn(async () => ({
+          rawId: new Uint8Array([1, 2, 3, 4]).buffer,
+          response: {},
+        })),
+        get: vi.fn(),
+      },
+    });
+    Object.defineProperty(globalThis, "PublicKeyCredential", {
+      configurable: true,
+      value: class PublicKeyCredentialMock {},
+    });
+
+    const credential = await createVaultPasskeyCredential("Vault de teste");
+
+    expect(isVaultPasskeySessionUnlocked(credential)).toBe(true);
+    vi.setSystemTime(new Date("2026-03-24T04:11:00.000Z"));
+    expect(isVaultPasskeySessionUnlocked(credential)).toBe(false);
   });
 });
 

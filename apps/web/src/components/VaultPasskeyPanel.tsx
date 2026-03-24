@@ -62,6 +62,13 @@ export function VaultPasskeyPanel({
               : "O vault local foi desbloqueado nesta sessao por passkey."}
       </p>
 
+      <p className="muted-note">
+        No modo atual, a passkey endurece o desbloqueio local da sessao e a
+        leitura/escrita do vault, mas a chave AES ainda segue em modo
+        `device-local`. O proximo degrau e ligar esse unlock a derivacao
+        criptografica da chave do vault.
+      </p>
+
       <div className="fact-row">
         {passkeyState.rpId ? (
           <span className="vault-fact">RP ID: {passkeyState.rpId}</span>

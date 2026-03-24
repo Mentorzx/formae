@@ -22,23 +22,21 @@
     "https://sigaa.ufba.br/*",
     "http://localhost:*/*",
     "http://127.0.0.1:*/*",
-    "https://*.github.io/*"
+    "https://mentorzx.github.io/*"
   ],
   "externally_connectable": {
     "matches": [
-      "https://sigaa.ufba.br/*",
       "http://localhost:*/*",
       "http://127.0.0.1:*/*",
-      "https://*.github.io/*"
+      "https://mentorzx.github.io/*"
     ]
   },
   "content_scripts": [
     {
       "matches": [
-        "https://sigaa.ufba.br/*",
         "http://localhost:*/*",
         "http://127.0.0.1:*/*",
-        "https://*.github.io/*"
+        "https://mentorzx.github.io/*"
       ],
       "js": ["src/content-script.js"],
       "run_at": "document_idle"

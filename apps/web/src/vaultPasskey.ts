@@ -12,11 +12,13 @@ export interface VaultPasskeyCredentialConfig {
 interface VaultPasskeySessionMarker {
   credentialId: string;
   unlockedAt: string;
+  expiresAt: string;
 }
 
 const WEBAUTHN_TIMEOUT_MS = 60_000;
 const CHALLENGE_BYTE_LENGTH = 32;
 const USER_ID_BYTE_LENGTH = 16;
+const VAULT_PASSKEY_SESSION_TTL_MS = 10 * 60 * 1000;
 let currentVaultPasskeySession: VaultPasskeySessionMarker | null = null;
 
 export function isVaultPasskeySupported(): boolean {
@@ -68,13 +70,13 @@ export async function createVaultPasskeyCredential(
   const createdAt = new Date().toISOString();
   const credential = await globalThis.navigator.credentials.create({
     publicKey: {
-      challenge,
+      challenge: toArrayBuffer(challenge),
       rp: {
         name: "Formae",
         id: rpId,
       },
       user: {
-        id: userId,
+        id: toArrayBuffer(userId),
         name: `vault@${rpId}`,
         displayName,
       },
@@ -96,10 +98,7 @@ export async function createVaultPasskeyCredential(
     new Uint8Array(createdCredential.rawId),
   );
 
-  writeVaultPasskeySession({
-    credentialId,
-    unlockedAt: createdAt,
-  });
+  writeVaultPasskeySession(credentialId, createdAt);
 
   return {
     schemaVersion: 1,
@@ -121,11 +120,11 @@ export async function verifyVaultPasskeyCredential(
   const challenge = randomBytes(CHALLENGE_BYTE_LENGTH);
   const assertion = await globalThis.navigator.credentials.get({
     publicKey: {
-      challenge,
+      challenge: toArrayBuffer(challenge),
       allowCredentials: [
         {
           type: "public-key",
-          id: base64UrlToBytes(config.credentialId),
+          id: toArrayBuffer(base64UrlToBytes(config.credentialId)),
         },
       ],
       userVerification: config.userVerification,
@@ -191,10 +190,7 @@ export async function verifyVaultPasskeyCredential(
   }
 
   const verifiedAt = new Date().toISOString();
-  writeVaultPasskeySession({
-    credentialId: config.credentialId,
-    unlockedAt: verifiedAt,
-  });
+  writeVaultPasskeySession(config.credentialId, verifiedAt);
 
   return {
     ...config,
@@ -274,6 +270,15 @@ function assertPublicKeyCredential(
 }
 
 function readVaultPasskeySession(): VaultPasskeySessionMarker | null {
+  if (!currentVaultPasskeySession) {
+    return null;
+  }
+
+  if (new Date(currentVaultPasskeySession.expiresAt).getTime() <= Date.now()) {
+    currentVaultPasskeySession = null;
+    return null;
+  }
+
   return currentVaultPasskeySession;
 }
 
@@ -286,14 +291,29 @@ function asBinaryBuffer(value: unknown): ArrayBuffer | null {
     return value.buffer.slice(
       value.byteOffset,
       value.byteOffset + value.byteLength,
-    );
+    ) as ArrayBuffer;
   }
 
   return null;
 }
 
-function writeVaultPasskeySession(marker: VaultPasskeySessionMarker): void {
-  currentVaultPasskeySession = marker;
+function toArrayBuffer(value: Uint8Array): ArrayBuffer {
+  return value.buffer.slice(
+    value.byteOffset,
+    value.byteOffset + value.byteLength,
+  ) as ArrayBuffer;
+}
+
+function writeVaultPasskeySession(
+  credentialId: string,
+  unlockedAt: string,
+  ttlMs = VAULT_PASSKEY_SESSION_TTL_MS,
+): void {
+  currentVaultPasskeySession = {
+    credentialId,
+    unlockedAt,
+    expiresAt: new Date(new Date(unlockedAt).getTime() + ttlMs).toISOString(),
+  };
 }
 
 function bytesToBase64Url(bytes: Uint8Array): string {

@@ -4,12 +4,12 @@ import type {
   RequestSyncMessage,
   RequestSyncPayload,
   TimingProfileId,
-  WipeLocalVaultMessage,
 } from "@formae/protocol";
 import { BRIDGE_PROTOCOL_VERSION } from "@formae/protocol";
 
 const PAGE_BRIDGE_SOURCE = "formae-web-page";
 const EXTENSION_BRIDGE_SOURCE = "formae-extension";
+const EXTENSION_READY_EVENT = "formae:extension-ready";
 
 interface PageBridgeRequest {
   source: typeof PAGE_BRIDGE_SOURCE;
@@ -28,49 +28,40 @@ interface ExtensionBridgeResponse {
       };
 }
 
+interface ExternalRuntimeApi {
+  sendMessage: (
+    extensionId: string,
+    message: BridgeMessage,
+    callback: (response: unknown) => void,
+  ) => void;
+  lastError?: {
+    message: string;
+  };
+}
+
 export async function runAutomaticSigaaSync(input: {
   timingProfileId: TimingProfileId;
 }): Promise<RawSigaaPayloadMessage["payload"]> {
   const syncSessionId = globalThis.crypto.randomUUID();
-  const wipeMessage: WipeLocalVaultMessage = {
-    kind: "WipeLocalVault",
+  const requestMessage: RequestSyncMessage = {
+    kind: "RequestSync",
     protocolVersion: BRIDGE_PROTOCOL_VERSION,
     payload: {
-      reason: "logout",
-      wipeMode: "memory-only",
+      syncSessionId,
+      timingProfileId: input.timingProfileId,
       requestedAt: new Date().toISOString(),
-    },
+      reason: "manual",
+    } satisfies RequestSyncPayload,
   };
+  const response = await postBridgeMessage(requestMessage, 90_000);
 
-  try {
-    const requestMessage: RequestSyncMessage = {
-      kind: "RequestSync",
-      protocolVersion: BRIDGE_PROTOCOL_VERSION,
-      payload: {
-        syncSessionId,
-        timingProfileId: input.timingProfileId,
-        requestedAt: new Date().toISOString(),
-        reason: "manual",
-      } satisfies RequestSyncPayload,
-    };
-
-    const response = await postBridgeMessage(requestMessage, 90_000);
-
-    if (response.kind !== "RawSigaaPayload") {
-      throw new Error(
-        `Unexpected bridge response from the extension: ${response.kind}.`,
-      );
-    }
-
-    return response.payload;
-  } finally {
-    try {
-      await postBridgeMessage(wipeMessage, 10_000);
-    } catch {
-      // The local app already has the payload at this point; a failed wipe
-      // should not mask the sync result, but it still shortens extension retention when possible.
-    }
+  if (response.kind !== "RawSigaaPayload") {
+    throw new Error(
+      `Unexpected bridge response from the extension: ${response.kind}.`,
+    );
   }
+
+  return response.payload;
 }
 
 async function postBridgeMessage(
@@ -81,6 +72,66 @@ async function postBridgeMessage(
     throw new Error("The SIGAA bridge can only run in a browser context.");
   }
 
+  const directResponse = await postExternalRuntimeMessage(envelope, timeoutMs);
+
+  if (directResponse) {
+    return directResponse;
+  }
+
+  return postLegacyWindowBridgeMessage(envelope, timeoutMs);
+}
+
+async function postExternalRuntimeMessage(
+  envelope: BridgeMessage,
+  timeoutMs: number,
+): Promise<BridgeMessage | null> {
+  const runtime = resolveExternalRuntime();
+  const extensionId = await discoverExtensionId();
+
+  if (!runtime || !extensionId) {
+    return null;
+  }
+
+  return new Promise((resolve, reject) => {
+    const cleanup = installTimeout(timeoutMs, () => {
+      reject(
+        new Error(
+          "Timed out waiting for the Formaê extension direct runtime bridge.",
+        ),
+      );
+    });
+
+    runtime.sendMessage(extensionId, envelope, (response: unknown) => {
+      cleanup();
+
+      if (runtime.lastError) {
+        reject(new Error(runtime.lastError.message));
+        return;
+      }
+
+      if (isBridgeFailure(response)) {
+        reject(new Error(response.error));
+        return;
+      }
+
+      if (!isBridgeMessageResponse(response)) {
+        reject(
+          new Error(
+            "The Formaê extension returned an invalid direct runtime response.",
+          ),
+        );
+        return;
+      }
+
+      resolve(response);
+    });
+  });
+}
+
+async function postLegacyWindowBridgeMessage(
+  envelope: BridgeMessage,
+  timeoutMs: number,
+): Promise<BridgeMessage> {
   const requestId = globalThis.crypto.randomUUID();
   const request: PageBridgeRequest = {
     source: PAGE_BRIDGE_SOURCE,
@@ -128,6 +179,65 @@ async function postBridgeMessage(
   });
 }
 
+async function discoverExtensionId(): Promise<string | null> {
+  const advertisedExtensionId =
+    document.documentElement.dataset.formaeExtensionId ?? null;
+
+  if (advertisedExtensionId) {
+    return advertisedExtensionId;
+  }
+
+  return new Promise((resolve) => {
+    const cleanup = installTimeout(120, () => {
+      window.removeEventListener(
+        EXTENSION_READY_EVENT,
+        onExtensionReady as EventListener,
+      );
+      resolve(null);
+    });
+
+    const onExtensionReady = (
+      event: Event | CustomEvent<{ extensionId?: string }>,
+    ) => {
+      const extensionId = (event as CustomEvent<{ extensionId?: string }>)
+        .detail?.extensionId;
+
+      if (typeof extensionId !== "string" || extensionId.length === 0) {
+        return;
+      }
+
+      cleanup();
+      window.removeEventListener(
+        EXTENSION_READY_EVENT,
+        onExtensionReady as EventListener,
+      );
+      resolve(extensionId);
+    };
+
+    window.addEventListener(
+      EXTENSION_READY_EVENT,
+      onExtensionReady as EventListener,
+      { once: true },
+    );
+  });
+}
+
+function resolveExternalRuntime(): ExternalRuntimeApi | null {
+  const runtime = (
+    globalThis as typeof globalThis & {
+      chrome?: {
+        runtime?: ExternalRuntimeApi;
+      };
+    }
+  ).chrome?.runtime;
+
+  if (typeof runtime?.sendMessage !== "function") {
+    return null;
+  }
+
+  return runtime;
+}
+
 function isExtensionBridgeResponse(
   value: unknown,
 ): value is ExtensionBridgeResponse {
@@ -144,10 +254,26 @@ function isExtensionBridgeResponse(
 }
 
 function isBridgeFailure(
-  value: ExtensionBridgeResponse["response"],
+  value: unknown,
 ): value is { ok: false; error: string } {
-  return (
-    !("kind" in value) && typeof value.error === "string" && value.ok === false
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      "ok" in value &&
+      "error" in value &&
+      (value as { ok?: unknown }).ok === false &&
+      typeof (value as { error?: unknown }).error === "string",
+  );
+}
+
+function isBridgeMessageResponse(value: unknown): value is BridgeMessage {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      typeof (value as { kind?: unknown }).kind === "string" &&
+      (value as { protocolVersion?: unknown }).protocolVersion ===
+        BRIDGE_PROTOCOL_VERSION &&
+      "payload" in value,
   );
 }
 

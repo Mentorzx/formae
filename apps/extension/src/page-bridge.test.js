@@ -39,6 +39,20 @@ test("page bridge rejects credential-bearing messages", () => {
   assert.equal(isPageBridgeRequest(request), false);
 });
 
+test("page bridge rejects non-request sync bridge messages", () => {
+  const request = createPageBridgeRequest("req-3", {
+    kind: "WipeLocalVault",
+    protocolVersion: 1,
+    payload: {
+      reason: "logout",
+      wipeMode: "memory-only",
+      requestedAt: "2026-03-24T03:00:00.000Z",
+    },
+  });
+
+  assert.equal(isPageBridgeRequest(request), false);
+});
+
 test("extension bridge responses preserve request correlation", () => {
   const response = createExtensionBridgeResponse("req-1", {
     ok: false,

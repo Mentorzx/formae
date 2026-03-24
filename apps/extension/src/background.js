@@ -1,5 +1,6 @@
 import { isBridgeMessage } from "./bridge.js";
 import {
+  hasActiveSyncApproval,
   clearExpiredSession,
   createCredentialState,
   clearEphemeralCredentials,
@@ -26,7 +27,7 @@ extensionApi.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return false;
   }
 
-  handleBridgeMessage(message)
+  handleBridgeMessage(message, { source: "internal" })
     .then((response) => sendResponse(response))
     .catch((error) =>
       sendResponse({
@@ -38,7 +39,37 @@ extensionApi.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   return true;
 });
 
-async function handleBridgeMessage(message) {
+extensionApi.runtime.onMessageExternal?.addListener(
+  (message, sender, sendResponse) => {
+    if (!isBridgeMessage(message)) {
+      return false;
+    }
+
+    handleBridgeMessage(message, { source: "external", sender })
+      .then((response) => sendResponse(response))
+      .catch((error) =>
+        sendResponse({
+          ok: false,
+          error: error instanceof Error ? error.message : "Unknown bridge error",
+        }),
+      );
+
+    return true;
+  },
+);
+
+async function handleBridgeMessage(message, context) {
+  if (
+    context.source === "external" &&
+    !isAllowedExternalSender(context.sender)
+  ) {
+    return {
+      ok: false,
+      error:
+        "This web origin is not allowed to talk directly to the Formaê extension.",
+    };
+  }
+
   switch (message.kind) {
     case "RequestSync":
       clearExpiredSession(syncState.credentialState);
@@ -48,6 +79,17 @@ async function handleBridgeMessage(message) {
           ok: false,
           error:
             "SIGAA credentials are missing in the extension popup. Open the extension, enter the credentials, and try again.",
+        };
+      }
+
+      if (
+        message.payload.reason !== "popup" &&
+        !hasActiveSyncApproval(syncState.credentialState)
+      ) {
+        return {
+          ok: false,
+          error:
+            "A aprovacao curta do sync expirou. Abra a popup da extensao, salve novamente as credenciais efemeras e tente de novo.",
         };
       }
 
@@ -114,4 +156,26 @@ async function handleBridgeMessage(message) {
         error: `Unsupported bridge message kind: ${message.kind}`,
       };
   }
+}
+
+function isAllowedExternalSender(sender) {
+  const senderUrl = sender?.url;
+
+  if (!senderUrl) {
+    return false;
+  }
+
+  let origin;
+
+  try {
+    origin = new URL(senderUrl).origin;
+  } catch {
+    return false;
+  }
+
+  return (
+    origin === "https://mentorzx.github.io" ||
+    /^http:\/\/localhost(?::\d+)?$/u.test(origin) ||
+    /^http:\/\/127\.0\.0\.1(?::\d+)?$/u.test(origin)
+  );
 }

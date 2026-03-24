@@ -485,8 +485,8 @@ async function encryptJsonPayload(
   const ciphertext = await globalThis.crypto.subtle.encrypt(
     {
       name: "AES-GCM",
-      iv,
-      additionalData: textEncoder.encode(aadContext),
+      iv: asArrayBuffer(iv),
+      additionalData: asArrayBuffer(textEncoder.encode(aadContext)),
     },
     encryptionKey,
     plaintext,
@@ -504,11 +504,11 @@ async function decryptJsonPayload<TPayload>(
   const plaintextBuffer = await globalThis.crypto.subtle.decrypt(
     {
       name: "AES-GCM",
-      iv: base64ToBytes(vaultRecord.ivB64),
-      additionalData: textEncoder.encode(vaultRecord.aadContext),
+      iv: asArrayBuffer(base64ToBytes(vaultRecord.ivB64)),
+      additionalData: asArrayBuffer(textEncoder.encode(vaultRecord.aadContext)),
     },
     encryptionKey,
-    base64ToBytes(vaultRecord.ciphertextB64),
+    asArrayBuffer(base64ToBytes(vaultRecord.ciphertextB64)),
   );
 
   return JSON.parse(textDecoder.decode(plaintextBuffer)) as TPayload;
@@ -881,6 +881,13 @@ function base64ToBytes(value: string): Uint8Array {
   }
 
   return bytes;
+}
+
+function asArrayBuffer(value: Uint8Array): ArrayBuffer {
+  return value.buffer.slice(
+    value.byteOffset,
+    value.byteOffset + value.byteLength,
+  ) as ArrayBuffer;
 }
 
 function requestError(transaction: IDBTransaction): DOMException | null {

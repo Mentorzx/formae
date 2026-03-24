@@ -76,6 +76,8 @@ export interface ExtensionCredentialState {
   syncSessionId: string | null;
   usernameOrCpfMasked: string | null;
   expiresAt: string | null;
+  syncApprovalActive?: boolean;
+  syncApprovalExpiresAt?: string | null;
 }
 
 export interface GetCredentialStatePayload {
@@ -124,11 +126,32 @@ export interface SigaaCapturedHistoryEntry {
   rawLine: string;
 }
 
+export interface SigaaHistoryDocumentSourceCandidate {
+  kind: "pdf" | "attachment" | "link";
+  url: string;
+  text: string | null;
+  hasDownloadHint: boolean;
+}
+
+export interface SigaaHistoryDocumentMetadata {
+  currentUrl: string;
+  title: string;
+  transportKind: "html" | "pdf" | "attachment" | "unknown";
+  hasVisibleHistoryText: boolean;
+  hasPdfLikeMarker: boolean;
+  hasAttachmentLikeMarker: boolean;
+  textLength: number;
+  sourceCandidates: SigaaHistoryDocumentSourceCandidate[];
+  pdfCandidates: SigaaHistoryDocumentSourceCandidate[];
+  attachmentCandidates: SigaaHistoryDocumentSourceCandidate[];
+}
+
 export interface SigaaStructuredCaptureViewBase {
-  id: "classes" | "grades";
-  label: "Minhas Turmas" | "Minhas Notas";
+  id: "classes" | "grades" | "history";
+  label: "Minhas Turmas" | "Minhas Notas" | "Consultar Histórico";
   routeHint: string;
   text: string;
+  historyDocument?: SigaaHistoryDocumentMetadata | null;
 }
 
 export interface SigaaStructuredClassesCaptureView
@@ -147,6 +170,7 @@ export interface SigaaStructuredHistoryCaptureView
   extends SigaaStructuredCaptureViewBase {
   id: "history";
   label: "Consultar Histórico";
+  historyDocument?: SigaaHistoryDocumentMetadata | null;
   extractedHistory: SigaaCapturedHistoryEntry[];
 }
 
@@ -249,7 +273,7 @@ export interface ManualImportStructuredComponentState {
   code: string;
   title: string | null;
   status: AcademicComponentStatus;
-  source: "classes" | "grades";
+  source: "classes" | "grades" | "history";
   rawLine: string;
   statusText: string | null;
   scheduleCodes: string[];
@@ -265,6 +289,19 @@ export interface ManualImportStructuredContext {
   studentProfile: ManualImportStructuredStudentProfile | null;
   componentStates: ManualImportStructuredComponentState[];
   scheduleBindings: ManualImportStructuredScheduleBinding[];
+  historyEntries?: ManualImportStructuredHistoryEntry[];
+  historyDocument?: SigaaHistoryDocumentMetadata | null;
+}
+
+export interface ManualImportStructuredHistoryEntry {
+  academicPeriod: string;
+  componentCode: string | null;
+  componentName: string;
+  normalizedTitle: string | null;
+  gradeValue: string | null;
+  absences: string | null;
+  statusText: string | null;
+  rawLine: string;
 }
 
 export interface Course {

@@ -5,6 +5,7 @@ import type {
   ManualImportPreview,
   ManualImportStructuredComponentState,
   ManualImportStructuredContext,
+  ManualImportStructuredHistoryEntry,
   ManualImportStructuredScheduleBinding,
   RawSigaaPayloadPayload,
   TimingProfileId,
@@ -95,6 +96,12 @@ function buildMinimizedPersistedRawInput(
     lines.push(summaryParts.join(" - "));
   }
 
+  if ((structuredContext.historyEntries?.length ?? 0) > 0) {
+    lines.push(
+      `Historico local: ${structuredContext.historyEntries?.length ?? 0} registro(s) estruturado(s).`,
+    );
+  }
+
   if (lines.length === 2) {
     lines.push("Nenhum componente estruturado foi preservado neste resumo.");
   }
@@ -164,6 +171,8 @@ function buildStructuredManualImportContext(
     ManualImportStructuredComponentState
   >();
   const scheduleBindings: ManualImportStructuredScheduleBinding[] = [];
+  const historyEntries: ManualImportStructuredHistoryEntry[] = [];
+  let historyDocument = null;
 
   for (const view of structuredCapture.views) {
     if (view.id === "classes") {
@@ -195,6 +204,54 @@ function buildStructuredManualImportContext(
     }
 
     if (view.id === "history") {
+      historyDocument ??= view.historyDocument ?? null;
+
+      for (const historyEntry of view.extractedHistory) {
+        const componentCode =
+          extractComponentCode(historyEntry.componentName) ??
+          extractComponentCode(historyEntry.rawLine);
+        const normalizedTitle = normalizeHistoryComponentTitle(
+          historyEntry.componentName,
+          componentCode,
+        );
+
+        historyEntries.push({
+          academicPeriod: historyEntry.academicPeriod,
+          componentCode,
+          componentName: historyEntry.componentName,
+          normalizedTitle,
+          gradeValue: historyEntry.gradeValue,
+          absences: historyEntry.absences,
+          statusText: historyEntry.statusText,
+          rawLine: historyEntry.rawLine,
+        });
+
+        if (!componentCode) {
+          continue;
+        }
+
+        const existingComponentState = componentStateByCode.get(componentCode);
+        const historyStatus = mapGradeStatusText(historyEntry.statusText);
+
+        if (
+          existingComponentState &&
+          (existingComponentState.source === "classes" ||
+            existingComponentState.source === "grades")
+        ) {
+          continue;
+        }
+
+        componentStateByCode.set(componentCode, {
+          code: componentCode,
+          title: normalizedTitle,
+          status: historyStatus,
+          source: "history",
+          rawLine: historyEntry.rawLine,
+          statusText: historyEntry.statusText,
+          scheduleCodes: [],
+        });
+      }
+
       continue;
     }
 
@@ -225,6 +282,8 @@ function buildStructuredManualImportContext(
   if (
     componentStateByCode.size === 0 &&
     scheduleBindings.length === 0 &&
+    historyEntries.length === 0 &&
+    historyDocument === null &&
     !structuredCapture.portalProfile
   ) {
     return null;
@@ -242,6 +301,8 @@ function buildStructuredManualImportContext(
       (left, right) => left.code.localeCompare(right.code),
     ),
     scheduleBindings: uniqueScheduleBindings(scheduleBindings),
+    historyEntries,
+    historyDocument,
   };
 }
 
@@ -319,6 +380,29 @@ function extractTitleFromRawLine(rawLine: string): string | null {
   return gradeTitleMatch?.[1]?.trim() ?? null;
 }
 
+function extractComponentCode(value: string): string | null {
+  const matchedCode = value.match(/\b([A-Z]{3,5}\d{2,3})\b/i)?.[1];
+
+  return matchedCode?.toUpperCase() ?? null;
+}
+
+function normalizeHistoryComponentTitle(
+  componentName: string,
+  componentCode: string | null,
+): string | null {
+  const trimmedName = componentName.trim();
+
+  if (!componentCode) {
+    return trimmedName || null;
+  }
+
+  const normalizedName = trimmedName
+    .replace(new RegExp(`^${componentCode}\\s+`, "i"), "")
+    .trim();
+
+  return normalizedName || trimmedName || null;
+}
+
 function extractTurmaEntriesFromUnstructuredText(text: string): Array<{
   componentCode: string;
   scheduleCodes: string[];
@@ -330,10 +414,9 @@ function extractTurmaEntriesFromUnstructuredText(text: string): Array<{
   ).map((segment) => ({
     componentCode: segment.componentCode,
     scheduleCodes: uniqueValues(
-      Array.from(
-        segment.rawLine.matchAll(/\b([2-7]+[MTN]\d{1,4})\b/g),
-        (match) => match[1],
-      ),
+      Array.from(segment.rawLine.matchAll(/\b([2-7]+[MTN]\d{1,4})\b/g))
+        .map((match) => match[1])
+        .filter((value): value is string => typeof value === "string"),
     ),
     rawLine: segment.rawLine,
   }));

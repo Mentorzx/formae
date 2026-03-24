@@ -414,13 +414,20 @@ function findComponentCodeForSchedule(
   const directMatches = matchedCatalogComponents.filter(
     (component) => component.canonicalScheduleCode === canonicalScheduleCode,
   );
+  const directMatch = directMatches[0] ?? null;
 
-  if (directMatches.length === 1) {
-    return directMatches[0].code;
+  if (directMatches.length === 1 && directMatch) {
+    return directMatch.code;
   }
 
-  if (manualImport.detectedComponentCodes.length === 1) {
-    return manualImport.detectedComponentCodes[0];
+  const onlyDetectedComponentCode =
+    manualImport.detectedComponentCodes[0] ?? null;
+
+  if (
+    manualImport.detectedComponentCodes.length === 1 &&
+    onlyDetectedComponentCode
+  ) {
+    return onlyDetectedComponentCode;
   }
 
   return null;

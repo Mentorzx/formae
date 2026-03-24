@@ -13,6 +13,9 @@ const statusText = document.getElementById("statusText");
 const syncSessionIdNode = document.getElementById("syncSessionId");
 const usernameMaskedNode = document.getElementById("usernameMasked");
 const expiresAtNode = document.getElementById("expiresAt");
+const syncApprovalExpiresAtNode = document.getElementById(
+  "syncApprovalExpiresAt",
+);
 const clearButton = document.getElementById("clearButton");
 const syncNowButton = document.getElementById("syncNowButton");
 
@@ -24,6 +27,7 @@ if (
   syncSessionIdNode instanceof HTMLElement &&
   usernameMaskedNode instanceof HTMLElement &&
   expiresAtNode instanceof HTMLElement &&
+  syncApprovalExpiresAtNode instanceof HTMLElement &&
   clearButton instanceof HTMLButtonElement &&
   syncNowButton instanceof HTMLButtonElement
 ) {
@@ -130,6 +134,8 @@ function renderCredentialState(credentialState) {
   syncSessionIdNode.textContent = credentialState?.syncSessionId ?? "-";
   usernameMaskedNode.textContent = credentialState?.usernameOrCpfMasked ?? "-";
   expiresAtNode.textContent = credentialState?.expiresAt ?? "-";
+  syncApprovalExpiresAtNode.textContent =
+    credentialState?.syncApprovalExpiresAt ?? "-";
 }
 
 function renderStatus(message, tone = "info") {
