@@ -86,10 +86,53 @@ export interface PublicCatalogSnapshot {
   timingProfileId: TimingProfileId;
   sources: PublicCatalogSnapshotSource[];
   pages: PublicCatalogSnapshotPage[];
+  curriculumStructures: PublicCatalogSnapshotCurriculumStructure[];
   components: PublicCatalogSnapshotComponent[];
   scheduleGuide: PublicCatalogSnapshotScheduleGuideEntry[];
   timeSlots: PublicCatalogSnapshotTimeSlot[];
   notes: string[];
+}
+
+export interface PublicCatalogSnapshotCurriculumStructure {
+  curriculumId: string;
+  code: string;
+  label: string;
+  groupLabel: string;
+  status: "active" | "inactive" | "unknown";
+  createdYear: number | null;
+  sourceId: string;
+  sourceTitle: string;
+  sourceUrl: string;
+  sourcePageOrigin?: "fixture" | "live";
+  sourcePageFinalUrl?: string;
+  sourcePageFetchedAt?: string;
+  sourcePageContentDigest?: string;
+  evidence: string[];
+}
+
+export interface PublicCatalogCurriculumStructureGroup {
+  curriculumId: string;
+  structureCount: number;
+  activeCount: number;
+  inactiveCount: number;
+  unknownCount: number;
+  codes: string[];
+  groupLabels: string[];
+  sourceIds: string[];
+  latestCreatedYear: number | null;
+}
+
+export interface PublicCatalogCurriculumProfile {
+  curriculumId: string;
+  versionTag: string;
+  courseCode: string;
+  courseName: string;
+  componentCount: number;
+  prerequisiteRuleCount: number;
+  equivalenceCount: number;
+  rootComponentCodes: string[];
+  leafComponentCodes: string[];
+  maxPrerequisiteDepth: number;
 }
 
 export interface PublicCatalogSourceCoverage {
@@ -180,6 +223,21 @@ export const publicCatalogSourceCoverage = publicCatalogSnapshot.sources.map(
   (source) => buildSourceCoverage(source),
 );
 
+export const publicCatalogCurriculumStructures = [
+  ...publicCatalogSnapshot.curriculumStructures,
+].sort((left, right) => {
+  const curriculumCompare = left.curriculumId.localeCompare(right.curriculumId);
+  return curriculumCompare !== 0 ? curriculumCompare : left.code.localeCompare(right.code);
+});
+
+export const publicCatalogCurriculumStructureIndex = buildCurriculumStructureIndex(
+  publicCatalogCurriculumStructures,
+);
+
+export const publicCatalogCurriculumProfiles = publicCatalog.curricula.map(
+  (curriculum) => buildCurriculumProfile(curriculum),
+);
+
 export const publicCatalogProvenance = {
   schemaVersion: publicCatalogSnapshot.schemaVersion,
   builderVersion: publicCatalogSnapshot.builderVersion,
@@ -190,6 +248,10 @@ export const publicCatalogProvenance = {
     (page) => page.origin === "fixture",
   ).length,
   componentCount: publicCatalogSnapshot.components.length,
+  curriculumStructureCount: publicCatalogSnapshot.curriculumStructures.length,
+  activeCurriculumStructureCount: publicCatalogSnapshot.curriculumStructures.filter(
+    (entry) => entry.status === "active",
+  ).length,
   scheduleGuideCount: publicCatalogSnapshot.scheduleGuide.length,
   timeSlotCount: publicCatalogSnapshot.timeSlots.length,
   noteCount: publicCatalogSnapshot.notes.length,
@@ -205,6 +267,7 @@ export const publicCatalogSummary = {
   sourceCount: publicCatalog.sources.length,
   componentCount: publicCatalog.components.length,
   curriculumCount: publicCatalog.curricula.length,
+  curriculumStructureCount: publicCatalogCurriculumStructures.length,
   shortcutCount: publicCatalog.documentShortcuts.length,
   snapshotSourceCount: publicCatalogSnapshot.sources.length,
   snapshotPageCount: publicCatalogSnapshot.pages.length,
@@ -332,6 +395,16 @@ export function findCurriculumSeedById(
   return (
     publicCatalog.curricula.find(
       (curriculum) => curriculum.id === curriculumSeedId,
+    ) ?? null
+  );
+}
+
+export function findCurriculumStructureGroup(
+  curriculumId: string,
+): PublicCatalogCurriculumStructureGroup | null {
+  return (
+    publicCatalogCurriculumStructureIndex.find(
+      (group) => group.curriculumId === curriculumId,
     ) ?? null
   );
 }
@@ -493,4 +566,137 @@ function buildSourceCoverage(source: PublicCatalogSnapshotSource) {
         ? 0
         : pages.length / publicCatalogSnapshot.pages.length,
   };
+}
+
+function buildCurriculumStructureIndex(
+  structures: PublicCatalogSnapshotCurriculumStructure[],
+): PublicCatalogCurriculumStructureGroup[] {
+  const grouped = new Map<string, PublicCatalogSnapshotCurriculumStructure[]>();
+
+  for (const structure of structures) {
+    const currentEntries = grouped.get(structure.curriculumId) ?? [];
+    currentEntries.push(structure);
+    grouped.set(structure.curriculumId, currentEntries);
+  }
+
+  return Array.from(grouped.entries())
+    .map(([curriculumId, entries]) => {
+      const latestCreatedYear =
+        entries
+          .map((entry) => entry.createdYear)
+          .filter((value): value is number => value !== null)
+          .sort((left, right) => right - left)[0] ?? null;
+
+      return {
+        curriculumId,
+        structureCount: entries.length,
+        activeCount: entries.filter((entry) => entry.status === "active").length,
+        inactiveCount: entries.filter((entry) => entry.status === "inactive").length,
+        unknownCount: entries.filter((entry) => entry.status === "unknown").length,
+        codes: uniqueSorted(entries.map((entry) => entry.code)),
+        groupLabels: uniqueSorted(entries.map((entry) => entry.groupLabel)),
+        sourceIds: uniqueSorted(entries.map((entry) => entry.sourceId)),
+        latestCreatedYear,
+      };
+    })
+    .sort((left, right) => left.curriculumId.localeCompare(right.curriculumId));
+}
+
+function buildCurriculumProfile(
+  curriculum: PublicCatalogCurriculumSeed,
+): PublicCatalogCurriculumProfile {
+  const graph = buildCurriculumPrerequisiteGraph(curriculum);
+
+  return {
+    curriculumId: curriculum.id,
+    versionTag: curriculum.versionTag,
+    courseCode: curriculum.course.code,
+    courseName: curriculum.course.name,
+    componentCount: curriculum.components.length,
+    prerequisiteRuleCount: curriculum.prerequisiteRules.length,
+    equivalenceCount: curriculum.equivalences.length,
+    rootComponentCodes: graph.rootComponentCodes,
+    leafComponentCodes: graph.leafComponentCodes,
+    maxPrerequisiteDepth: graph.maxPrerequisiteDepth,
+  };
+}
+
+function buildCurriculumPrerequisiteGraph(
+  curriculum: PublicCatalogCurriculumSeed,
+): {
+  rootComponentCodes: string[];
+  leafComponentCodes: string[];
+  maxPrerequisiteDepth: number;
+} {
+  const componentCodes = curriculum.components.map((component) => component.code);
+  const prerequisiteMap = new Map<string, string[]>(
+    componentCodes.map((code) => [code, []]),
+  );
+  const dependentMap = new Map<string, string[]>(
+    componentCodes.map((code) => [code, []]),
+  );
+
+  for (const rule of curriculum.prerequisiteRules) {
+    const requiredCodes = uniqueSorted(rule.requiredComponentCodes).filter(
+      (code) => code !== rule.componentCode,
+    );
+    const currentPrerequisites = prerequisiteMap.get(rule.componentCode) ?? [];
+    prerequisiteMap.set(
+      rule.componentCode,
+      uniqueSorted([...currentPrerequisites, ...requiredCodes]),
+    );
+
+    for (const requiredCode of requiredCodes) {
+      const currentDependents = dependentMap.get(requiredCode) ?? [];
+      dependentMap.set(
+        requiredCode,
+        uniqueSorted([...currentDependents, rule.componentCode]),
+      );
+    }
+  }
+
+  const rootComponentCodes = componentCodes.filter(
+    (code) => (prerequisiteMap.get(code) ?? []).length === 0,
+  );
+  const leafComponentCodes = componentCodes.filter(
+    (code) => (dependentMap.get(code) ?? []).length === 0,
+  );
+  const depthMemo = new Map<string, number>();
+
+  const maxPrerequisiteDepth = componentCodes.reduce((maxDepth, code) => {
+    return Math.max(maxDepth, getPrerequisiteDepth(code));
+  }, 0);
+
+  return {
+    rootComponentCodes: uniqueSorted(rootComponentCodes),
+    leafComponentCodes: uniqueSorted(leafComponentCodes),
+    maxPrerequisiteDepth,
+  };
+
+  function getPrerequisiteDepth(componentCode: string): number {
+    const cachedDepth = depthMemo.get(componentCode);
+    if (cachedDepth !== undefined) {
+      return cachedDepth;
+    }
+
+    const prerequisites = prerequisiteMap.get(componentCode) ?? [];
+    if (prerequisites.length === 0) {
+      depthMemo.set(componentCode, 0);
+      return 0;
+    }
+
+    const depth =
+      1 +
+      Math.max(
+        ...prerequisites.map((prerequisiteCode) =>
+          getPrerequisiteDepth(prerequisiteCode),
+        ),
+      );
+    depthMemo.set(componentCode, depth);
+    return depth;
+  }
+}
+
+function uniqueSorted(values: string[]): string[] {
+  return Array.from(new Set(values)).sort((left, right) => left.localeCompare(right));
 }

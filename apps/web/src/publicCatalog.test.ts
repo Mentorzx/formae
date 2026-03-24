@@ -1,5 +1,8 @@
 import {
   findBestCurriculumSeed,
+  findCurriculumStructureGroup,
+  publicCatalogCurriculumProfiles,
+  publicCatalogCurriculumStructureIndex,
   publicCatalogProvenance,
   publicCatalogSnapshot,
   publicCatalogSourceCoverage,
@@ -65,6 +68,7 @@ describe("publicCatalog", () => {
 
   it("exposes curriculum counts in the public summary", () => {
     expect(publicCatalogSummary.curriculumCount).toBe(2);
+    expect(publicCatalogSummary.curriculumStructureCount).toBe(17);
   });
 
   it("surfaces catalog snapshot provenance and source coverage", () => {
@@ -76,6 +80,7 @@ describe("publicCatalog", () => {
     expect(publicCatalogProvenance.fixtureBackedPageCount).toBeLessThanOrEqual(
       publicCatalogProvenance.pageCount,
     );
+    expect(publicCatalogProvenance.curriculumStructureCount).toBe(17);
     expect(publicCatalogSourceCoverage).toHaveLength(
       publicCatalogSnapshot.sources.length,
     );
@@ -86,5 +91,74 @@ describe("publicCatalog", () => {
 
     expect(sigaaCoverage?.componentCodeCount).toBeGreaterThan(0);
     expect(sigaaCoverage?.scheduleCodeCount).toBeGreaterThan(0);
+  });
+
+  it("indexes curriculum structures by intake and exposes rule profiles", () => {
+    expect(publicCatalogCurriculumStructureIndex).toHaveLength(17);
+
+    const activeGroup = findCurriculumStructureGroup("2477782");
+    const inactiveGroup = findCurriculumStructureGroup("1880549");
+
+    expect(activeGroup).toEqual({
+      curriculumId: "2477782",
+      structureCount: 1,
+      activeCount: 1,
+      inactiveCount: 0,
+      unknownCount: 0,
+      codes: ["G20251"],
+      groupLabels: ["Matutino e Vespertino"],
+      sourceIds: ["eng-civil-curriculo"],
+      latestCreatedYear: 2025,
+    });
+    expect(inactiveGroup?.inactiveCount).toBe(1);
+    expect(inactiveGroup?.codes).toEqual(["102140"]);
+
+    const baseProfile = publicCatalogCurriculumProfiles.find(
+      (profile) => profile.curriculumId === "ufba-trilha-base-2026-seed",
+    );
+    const interdisciplinaryProfile = publicCatalogCurriculumProfiles.find(
+      (profile) =>
+        profile.curriculumId === "ufba-trilha-interdisciplinar-2026-seed",
+    );
+
+    expect(baseProfile).toMatchObject({
+      curriculumId: "ufba-trilha-base-2026-seed",
+      versionTag: "2026.1-seed",
+      courseCode: "UFBA-BASE-SEED",
+      courseName: "Trilha base UFBA",
+      componentCount: 8,
+      prerequisiteRuleCount: 3,
+      equivalenceCount: 0,
+      rootComponentCodes: ["BIOD01", "LETR01", "MATA37", "MATD01", "QUI101"],
+      leafComponentCodes: ["BIOT02", "FIS123", "MATD01", "PROJ01", "QUI101"],
+      maxPrerequisiteDepth: 1,
+    });
+
+    expect(interdisciplinaryProfile).toMatchObject({
+      curriculumId: "ufba-trilha-interdisciplinar-2026-seed",
+      versionTag: "2026.1-seed",
+      courseCode: "UFBA-INTER-SEED",
+      courseName: "Trilha interdisciplinar UFBA",
+      componentCount: 8,
+      prerequisiteRuleCount: 2,
+      equivalenceCount: 0,
+      rootComponentCodes: [
+        "BIOD01",
+        "DCC105",
+        "LETR01",
+        "MATA37",
+        "MATD01",
+        "SOC115",
+      ],
+      leafComponentCodes: [
+        "DCC105",
+        "EST201",
+        "LETR01",
+        "MATD01",
+        "PROJ11",
+        "SOC115",
+      ],
+      maxPrerequisiteDepth: 1,
+    });
   });
 });
