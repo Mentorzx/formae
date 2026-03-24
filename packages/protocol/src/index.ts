@@ -61,6 +61,54 @@ export interface RawSigaaPayloadPayload {
   capturedAt: string;
   routeHint: string;
   htmlOrText: string;
+  structuredCapture?: SigaaStructuredCapture | null;
+}
+
+export interface SigaaPortalProfile {
+  studentNumber: string | null;
+  studentName: string | null;
+  courseName: string | null;
+}
+
+export interface SigaaCapturedTurmaEntry {
+  componentCode: string;
+  scheduleCodes: string[];
+  rawLine: string;
+}
+
+export interface SigaaCapturedGradeEntry {
+  componentCode: string;
+  statusText: string | null;
+  rawLine: string;
+}
+
+export interface SigaaStructuredCaptureViewBase {
+  id: "classes" | "grades";
+  label: "Minhas Turmas" | "Minhas Notas";
+  routeHint: string;
+  text: string;
+}
+
+export interface SigaaStructuredClassesCaptureView
+  extends SigaaStructuredCaptureViewBase {
+  id: "classes";
+  extractedTurmas: SigaaCapturedTurmaEntry[];
+}
+
+export interface SigaaStructuredGradesCaptureView
+  extends SigaaStructuredCaptureViewBase {
+  id: "grades";
+  extractedGrades: SigaaCapturedGradeEntry[];
+}
+
+export type SigaaStructuredCaptureView =
+  | SigaaStructuredClassesCaptureView
+  | SigaaStructuredGradesCaptureView;
+
+export interface SigaaStructuredCapture {
+  schemaVersion: 1;
+  portalProfile: SigaaPortalProfile | null;
+  views: SigaaStructuredCaptureView[];
 }
 
 export interface NormalizedSnapshotPayload {

@@ -12,6 +12,7 @@ Extensao MV3 para sincronizacao local com o SIGAA. O objetivo aqui e manter o pr
 - `src/dom-contract.js` com contrato de seletores e classificação de página
 - `src/page-bridge.js` com helpers para a ponte de página
 - `src/sigaa-sync.js` com o runtime automatico que autentica localmente e captura `Minhas Turmas` e `Minhas Notas`
+- `RawSigaaPayload` agora carrega `htmlOrText` e um bloco `structuredCapture` opcional com perfil do portal e registros extraidos
 
 ## Fluxo esperado
 

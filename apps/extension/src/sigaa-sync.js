@@ -17,6 +17,10 @@ const CAPTURE_VIEWS = [
     expectedPattern: /Relat[oó]rio de Notas|Situa[cç][aã]o/i,
   },
 ];
+const COMPONENT_CODE_PATTERN = /\b([A-Z]{3,5}\d{2,3})\b/;
+const SCHEDULE_CODE_PATTERN = /\b([2-7]+[MTN]\d{1,2})\b/g;
+const GRADE_STATUS_PATTERN =
+  /\b(APROVADO|REPROVADO|CANCELADO|TRANCADO|CURSANDO|MATRICULADO|APTO|INAPTO|EM CURSO|EM ANDAMENTO)\b/i;
 
 export async function runAutomaticSigaaSync({
   syncSessionId,
@@ -82,6 +86,10 @@ export async function runAutomaticSigaaSync({
         capturedViews,
         warnings,
       }),
+      structuredCapture: buildStructuredSigaaCapture({
+        portalProfile,
+        capturedViews,
+      }),
     }),
     sanitizedSession: sanitizeSigaaSession(session),
     capturedViews,
@@ -124,6 +132,39 @@ export function buildCombinedCaptureText({
   }
 
   return blocks.join("\n\n").trim();
+}
+
+export function buildStructuredSigaaCapture({
+  portalProfile,
+  capturedViews,
+}) {
+  return {
+    schemaVersion: 1,
+    portalProfile: portalProfile
+      ? {
+          studentNumber: portalProfile.studentNumber ?? null,
+          studentName: portalProfile.studentName ?? null,
+          courseName: portalProfile.courseName ?? null,
+        }
+      : null,
+    views: capturedViews.map((capturedView) =>
+      capturedView.id === "classes"
+        ? {
+            id: capturedView.id,
+            label: capturedView.label,
+            routeHint: capturedView.routeHint,
+            text: capturedView.text,
+            extractedTurmas: extractTurmaEntries(capturedView.text),
+          }
+        : {
+            id: capturedView.id,
+            label: capturedView.label,
+            routeHint: capturedView.routeHint,
+            text: capturedView.text,
+            extractedGrades: extractGradeEntries(capturedView.text),
+          },
+    ),
+  };
 }
 
 async function captureSigaaView({
@@ -421,11 +462,69 @@ function submitPortalActionInPage(input) {
 }
 
 function captureVisibleTextInPage(input) {
-  const normalizeVisibleText = (value) => value.replace(/\s+/g, " ").trim();
   return {
     label: input.label,
     currentUrl: window.location.href,
-    text: normalizeVisibleText(document.body?.innerText ?? ""),
+    text: normalizeTextWithLines(document.body?.innerText ?? ""),
     title: document.title ?? "",
   };
+}
+
+function extractTurmaEntries(text) {
+  return splitMeaningfulLines(text)
+    .map((rawLine) => {
+      const componentCode = rawLine.match(COMPONENT_CODE_PATTERN)?.[1] ?? null;
+      if (!componentCode) {
+        return null;
+      }
+
+      const scheduleCodes = uniqueValues(
+        Array.from(rawLine.matchAll(SCHEDULE_CODE_PATTERN), (match) => match[1]),
+      );
+
+      return {
+        componentCode,
+        scheduleCodes,
+        rawLine,
+      };
+    })
+    .filter(Boolean);
+}
+
+function extractGradeEntries(text) {
+  return splitMeaningfulLines(text)
+    .map((rawLine) => {
+      const componentCode = rawLine.match(COMPONENT_CODE_PATTERN)?.[1] ?? null;
+      if (!componentCode) {
+        return null;
+      }
+
+      const statusText = rawLine.match(GRADE_STATUS_PATTERN)?.[1] ?? null;
+      return {
+        componentCode,
+        statusText,
+        rawLine,
+      };
+    })
+    .filter(Boolean);
+}
+
+function splitMeaningfulLines(text) {
+  return normalizeTextWithLines(text)
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function normalizeTextWithLines(value) {
+  return value
+    .replace(/\r/g, "")
+    .split("\n")
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .join("\n");
+}
+
+function uniqueValues(values) {
+  return Array.from(new Set(values));
 }
