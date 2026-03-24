@@ -1,6 +1,8 @@
 import type {
+  LocalStudentSnapshotBundle,
   ManualImportNormalizedSchedule,
   ManualImportStoredSnapshot,
+  PendingRequirementStatus,
 } from "@formae/protocol";
 import {
   startTransition,
@@ -9,17 +11,20 @@ import {
   useMemo,
   useState,
 } from "react";
+import { Metric } from "../components/Metric";
 import { createManualImportPreview } from "../manualImport";
 import { buildManualImportStoredSnapshot } from "../manualSnapshot";
 import {
   clearLatestManualImportSnapshot,
+  loadLatestLocalStudentSnapshotBundle,
   loadLatestManualImportSnapshot,
   loadManualImportVaultState,
   type ManualImportVaultState,
-  saveLatestManualImportSnapshot,
+  saveLatestLocalStudentSnapshotBundle,
 } from "../manualSnapshotStore";
 import { findCatalogMatches } from "../publicCatalog";
 import { formatMeeting } from "../schedulePresentation";
+import { buildLocalStudentSnapshotBundle } from "../studentSnapshot";
 import { normalizeScheduleCodesWithWasm } from "../wasmScheduleParser";
 
 type ParserStatus = "idle" | "loading" | "ready" | "error";
@@ -61,6 +66,8 @@ export function ImportPage() {
   });
   const [latestSnapshot, setLatestSnapshot] =
     useState<ManualImportStoredSnapshot | null>(null);
+  const [latestBundle, setLatestBundle] =
+    useState<LocalStudentSnapshotBundle | null>(null);
   const [vaultState, setVaultState] = useState<ManualImportVaultState | null>(
     null,
   );
@@ -74,14 +81,28 @@ export function ImportPage() {
     let cancelled = false;
 
     void (async () => {
-      const snapshot = await loadLatestManualImportSnapshot();
-      const nextVaultState = await loadManualImportVaultState();
+      const [snapshot, persistedBundle, nextVaultState] = await Promise.all([
+        loadLatestManualImportSnapshot(),
+        loadLatestLocalStudentSnapshotBundle(),
+        loadManualImportVaultState(),
+      ]);
+      const fallbackBundle =
+        !persistedBundle && snapshot
+          ? buildLocalStudentSnapshotBundle({
+              manualImport: snapshot,
+              matchedCatalogComponents: findCatalogMatches(
+                snapshot.detectedComponentCodes,
+              ),
+              derivedAt: snapshot.savedAt,
+            })
+          : null;
 
       if (cancelled) {
         return;
       }
 
       setLatestSnapshot(snapshot);
+      setLatestBundle(persistedBundle ?? fallbackBundle);
       setVaultState(nextVaultState);
       setLocalSnapshotStatus("idle");
     })().catch((error: unknown) => {
@@ -162,15 +183,55 @@ export function ImportPage() {
     (component) => component.code,
   );
   const requiresParser = preview.detectedScheduleCodes.length > 0;
+  const currentManualSnapshot = useMemo(() => {
+    if (
+      rawInput !== deferredRawInput ||
+      rawInput.trim().length === 0 ||
+      (preview.detectedComponentCodes.length === 0 &&
+        preview.detectedScheduleCodes.length === 0) ||
+      (requiresParser && parserState.status !== "ready")
+    ) {
+      return null;
+    }
+
+    return buildManualImportStoredSnapshot({
+      rawInput,
+      source: "plain-text",
+      timingProfileId: preview.timingProfileId,
+      preview,
+      normalizedSchedules: parserState.normalizedSchedules,
+      matchedCatalogComponentCodes: matchedComponentCodes,
+    });
+  }, [
+    deferredRawInput,
+    matchedComponentCodes,
+    parserState.normalizedSchedules,
+    parserState.status,
+    preview,
+    rawInput,
+    requiresParser,
+  ]);
+  const currentBundle = useMemo(
+    () =>
+      currentManualSnapshot
+        ? buildLocalStudentSnapshotBundle({
+            manualImport: currentManualSnapshot,
+            matchedCatalogComponents: matchedComponents,
+          })
+        : null,
+    [currentManualSnapshot, matchedComponents],
+  );
+  const displayedBundle = currentBundle ?? latestBundle;
   const canSaveSnapshot =
     rawInput === deferredRawInput &&
     rawInput.trim().length > 0 &&
     (preview.detectedComponentCodes.length > 0 ||
       preview.detectedScheduleCodes.length > 0) &&
-    (!requiresParser || parserState.status === "ready");
+    (!requiresParser || parserState.status === "ready") &&
+    currentBundle !== null;
 
   async function handleSaveSnapshot() {
-    if (!canSaveSnapshot) {
+    if (!canSaveSnapshot || !currentBundle) {
       return;
     }
 
@@ -178,21 +239,16 @@ export function ImportPage() {
     setLocalSnapshotMessage(null);
 
     try {
-      const snapshot = buildManualImportStoredSnapshot({
-        rawInput,
-        source: "plain-text",
-        timingProfileId: preview.timingProfileId,
-        preview,
-        normalizedSchedules: parserState.normalizedSchedules,
-        matchedCatalogComponentCodes: matchedComponentCodes,
-      });
-
-      const nextVaultState = await saveLatestManualImportSnapshot(snapshot);
-      setLatestSnapshot(snapshot);
+      const nextVaultState =
+        await saveLatestLocalStudentSnapshotBundle(currentBundle);
+      setLatestSnapshot(currentBundle.manualImport);
+      setLatestBundle(currentBundle);
       setVaultState(nextVaultState);
       setLocalSnapshotStatus("saved");
       setLocalSnapshotMessage(
-        `Snapshot salvo localmente em ${formatLocalDateTime(snapshot.savedAt)}.`,
+        `Snapshot consolidado salvo localmente em ${formatLocalDateTime(
+          currentBundle.derivedAt,
+        )}.`,
       );
     } catch (error: unknown) {
       setLocalSnapshotStatus("error");
@@ -205,24 +261,26 @@ export function ImportPage() {
   }
 
   function handleRestoreSnapshot() {
-    if (!latestSnapshot) {
+    if (!latestBundle) {
       return;
     }
 
     startTransition(() => {
-      setRawInput(latestSnapshot.rawInput);
+      setRawInput(latestBundle.manualImport.rawInput);
     });
 
     setParserState({
       status:
-        latestSnapshot.detectedScheduleCodes.length > 0 ? "ready" : "idle",
-      normalizedSchedules: latestSnapshot.normalizedSchedules,
+        latestBundle.manualImport.detectedScheduleCodes.length > 0
+          ? "ready"
+          : "idle",
+      normalizedSchedules: latestBundle.manualImport.normalizedSchedules,
       errorMessage: null,
     });
     setLocalSnapshotStatus("restored");
     setLocalSnapshotMessage(
       `Snapshot restaurado do navegador. Ultimo save: ${formatLocalDateTime(
-        latestSnapshot.savedAt,
+        latestBundle.derivedAt,
       )}.`,
     );
   }
@@ -234,6 +292,7 @@ export function ImportPage() {
     try {
       const nextVaultState = await clearLatestManualImportSnapshot();
       setLatestSnapshot(null);
+      setLatestBundle(null);
       setVaultState(nextVaultState);
       setLocalSnapshotStatus("cleared");
       setLocalSnapshotMessage("Snapshot salvo removido do navegador.");
@@ -290,8 +349,8 @@ export function ImportPage() {
             <div>
               <h3>Snapshot local do navegador</h3>
               <p>
-                Salva a ultima importacao manual em um vault local versionado,
-                selado com AES-GCM e chave device-local no navegador.
+                Salva um bundle local com a importacao manual bruta e o
+                StudentSnapshot minimo derivado localmente.
               </p>
             </div>
             <div className="action-row">
@@ -310,7 +369,7 @@ export function ImportPage() {
                 className="action-button action-button-secondary"
                 onClick={handleRestoreSnapshot}
                 disabled={
-                  !latestSnapshot || isLocalSnapshotBusy(localSnapshotStatus)
+                  !latestBundle || isLocalSnapshotBusy(localSnapshotStatus)
                 }
               >
                 Restaurar ultimo
@@ -320,7 +379,7 @@ export function ImportPage() {
                 className="action-button action-button-danger"
                 onClick={() => void handleClearSnapshot()}
                 disabled={
-                  !latestSnapshot || isLocalSnapshotBusy(localSnapshotStatus)
+                  !latestBundle || isLocalSnapshotBusy(localSnapshotStatus)
                 }
               >
                 Limpar salvo
@@ -331,6 +390,7 @@ export function ImportPage() {
           <LocalSnapshotBanner
             status={localSnapshotStatus}
             latestSnapshot={latestSnapshot}
+            latestBundle={latestBundle}
             message={localSnapshotMessage}
             vaultState={vaultState}
           />
@@ -441,6 +501,91 @@ export function ImportPage() {
           ))}
         </div>
       </section>
+
+      <section className="panel accent-panel">
+        <p className="section-label">StudentSnapshot minimo</p>
+        {displayedBundle ? (
+          <>
+            <div className="metric-strip">
+              <Metric
+                label="Componentes"
+                value={String(
+                  displayedBundle.studentSnapshot.curriculum.components.length,
+                )}
+              />
+              <Metric
+                label="Horarios"
+                value={String(
+                  displayedBundle.studentSnapshot.scheduleBlocks.length,
+                )}
+              />
+              <Metric
+                label="Pendencias"
+                value={String(
+                  displayedBundle.studentSnapshot.pendingRequirements.length,
+                )}
+              />
+            </div>
+
+            <div className="card-grid subsection">
+              <article className="soft-card">
+                <p className="micro-label">Componentes em andamento</p>
+                <ul className="list">
+                  {displayedBundle.studentSnapshot.inProgressComponents.map(
+                    (component) => (
+                      <li key={component.code}>
+                        {component.code} - {component.title}
+                      </li>
+                    ),
+                  )}
+                </ul>
+              </article>
+
+              <article className="soft-card">
+                <p className="micro-label">Blocos de horario</p>
+                <ul className="list">
+                  {displayedBundle.studentSnapshot.scheduleBlocks.map(
+                    (scheduleBlock) => (
+                      <li
+                        key={`${scheduleBlock.canonicalCode}-${scheduleBlock.rawCode}`}
+                      >
+                        <strong>{scheduleBlock.canonicalCode}</strong>
+                        {scheduleBlock.componentCode
+                          ? ` · ${scheduleBlock.componentCode}`
+                          : " · sem vinculo confiavel"}
+                        {scheduleBlock.meetings.length > 0
+                          ? ` · ${scheduleBlock.meetings.map(formatMeeting).join(" | ")}`
+                          : ""}
+                      </li>
+                    ),
+                  )}
+                </ul>
+              </article>
+
+              <article className="soft-card">
+                <p className="micro-label">Pendencias locais</p>
+                <ul className="list">
+                  {displayedBundle.studentSnapshot.pendingRequirements.map(
+                    (requirement) => (
+                      <li key={requirement.id}>
+                        <strong>
+                          {formatPendingRequirementStatus(requirement.status)}
+                        </strong>{" "}
+                        {requirement.title}
+                      </li>
+                    ),
+                  )}
+                </ul>
+              </article>
+            </div>
+          </>
+        ) : (
+          <p>
+            O snapshot consolidado aparece aqui quando a importacao manual ja
+            tem componentes ou horarios suficientes para projecao local.
+          </p>
+        )}
+      </section>
     </div>
   );
 }
@@ -448,11 +593,13 @@ export function ImportPage() {
 function LocalSnapshotBanner({
   status,
   latestSnapshot,
+  latestBundle,
   message,
   vaultState,
 }: {
   status: LocalSnapshotStatus;
   latestSnapshot: ManualImportStoredSnapshot | null;
+  latestBundle: LocalStudentSnapshotBundle | null;
   message: string | null;
   vaultState: ManualImportVaultState | null;
 }) {
@@ -513,8 +660,9 @@ function LocalSnapshotBanner({
         <p className="micro-label">Ultimo snapshot salvo</p>
         <p>
           {formatLocalDateTime(latestSnapshot.savedAt)} ·{" "}
-          {latestSnapshot.detectedComponentCodes.length} componentes ·{" "}
-          {latestSnapshot.detectedScheduleCodes.length} horarios
+          {latestSnapshot.detectedComponentCodes.length} componentes brutos ·{" "}
+          {latestBundle?.studentSnapshot.pendingRequirements.length ?? 0}{" "}
+          pendencias locais
         </p>
       </div>
       {facts}
@@ -616,4 +764,18 @@ function formatWipeReason(
   }
 
   return "limpeza manual";
+}
+
+function formatPendingRequirementStatus(
+  status: PendingRequirementStatus,
+): string {
+  if (status === "completed") {
+    return "Concluida:";
+  }
+
+  if (status === "inProgress") {
+    return "Em andamento:";
+  }
+
+  return "Pendente:";
 }

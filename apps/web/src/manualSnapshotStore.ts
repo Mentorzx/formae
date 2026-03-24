@@ -1,4 +1,7 @@
-import type { ManualImportStoredSnapshot } from "@formae/protocol";
+import type {
+  LocalStudentSnapshotBundle,
+  ManualImportStoredSnapshot,
+} from "@formae/protocol";
 
 const DATABASE_NAME = "formae-local";
 const DATABASE_VERSION = 2;
@@ -9,8 +12,13 @@ const VAULT_KEY_STORE_NAME = "vault-keys";
 const ACTIVE_VAULT_STATE_KEY = "active";
 const LATEST_SNAPSHOT_KEY = "latest";
 const DEVICE_LOCAL_KEY_ID = "device-local-v1";
+const CURRENT_VAULT_STORAGE_VERSION = 3;
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
+type VaultPayloadKind =
+  | "manualImportStoredSnapshot"
+  | "localStudentSnapshotBundle";
+type VaultPayload = ManualImportStoredSnapshot | LocalStudentSnapshotBundle;
 
 export type ManualImportVaultStatus = "empty" | "sealed";
 export type ManualImportVaultWipeReason =
@@ -21,9 +29,9 @@ export type ManualImportVaultMigrationSource = "legacy-cleartext-store";
 
 export interface ManualImportVaultState {
   schemaVersion: 1;
-  storageVersion: 2;
+  storageVersion: number;
   status: ManualImportVaultStatus;
-  payloadKind: "manualImportStoredSnapshot" | null;
+  payloadKind: VaultPayloadKind | null;
   keyDerivation: "device-local";
   keyId: string | null;
   updatedAt: string | null;
@@ -34,7 +42,7 @@ export interface ManualImportVaultState {
 
 interface ManualImportVaultRecord {
   schemaVersion: 1;
-  payloadKind: "manualImportStoredSnapshot";
+  payloadKind: VaultPayloadKind;
   algorithm: "AES-GCM";
   keyDerivation: "device-local";
   keyId: string;
@@ -62,7 +70,16 @@ export async function loadLatestManualImportSnapshot(): Promise<ManualImportStor
     );
   }
 
-  return openManualImportSnapshotFromVault(vaultRecord, encryptionKey);
+  if (vaultRecord.payloadKind === "manualImportStoredSnapshot") {
+    return openManualImportSnapshotFromVault(vaultRecord, encryptionKey);
+  }
+
+  const bundle = await openLocalStudentSnapshotBundleFromVault(
+    vaultRecord,
+    encryptionKey,
+  );
+
+  return bundle.manualImport;
 }
 
 export async function saveLatestManualImportSnapshot(
@@ -72,6 +89,47 @@ export async function saveLatestManualImportSnapshot(
   const { key, keyId } = await ensureDeviceLocalKey(database);
   const vaultRecord = await sealManualImportSnapshotForVault(
     snapshot,
+    key,
+    keyId,
+  );
+  const vaultState = buildSealedVaultState(vaultRecord);
+
+  await writeSealedVault(database, vaultRecord, vaultState, key, keyId);
+
+  return vaultState;
+}
+
+export async function loadLatestLocalStudentSnapshotBundle(): Promise<LocalStudentSnapshotBundle | null> {
+  const database = await openManualSnapshotDatabase();
+  await migrateLegacySnapshotIfNeeded(database);
+
+  const vaultRecord = await readVaultRecord(database);
+
+  if (
+    !vaultRecord ||
+    vaultRecord.payloadKind !== "localStudentSnapshotBundle"
+  ) {
+    return null;
+  }
+
+  const encryptionKey = await readVaultKey(database, vaultRecord.keyId);
+
+  if (!encryptionKey) {
+    throw new Error(
+      "Local vault key is missing for the sealed student snapshot bundle.",
+    );
+  }
+
+  return openLocalStudentSnapshotBundleFromVault(vaultRecord, encryptionKey);
+}
+
+export async function saveLatestLocalStudentSnapshotBundle(
+  bundle: LocalStudentSnapshotBundle,
+): Promise<ManualImportVaultState> {
+  const database = await openManualSnapshotDatabase();
+  const { key, keyId } = await ensureDeviceLocalKey(database);
+  const vaultRecord = await sealLocalStudentSnapshotBundleForVault(
+    bundle,
     key,
     keyId,
   );
@@ -109,11 +167,49 @@ export async function sealManualImportSnapshotForVault(
   encryptionKey: CryptoKey,
   keyId = DEVICE_LOCAL_KEY_ID,
 ): Promise<ManualImportVaultRecord> {
-  const updatedAt = snapshot.savedAt;
+  return sealPayloadForVault({
+    payload: snapshot,
+    payloadKind: "manualImportStoredSnapshot",
+    updatedAt: snapshot.savedAt,
+    aadContext: buildManualSnapshotAadContext(snapshot),
+    encryptionKey,
+    keyId,
+  });
+}
+
+export async function sealLocalStudentSnapshotBundleForVault(
+  bundle: LocalStudentSnapshotBundle,
+  encryptionKey: CryptoKey,
+  keyId = DEVICE_LOCAL_KEY_ID,
+): Promise<ManualImportVaultRecord> {
+  return sealPayloadForVault({
+    payload: bundle,
+    payloadKind: "localStudentSnapshotBundle",
+    updatedAt: bundle.derivedAt,
+    aadContext: buildLocalStudentSnapshotBundleAadContext(bundle),
+    encryptionKey,
+    keyId,
+  });
+}
+
+async function sealPayloadForVault({
+  payload,
+  payloadKind,
+  updatedAt,
+  aadContext,
+  encryptionKey,
+  keyId,
+}: {
+  payload: VaultPayload;
+  payloadKind: VaultPayloadKind;
+  updatedAt: string;
+  aadContext: string;
+  encryptionKey: CryptoKey;
+  keyId: string;
+}): Promise<ManualImportVaultRecord> {
   const iv = globalThis.crypto.getRandomValues(new Uint8Array(12));
-  const aadContext = buildVaultAadContext(snapshot);
   const ciphertext = await encryptJsonPayload(
-    snapshot,
+    payload,
     encryptionKey,
     iv,
     aadContext,
@@ -121,7 +217,7 @@ export async function sealManualImportSnapshotForVault(
 
   return {
     schemaVersion: 1,
-    payloadKind: "manualImportStoredSnapshot",
+    payloadKind,
     algorithm: "AES-GCM",
     keyDerivation: "device-local",
     keyId,
@@ -150,13 +246,31 @@ export async function openManualImportSnapshotFromVault(
   return plaintext;
 }
 
+export async function openLocalStudentSnapshotBundleFromVault(
+  vaultRecord: ManualImportVaultRecord,
+  encryptionKey: CryptoKey,
+): Promise<LocalStudentSnapshotBundle> {
+  const plaintext = await decryptJsonPayload<LocalStudentSnapshotBundle>(
+    vaultRecord,
+    encryptionKey,
+  );
+
+  if (plaintext.schemaVersion !== 1) {
+    throw new Error(
+      `Unsupported student snapshot bundle schema version: ${plaintext.schemaVersion}.`,
+    );
+  }
+
+  return plaintext;
+}
+
 function buildSealedVaultState(
   vaultRecord: ManualImportVaultRecord,
   migrationSource: ManualImportVaultMigrationSource | null = null,
 ): ManualImportVaultState {
   return {
     schemaVersion: 1,
-    storageVersion: 2,
+    storageVersion: CURRENT_VAULT_STORAGE_VERSION,
     status: "sealed",
     payloadKind: vaultRecord.payloadKind,
     keyDerivation: vaultRecord.keyDerivation,
@@ -173,7 +287,7 @@ function buildEmptyVaultState(
 ): ManualImportVaultState {
   return {
     schemaVersion: 1,
-    storageVersion: 2,
+    storageVersion: CURRENT_VAULT_STORAGE_VERSION,
     status: "empty",
     payloadKind: null,
     keyDerivation: "device-local",
@@ -186,8 +300,16 @@ function buildEmptyVaultState(
   };
 }
 
-function buildVaultAadContext(snapshot: ManualImportStoredSnapshot): string {
+function buildManualSnapshotAadContext(
+  snapshot: ManualImportStoredSnapshot,
+): string {
   return `formae:manual-import:${snapshot.timingProfileId}:${snapshot.snapshotId}`;
+}
+
+function buildLocalStudentSnapshotBundleAadContext(
+  bundle: LocalStudentSnapshotBundle,
+): string {
+  return `formae:student-snapshot:${bundle.manualImport.timingProfileId}:${bundle.manualImport.snapshotId}`;
 }
 
 async function migrateLegacySnapshotIfNeeded(
@@ -242,7 +364,7 @@ async function ensureDeviceLocalKey(
 }
 
 async function encryptJsonPayload(
-  payload: ManualImportStoredSnapshot,
+  payload: VaultPayload,
   encryptionKey: CryptoKey,
   iv: Uint8Array,
   aadContext: string,

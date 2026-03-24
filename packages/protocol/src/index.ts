@@ -135,6 +135,83 @@ export interface ManualImportNormalizedSchedule {
   result: ScheduleParseResult;
 }
 
+export interface Course {
+  code: string;
+  name: string;
+  campus: string;
+  degreeLevel: string;
+  totalWorkloadHours: number;
+}
+
+export interface Component {
+  code: string;
+  title: string;
+  credits: number;
+  workloadHours: number;
+  componentType: string;
+}
+
+export interface PrerequisiteRule {
+  componentCode: string;
+  expression: string;
+  requiredComponentCodes: string[];
+}
+
+export interface Equivalence {
+  sourceComponentCode: string;
+  equivalentComponentCode: string;
+  rationale: string;
+}
+
+export type PendingRequirementStatus =
+  | "outstanding"
+  | "inProgress"
+  | "completed";
+
+export interface PendingRequirement {
+  id: string;
+  title: string;
+  status: PendingRequirementStatus;
+  details: string;
+  relatedComponentCode: string | null;
+}
+
+export interface IssuedDocumentMetadata {
+  kind: string;
+  authenticityCode: string;
+  issuedAt: string;
+  localFileName: string | null;
+}
+
+export interface CurriculumStructure {
+  curriculumId: string;
+  name: string;
+  course: Course;
+  components: Component[];
+  prerequisiteRules: PrerequisiteRule[];
+  equivalences: Equivalence[];
+}
+
+export interface ScheduleBlock {
+  componentCode: string | null;
+  rawCode: string;
+  canonicalCode: string;
+  meetings: ScheduleMeeting[];
+}
+
+export interface StudentSnapshot {
+  schemaVersion: 1;
+  generatedAt: string;
+  studentNumber: string;
+  studentName: string;
+  curriculum: CurriculumStructure;
+  completedComponents: Component[];
+  inProgressComponents: Component[];
+  scheduleBlocks: ScheduleBlock[];
+  pendingRequirements: PendingRequirement[];
+  issuedDocuments: IssuedDocumentMetadata[];
+}
+
 export interface ManualImportStoredSnapshot {
   schemaVersion: 1;
   snapshotId: string;
@@ -147,6 +224,14 @@ export interface ManualImportStoredSnapshot {
   matchedCatalogComponentCodes: string[];
   previewWarnings: string[];
   normalizedSchedules: ManualImportNormalizedSchedule[];
+}
+
+export interface LocalStudentSnapshotBundle {
+  schemaVersion: 1;
+  source: "manual-import";
+  derivedAt: string;
+  manualImport: ManualImportStoredSnapshot;
+  studentSnapshot: StudentSnapshot;
 }
 
 export type RequestSyncMessage = BridgeEnvelope<
