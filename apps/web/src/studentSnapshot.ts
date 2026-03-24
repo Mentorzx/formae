@@ -1,7 +1,9 @@
 import type {
+  AcademicComponentStatus,
   Component,
   LocalStudentSnapshotBundle,
   ManualImportStoredSnapshot,
+  ManualImportStructuredComponentState,
   PendingRequirement,
   PrerequisiteRule,
   ScheduleBlock,
@@ -62,26 +64,42 @@ export function buildStudentSnapshotFromManualImport(
     input.manualImport.rawInput,
     input.manualImport.detectedComponentCodes,
   );
+  const structuredComponentStateMap = buildStructuredComponentStateMap(
+    input.manualImport.structuredContext?.componentStates ?? [],
+  );
   const components = buildCurriculumComponents(
     input.manualImport,
     input.matchedCatalogComponents,
     resolvedCurriculum,
+    structuredComponentStateMap,
   );
-  const completedComponents = components.filter((component) =>
-    hasComponentStatus(component.code, componentInferences, "completed"),
+  const completedComponents = components.filter(
+    (component) =>
+      resolveAcademicComponentStatus(
+        component.code,
+        structuredComponentStateMap,
+        componentInferences,
+      ) === "completed",
   );
-  const inProgressComponents = components.filter((component) =>
-    hasComponentStatus(component.code, componentInferences, "inProgress"),
+  const inProgressComponents = components.filter(
+    (component) =>
+      resolveAcademicComponentStatus(
+        component.code,
+        structuredComponentStateMap,
+        componentInferences,
+      ) === "inProgress",
   );
   const scheduleBlocks = buildScheduleBlocks(
     input.manualImport,
     input.matchedCatalogComponents,
+    input.manualImport.structuredContext?.scheduleBindings ?? [],
   );
   const pendingRequirements = buildPendingRequirements(
     input.manualImport,
     components,
     completedComponents,
     componentInferences,
+    structuredComponentStateMap,
     inProgressComponents,
     scheduleBlocks,
     resolvedCurriculum,
@@ -96,8 +114,12 @@ export function buildStudentSnapshotFromManualImport(
   return {
     schemaVersion: 1,
     generatedAt: input.generatedAt,
-    studentNumber: "manual-import",
-    studentName: "Snapshot local provisório",
+    studentNumber:
+      input.manualImport.structuredContext?.studentProfile?.studentNumber ??
+      "manual-import",
+    studentName:
+      input.manualImport.structuredContext?.studentProfile?.studentName ??
+      "Snapshot local provisório",
     curriculum: {
       curriculumId:
         resolvedCurriculum?.id ?? `manual-${input.manualImport.snapshotId}`,
@@ -106,8 +128,10 @@ export function buildStudentSnapshotFromManualImport(
         "Curriculo provisório derivado de importacao manual",
       course: resolvedCurriculum?.course ?? {
         code: "UFBA-MANUAL",
-        name: "Curso UFBA provisório",
-        campus: "UFBA",
+        name:
+          input.manualImport.structuredContext?.studentProfile?.courseName ??
+          "Curso UFBA provisório",
+        campus: "UFBA/SIGAA",
         degreeLevel: "unknown",
         totalWorkloadHours,
       },
@@ -127,12 +151,17 @@ function buildCurriculumComponents(
   manualImport: ManualImportStoredSnapshot,
   matchedCatalogComponents: PublicCatalogComponent[],
   resolvedCurriculum: PublicCatalogCurriculumSeed | null,
+  structuredComponentStateMap: Map<
+    string,
+    ManualImportStructuredComponentState
+  >,
 ): Component[] {
   if (resolvedCurriculum) {
     return mergeSeededCurriculumComponents(
       manualImport,
       matchedCatalogComponents,
       resolvedCurriculum,
+      structuredComponentStateMap,
     );
   }
 
@@ -141,11 +170,12 @@ function buildCurriculumComponents(
   );
   const components = manualImport.detectedComponentCodes.map((code) => {
     const matchedComponent = matchedByCode.get(code);
+    const structuredComponentState = structuredComponentStateMap.get(code);
 
     if (matchedComponent) {
       return {
         code: matchedComponent.code,
-        title: matchedComponent.title,
+        title: structuredComponentState?.title ?? matchedComponent.title,
         credits: 0,
         workloadHours: 0,
         componentType: "catalog-seed",
@@ -154,7 +184,9 @@ function buildCurriculumComponents(
 
     return {
       code,
-      title: `Componente detectado manualmente (${code})`,
+      title:
+        structuredComponentState?.title ??
+        `Componente detectado manualmente (${code})`,
       credits: 0,
       workloadHours: 0,
       componentType: "manual-detected",
@@ -167,12 +199,17 @@ function buildCurriculumComponents(
 function buildScheduleBlocks(
   manualImport: ManualImportStoredSnapshot,
   matchedCatalogComponents: PublicCatalogComponent[],
+  structuredScheduleBindings: Array<{
+    componentCode: string;
+    scheduleCode: string;
+  }>,
 ): ScheduleBlock[] {
   return manualImport.normalizedSchedules.map((normalizedSchedule) => ({
     componentCode: findComponentCodeForSchedule(
       normalizedSchedule.result.canonicalCode,
       manualImport,
       matchedCatalogComponents,
+      structuredScheduleBindings,
     ),
     rawCode: normalizedSchedule.result.rawCode,
     canonicalCode: normalizedSchedule.result.canonicalCode,
@@ -185,6 +222,10 @@ function buildPendingRequirements(
   components: Component[],
   completedComponents: Component[],
   componentInferences: ManualDetectedComponentInference[],
+  structuredComponentStateMap: Map<
+    string,
+    ManualImportStructuredComponentState
+  >,
   inProgressComponents: Component[],
   scheduleBlocks: ScheduleBlock[],
   resolvedCurriculum: PublicCatalogCurriculumSeed | null,
@@ -237,6 +278,16 @@ function buildPendingRequirements(
 
   for (const inference of componentInferences) {
     if (inference.status === "failed") {
+      if (
+        resolveAcademicComponentStatus(
+          inference.code,
+          structuredComponentStateMap,
+          componentInferences,
+        ) !== "failed"
+      ) {
+        continue;
+      }
+
       requirements.push({
         id: `component-retry:${inference.code}`,
         title: `Retomar ${inference.code}`,
@@ -247,7 +298,16 @@ function buildPendingRequirements(
       });
     }
 
-    if (inference.status === "unknown" || inference.hasConflictingSignals) {
+    const resolvedStatus = resolveAcademicComponentStatus(
+      inference.code,
+      structuredComponentStateMap,
+      componentInferences,
+    );
+
+    if (
+      resolvedStatus === "unknown" &&
+      (inference.status === "unknown" || inference.hasConflictingSignals)
+    ) {
       requirements.push({
         id: `component-status:${inference.code}`,
         title: `Revisar status de ${inference.code}`,
@@ -335,7 +395,19 @@ function findComponentCodeForSchedule(
   canonicalScheduleCode: string,
   manualImport: ManualImportStoredSnapshot,
   matchedCatalogComponents: PublicCatalogComponent[],
+  structuredScheduleBindings: Array<{
+    componentCode: string;
+    scheduleCode: string;
+  }>,
 ): string | null {
+  const structuredBinding = structuredScheduleBindings.find(
+    (binding) => binding.scheduleCode === canonicalScheduleCode,
+  );
+
+  if (structuredBinding) {
+    return structuredBinding.componentCode;
+  }
+
   const directMatches = matchedCatalogComponents.filter(
     (component) => component.canonicalScheduleCode === canonicalScheduleCode,
   );
@@ -351,14 +423,39 @@ function findComponentCodeForSchedule(
   return null;
 }
 
-function hasComponentStatus(
+function resolveAcademicComponentStatus(
   componentCode: string,
+  structuredComponentStateMap: Map<
+    string,
+    ManualImportStructuredComponentState
+  >,
   componentInferences: ManualDetectedComponentInference[],
-  expectedStatus: ManualDetectedComponentInference["status"],
-): boolean {
-  return componentInferences.some(
-    (inference) =>
-      inference.code === componentCode && inference.status === expectedStatus,
+): AcademicComponentStatus {
+  const structuredComponentState =
+    structuredComponentStateMap.get(componentCode);
+
+  if (
+    structuredComponentState &&
+    structuredComponentState.status !== "unknown"
+  ) {
+    return structuredComponentState.status;
+  }
+
+  const inferredStatus =
+    componentInferences.find((inference) => inference.code === componentCode)
+      ?.status ?? "unknown";
+
+  return inferredStatus;
+}
+
+function buildStructuredComponentStateMap(
+  componentStates: ManualImportStructuredComponentState[],
+): Map<string, ManualImportStructuredComponentState> {
+  return new Map(
+    componentStates.map((componentState) => [
+      componentState.code,
+      componentState,
+    ]),
   );
 }
 
@@ -409,10 +506,21 @@ function mergeSeededCurriculumComponents(
   manualImport: ManualImportStoredSnapshot,
   matchedCatalogComponents: PublicCatalogComponent[],
   resolvedCurriculum: PublicCatalogCurriculumSeed,
+  structuredComponentStateMap: Map<
+    string,
+    ManualImportStructuredComponentState
+  >,
 ): Component[] {
-  const seededComponents = resolvedCurriculum.components.map((component) => ({
-    ...component,
-  }));
+  const seededComponents = resolvedCurriculum.components.map((component) => {
+    const structuredComponentState = structuredComponentStateMap.get(
+      component.code,
+    );
+
+    return {
+      ...component,
+      title: structuredComponentState?.title ?? component.title,
+    };
+  });
   const knownCodes = new Set(
     seededComponents.map((component) => component.code),
   );
@@ -423,11 +531,13 @@ function mergeSeededCurriculumComponents(
     .filter((componentCode) => !knownCodes.has(componentCode))
     .map((componentCode) => {
       const matchedComponent = matchedByCode.get(componentCode);
+      const structuredComponentState =
+        structuredComponentStateMap.get(componentCode);
 
       if (matchedComponent) {
         return {
           code: matchedComponent.code,
-          title: matchedComponent.title,
+          title: structuredComponentState?.title ?? matchedComponent.title,
           credits: 0,
           workloadHours: 0,
           componentType: "catalog-seed-extra",
@@ -436,7 +546,9 @@ function mergeSeededCurriculumComponents(
 
       return {
         code: componentCode,
-        title: `Componente detectado manualmente (${componentCode})`,
+        title:
+          structuredComponentState?.title ??
+          `Componente detectado manualmente (${componentCode})`,
         credits: 0,
         workloadHours: 0,
         componentType: "manual-detected",

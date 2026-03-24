@@ -33,6 +33,7 @@ describe("buildManualImportStoredSnapshot", () => {
       matchedCatalogComponentCodes: ["MATA37"],
       previewWarnings: [],
       normalizedSchedules: [],
+      structuredContext: null,
     });
   });
 });

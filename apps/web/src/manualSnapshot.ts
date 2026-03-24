@@ -3,6 +3,7 @@ import type {
   ManualImportPreview,
   ManualImportSource,
   ManualImportStoredSnapshot,
+  ManualImportStructuredContext,
   TimingProfileId,
 } from "@formae/protocol";
 
@@ -14,6 +15,7 @@ interface BuildManualImportSnapshotInput {
   normalizedSchedules: ManualImportNormalizedSchedule[];
   preferredCurriculumSeedId?: string | null;
   matchedCatalogComponentCodes: string[];
+  structuredContext?: ManualImportStructuredContext | null;
   savedAt?: string;
   snapshotId?: string;
 }
@@ -34,6 +36,7 @@ export function buildManualImportStoredSnapshot(
     matchedCatalogComponentCodes: input.matchedCatalogComponentCodes,
     previewWarnings: input.preview.warnings,
     normalizedSchedules: input.normalizedSchedules,
+    structuredContext: input.structuredContext ?? null,
   };
 }
 

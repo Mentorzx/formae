@@ -183,6 +183,40 @@ export interface ManualImportNormalizedSchedule {
   result: ScheduleParseResult;
 }
 
+export type AcademicComponentStatus =
+  | "completed"
+  | "inProgress"
+  | "failed"
+  | "unknown";
+
+export interface ManualImportStructuredStudentProfile {
+  studentNumber: string | null;
+  studentName: string | null;
+  courseName: string | null;
+}
+
+export interface ManualImportStructuredComponentState {
+  code: string;
+  title: string | null;
+  status: AcademicComponentStatus;
+  source: "classes" | "grades";
+  rawLine: string;
+  statusText: string | null;
+  scheduleCodes: string[];
+}
+
+export interface ManualImportStructuredScheduleBinding {
+  componentCode: string;
+  scheduleCode: string;
+  source: "classes";
+}
+
+export interface ManualImportStructuredContext {
+  studentProfile: ManualImportStructuredStudentProfile | null;
+  componentStates: ManualImportStructuredComponentState[];
+  scheduleBindings: ManualImportStructuredScheduleBinding[];
+}
+
 export interface Course {
   code: string;
   name: string;
@@ -273,6 +307,7 @@ export interface ManualImportStoredSnapshot {
   matchedCatalogComponentCodes: string[];
   previewWarnings: string[];
   normalizedSchedules: ManualImportNormalizedSchedule[];
+  structuredContext?: ManualImportStructuredContext | null;
 }
 
 export interface LocalStudentSnapshotBundle {

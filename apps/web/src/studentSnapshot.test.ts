@@ -266,4 +266,101 @@ describe("buildLocalStudentSnapshotBundle", () => {
       ),
     ).toBe(false);
   });
+
+  it("uses structured SIGAA context to bind schedules and override manual heuristics", () => {
+    const bundle = buildLocalStudentSnapshotBundle({
+      derivedAt: "2026-03-24T02:10:00.000Z",
+      manualImport: {
+        schemaVersion: 1,
+        snapshotId: "manual-structured",
+        savedAt: "2026-03-24T02:09:00.000Z",
+        source: "sigaa-html",
+        timingProfileId: "Ufba2025",
+        rawInput: [
+          "SIGAA Sync Local",
+          "Aluno(a): Alex de Lira Neto",
+          "[Minhas Turmas]",
+          "ENGC63 - PROCESSAMENTO DIGITAL DE SINAIS - Horário: 35N12",
+        ].join("\n"),
+        detectedScheduleCodes: ["35N12"],
+        detectedComponentCodes: ["ENGC63"],
+        matchedCatalogComponentCodes: [],
+        previewWarnings: [],
+        normalizedSchedules: [
+          {
+            inputCode: "35N12",
+            parser: "rust-wasm",
+            result: {
+              rawCode: "35N12",
+              normalizedCode: "35N12",
+              canonicalCode: "35N12",
+              meetings: [
+                {
+                  day: "tuesday",
+                  turn: "night",
+                  slotStart: 1,
+                  slotEnd: 2,
+                  startTime: { hour: 18, minute: 30 },
+                  endTime: { hour: 20, minute: 20 },
+                  sourceSegment: "35N12",
+                },
+              ],
+              warnings: [],
+              profileId: "Ufba2025",
+            },
+          },
+        ],
+        structuredContext: {
+          studentProfile: {
+            studentNumber: "219216387",
+            studentName: "Alex de Lira Neto",
+            courseName: "Engenharia da Computacao",
+          },
+          componentStates: [
+            {
+              code: "ENGC63",
+              title: "PROCESSAMENTO DIGITAL DE SINAIS",
+              status: "inProgress",
+              source: "classes",
+              rawLine:
+                "ENGC63 - PROCESSAMENTO DIGITAL DE SINAIS - Horário: 35N12",
+              statusText: null,
+              scheduleCodes: ["35N12"],
+            },
+          ],
+          scheduleBindings: [
+            {
+              componentCode: "ENGC63",
+              scheduleCode: "35N12",
+              source: "classes",
+            },
+          ],
+        },
+      },
+      matchedCatalogComponents: [],
+    });
+
+    expect(bundle.studentSnapshot.studentNumber).toBe("219216387");
+    expect(bundle.studentSnapshot.studentName).toBe("Alex de Lira Neto");
+    expect(bundle.studentSnapshot.curriculum.course.name).toBe(
+      "Engenharia da Computacao",
+    );
+    expect(bundle.studentSnapshot.inProgressComponents).toEqual([
+      expect.objectContaining({
+        code: "ENGC63",
+        title: "PROCESSAMENTO DIGITAL DE SINAIS",
+      }),
+    ]);
+    expect(bundle.studentSnapshot.scheduleBlocks).toEqual([
+      expect.objectContaining({
+        componentCode: "ENGC63",
+        canonicalCode: "35N12",
+      }),
+    ]);
+    expect(
+      bundle.studentSnapshot.pendingRequirements.some(
+        (requirement) => requirement.id === "schedule-binding:35N12",
+      ),
+    ).toBe(false);
+  });
 });
