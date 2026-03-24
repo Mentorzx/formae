@@ -74,6 +74,50 @@ describe("buildLocalStudentSnapshotBundle", () => {
         (component) => component.code,
       ),
     ).toEqual(["BIOD01"]);
+    expect(bundle.studentSnapshot.curriculum.curriculumId).toBe(
+      "ufba-trilha-base-2026-seed",
+    );
+    expect(bundle.studentSnapshot.curriculum.name).toBe(
+      "Trilha base UFBA seed local",
+    );
+    expect(bundle.studentSnapshot.curriculum.course).toEqual({
+      code: "UFBA-BASE-SEED",
+      name: "Trilha base UFBA",
+      campus: "Salvador",
+      degreeLevel: "undergraduate",
+      totalWorkloadHours: 544,
+    });
+    expect(
+      bundle.studentSnapshot.curriculum.components.map(
+        (component) => component.code,
+      ),
+    ).toEqual([
+      "LETR01",
+      "MATD01",
+      "MATA37",
+      "QUI101",
+      "FIS123",
+      "BIOD01",
+      "BIOT02",
+      "PROJ01",
+    ]);
+    expect(bundle.studentSnapshot.curriculum.prerequisiteRules).toEqual([
+      {
+        componentCode: "FIS123",
+        expression: "MATA37",
+        requiredComponentCodes: ["MATA37"],
+      },
+      {
+        componentCode: "BIOT02",
+        expression: "BIOD01",
+        requiredComponentCodes: ["BIOD01"],
+      },
+      {
+        componentCode: "PROJ01",
+        expression: "MATA37 AND LETR01",
+        requiredComponentCodes: ["MATA37", "LETR01"],
+      },
+    ]);
     expect(bundle.studentSnapshot.scheduleBlocks).toEqual([
       {
         componentCode: "BIOD01",
@@ -92,30 +136,46 @@ describe("buildLocalStudentSnapshotBundle", () => {
         ],
       },
     ]);
-    expect(bundle.studentSnapshot.pendingRequirements).toEqual([
-      {
-        id: "catalog-match:FIS123",
-        title: "Validar FIS123 no catalogo publico",
-        status: "outstanding",
-        details:
-          "O codigo foi detectado na importacao manual, mas ainda nao existe correspondencia no catalogo seed local.",
-        relatedComponentCode: "FIS123",
-      },
-      {
-        id: "component-retry:FIS123",
-        title: "Retomar FIS123",
-        status: "outstanding",
-        details:
-          "A importacao manual detectou sinais de reprovacao, cancelamento ou trancamento para este componente.",
-        relatedComponentCode: "FIS123",
-      },
-      {
-        id: "component:FIS123",
-        title: "Concluir Componente detectado manualmente (FIS123)",
-        status: "outstanding",
-        details: "Componente ainda nao concluido nem em andamento: FIS123",
-        relatedComponentCode: "FIS123",
-      },
+    expect(
+      bundle.studentSnapshot.pendingRequirements.map(
+        (requirement) => requirement.id,
+      ),
+    ).toEqual([
+      "component-retry:FIS123",
+      "prerequisite:BIOT02",
+      "prerequisite:PROJ01",
+      "component:LETR01",
+      "component:MATD01",
+      "component:QUI101",
+      "component:FIS123",
+      "component:BIOT02",
+      "component:PROJ01",
     ]);
+    expect(bundle.studentSnapshot.pendingRequirements).toEqual(
+      expect.arrayContaining([
+        {
+          id: "component-retry:FIS123",
+          title: "Retomar FIS123",
+          status: "outstanding",
+          details:
+            "A importacao manual detectou sinais de reprovacao, cancelamento ou trancamento para este componente.",
+          relatedComponentCode: "FIS123",
+        },
+        {
+          id: "prerequisite:BIOT02",
+          title: "Liberar Bases de Biologia Celular",
+          status: "outstanding",
+          details: "Faltam pre-requisitos antes de BIOT02: BIOD01.",
+          relatedComponentCode: "BIOT02",
+        },
+        {
+          id: "prerequisite:PROJ01",
+          title: "Liberar Projeto Integrador",
+          status: "outstanding",
+          details: "Faltam pre-requisitos antes de PROJ01: LETR01.",
+          relatedComponentCode: "PROJ01",
+        },
+      ]),
+    );
   });
 });

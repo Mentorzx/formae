@@ -95,7 +95,7 @@ export function OverviewPage() {
         </h2>
         <p>
           {overviewState.summary
-            ? "Esta leitura agora mostra trilha de integralizacao local: o que ja foi concluido, o que segue ativo e quais componentes ainda pedem revisao antes de virar progresso confiavel."
+            ? "Esta leitura agora mostra trilha de integralizacao local sobre uma grade seed versionada: o que ja foi concluido, o que segue ativo e quais componentes ainda pedem revisao antes de virar progresso confiavel."
             : "A v0 existe para reduzir risco tecnico cedo: PWA de leitura local, contratos explicitos, fixtures publicas e o parser de horarios preparado para codigos como 35N12, isto e, terca e quinta de 18:30 a 20:20."}
         </p>
         <div className="metric-strip">
@@ -255,10 +255,24 @@ export function OverviewPage() {
                     {overviewState.summary.studentSnapshot.curriculum.name}
                   </li>
                   <li>
+                    ID da grade:{" "}
+                    {
+                      overviewState.summary.studentSnapshot.curriculum
+                        .curriculumId
+                    }
+                  </li>
+                  <li>
                     Curso local:{" "}
                     {
                       overviewState.summary.studentSnapshot.curriculum.course
                         .name
+                    }
+                  </li>
+                  <li>
+                    Regras seed:{" "}
+                    {
+                      overviewState.summary.studentSnapshot.curriculum
+                        .prerequisiteRules.length
                     }
                   </li>
                   <li>

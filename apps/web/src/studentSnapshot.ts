@@ -3,6 +3,7 @@ import type {
   LocalStudentSnapshotBundle,
   ManualImportStoredSnapshot,
   PendingRequirement,
+  PrerequisiteRule,
   ScheduleBlock,
   StudentSnapshot,
 } from "@formae/protocol";
@@ -10,7 +11,11 @@ import {
   inferManualComponentStatuses,
   type ManualDetectedComponentInference,
 } from "./manualComponentStatus";
-import type { PublicCatalogComponent } from "./publicCatalog";
+import {
+  findBestCurriculumSeed,
+  type PublicCatalogComponent,
+  type PublicCatalogCurriculumSeed,
+} from "./publicCatalog";
 
 interface BuildLocalStudentSnapshotBundleInput {
   manualImport: ManualImportStoredSnapshot;
@@ -46,6 +51,9 @@ interface BuildStudentSnapshotFromManualImportInput {
 export function buildStudentSnapshotFromManualImport(
   input: BuildStudentSnapshotFromManualImportInput,
 ): StudentSnapshot {
+  const resolvedCurriculum = findBestCurriculumSeed(
+    input.manualImport.detectedComponentCodes,
+  );
   const componentInferences = inferManualComponentStatuses(
     input.manualImport.rawInput,
     input.manualImport.detectedComponentCodes,
@@ -53,6 +61,7 @@ export function buildStudentSnapshotFromManualImport(
   const components = buildCurriculumComponents(
     input.manualImport,
     input.matchedCatalogComponents,
+    resolvedCurriculum,
   );
   const completedComponents = components.filter((component) =>
     hasComponentStatus(component.code, componentInferences, "completed"),
@@ -71,12 +80,13 @@ export function buildStudentSnapshotFromManualImport(
     componentInferences,
     inProgressComponents,
     scheduleBlocks,
+    resolvedCurriculum,
+    resolvedCurriculum?.prerequisiteRules ?? [],
     input.matchedCatalogComponents,
   );
-  const totalWorkloadHours = components.reduce(
-    (total, component) => total + component.workloadHours,
-    0,
-  );
+  const totalWorkloadHours =
+    resolvedCurriculum?.course.totalWorkloadHours ??
+    components.reduce((total, component) => total + component.workloadHours, 0);
 
   return {
     schemaVersion: 1,
@@ -84,9 +94,12 @@ export function buildStudentSnapshotFromManualImport(
     studentNumber: "manual-import",
     studentName: "Snapshot local provisório",
     curriculum: {
-      curriculumId: `manual-${input.manualImport.snapshotId}`,
-      name: "Curriculo provisório derivado de importacao manual",
-      course: {
+      curriculumId:
+        resolvedCurriculum?.id ?? `manual-${input.manualImport.snapshotId}`,
+      name:
+        resolvedCurriculum?.name ??
+        "Curriculo provisório derivado de importacao manual",
+      course: resolvedCurriculum?.course ?? {
         code: "UFBA-MANUAL",
         name: "Curso UFBA provisório",
         campus: "UFBA",
@@ -94,8 +107,8 @@ export function buildStudentSnapshotFromManualImport(
         totalWorkloadHours,
       },
       components,
-      prerequisiteRules: [],
-      equivalences: [],
+      prerequisiteRules: resolvedCurriculum?.prerequisiteRules ?? [],
+      equivalences: resolvedCurriculum?.equivalences ?? [],
     },
     completedComponents,
     inProgressComponents,
@@ -108,7 +121,16 @@ export function buildStudentSnapshotFromManualImport(
 function buildCurriculumComponents(
   manualImport: ManualImportStoredSnapshot,
   matchedCatalogComponents: PublicCatalogComponent[],
+  resolvedCurriculum: PublicCatalogCurriculumSeed | null,
 ): Component[] {
+  if (resolvedCurriculum) {
+    return mergeSeededCurriculumComponents(
+      manualImport,
+      matchedCatalogComponents,
+      resolvedCurriculum,
+    );
+  }
+
   const matchedByCode = new Map(
     matchedCatalogComponents.map((component) => [component.code, component]),
   );
@@ -160,10 +182,17 @@ function buildPendingRequirements(
   componentInferences: ManualDetectedComponentInference[],
   inProgressComponents: Component[],
   scheduleBlocks: ScheduleBlock[],
+  resolvedCurriculum: PublicCatalogCurriculumSeed | null,
+  prerequisiteRules: PrerequisiteRule[],
   matchedCatalogComponents: PublicCatalogComponent[],
 ): PendingRequirement[] {
-  const matchedCodes = new Set(
-    matchedCatalogComponents.map((component) => component.code),
+  const matchedCodes = new Set<string>([
+    ...matchedCatalogComponents.map((component) => component.code),
+    ...(resolvedCurriculum?.components.map((component) => component.code) ??
+      []),
+  ]);
+  const curriculumComponentCodes = new Set(
+    resolvedCurriculum?.components.map((component) => component.code) ?? [],
   );
   const completedCodes = new Set(
     completedComponents.map((component) => component.code),
@@ -218,6 +247,32 @@ function buildPendingRequirements(
     }
   }
 
+  for (const rule of prerequisiteRules) {
+    const relatedComponent = components.find(
+      (component) => component.code === rule.componentCode,
+    );
+
+    if (!relatedComponent || completedCodes.has(rule.componentCode)) {
+      continue;
+    }
+
+    const missingRequiredCodes = rule.requiredComponentCodes.filter(
+      (componentCode) => !completedCodes.has(componentCode),
+    );
+
+    if (missingRequiredCodes.length === 0) {
+      continue;
+    }
+
+    requirements.push({
+      id: `prerequisite:${rule.componentCode}`,
+      title: `Liberar ${relatedComponent.title}`,
+      status: "outstanding",
+      details: `Faltam pre-requisitos antes de ${rule.componentCode}: ${missingRequiredCodes.join(", ")}.`,
+      relatedComponentCode: rule.componentCode,
+    });
+  }
+
   for (const scheduleBlock of scheduleBlocks) {
     if (!scheduleBlock.componentCode) {
       requirements.push({
@@ -237,9 +292,13 @@ function buildPendingRequirements(
       !inProgressCodes.has(component.code);
 
     if (isPending) {
+      const pendingTitle = curriculumComponentCodes.has(component.code)
+        ? `Concluir ${component.title}`
+        : `Concluir ${component.title}`;
+
       requirements.push({
         id: `component:${component.code}`,
-        title: `Concluir ${component.title}`,
+        title: pendingTitle,
         status: "outstanding",
         details: `Componente ainda nao concluido nem em andamento: ${component.code}`,
         relatedComponentCode: component.code,
@@ -307,4 +366,46 @@ function deduplicateRequirements(
     seenIds.add(requirement.id);
     return true;
   });
+}
+
+function mergeSeededCurriculumComponents(
+  manualImport: ManualImportStoredSnapshot,
+  matchedCatalogComponents: PublicCatalogComponent[],
+  resolvedCurriculum: PublicCatalogCurriculumSeed,
+): Component[] {
+  const seededComponents = resolvedCurriculum.components.map((component) => ({
+    ...component,
+  }));
+  const knownCodes = new Set(
+    seededComponents.map((component) => component.code),
+  );
+  const matchedByCode = new Map(
+    matchedCatalogComponents.map((component) => [component.code, component]),
+  );
+  const extraComponents = manualImport.detectedComponentCodes
+    .filter((componentCode) => !knownCodes.has(componentCode))
+    .map((componentCode) => {
+      const matchedComponent = matchedByCode.get(componentCode);
+
+      if (matchedComponent) {
+        return {
+          code: matchedComponent.code,
+          title: matchedComponent.title,
+          credits: 0,
+          workloadHours: 0,
+          componentType: "catalog-seed-extra",
+        };
+      }
+
+      return {
+        code: componentCode,
+        title: `Componente detectado manualmente (${componentCode})`,
+        credits: 0,
+        workloadHours: 0,
+        componentType: "manual-detected",
+      };
+    })
+    .sort((left, right) => left.code.localeCompare(right.code));
+
+  return [...seededComponents, ...extraComponents];
 }

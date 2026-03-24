@@ -1,4 +1,10 @@
-import type { TimingProfileId } from "@formae/protocol";
+import type {
+  Component,
+  Course,
+  Equivalence,
+  PrerequisiteRule,
+  TimingProfileId,
+} from "@formae/protocol";
 import catalogIndex from "../../../infra/static-data/catalog-index.json";
 
 export interface PublicCatalogSource {
@@ -24,6 +30,17 @@ export interface PublicCatalogShortcut {
   kind: "validation" | "guide";
 }
 
+export interface PublicCatalogCurriculumSeed {
+  id: string;
+  versionTag: string;
+  name: string;
+  course: Course;
+  components: Component[];
+  prerequisiteRules: PrerequisiteRule[];
+  equivalences: Equivalence[];
+  notes: string[];
+}
+
 export interface PublicCatalogIndex {
   schemaVersion: number;
   generatedAt: string;
@@ -31,6 +48,7 @@ export interface PublicCatalogIndex {
   timingProfileId: TimingProfileId;
   sources: PublicCatalogSource[];
   components: PublicCatalogComponent[];
+  curricula: PublicCatalogCurriculumSeed[];
   documentShortcuts: PublicCatalogShortcut[];
   notes: string[];
 }
@@ -47,6 +65,7 @@ export const publicCatalog: PublicCatalogIndex = {
 export const publicCatalogSummary = {
   sourceCount: publicCatalog.sources.length,
   componentCount: publicCatalog.components.length,
+  curriculumCount: publicCatalog.curricula.length,
   shortcutCount: publicCatalog.documentShortcuts.length,
 };
 
@@ -57,4 +76,41 @@ export function findCatalogMatches(
   return publicCatalog.components.filter((component) =>
     lookup.has(component.code),
   );
+}
+
+export function findBestCurriculumSeed(
+  componentCodes: string[],
+): PublicCatalogCurriculumSeed | null {
+  const lookup = new Set(componentCodes);
+  const rankedMatches = publicCatalog.curricula
+    .map((curriculum) => {
+      const matchedCount = curriculum.components.filter((component) =>
+        lookup.has(component.code),
+      ).length;
+
+      return {
+        curriculum,
+        matchedCount,
+        coverageRatio:
+          curriculum.components.length === 0
+            ? 0
+            : matchedCount / curriculum.components.length,
+      };
+    })
+    .filter((item) => item.matchedCount > 0)
+    .sort((left, right) => {
+      if (right.matchedCount !== left.matchedCount) {
+        return right.matchedCount - left.matchedCount;
+      }
+
+      if (right.coverageRatio !== left.coverageRatio) {
+        return right.coverageRatio - left.coverageRatio;
+      }
+
+      return (
+        left.curriculum.components.length - right.curriculum.components.length
+      );
+    });
+
+  return rankedMatches[0]?.curriculum ?? null;
 }

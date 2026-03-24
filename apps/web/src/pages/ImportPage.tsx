@@ -496,6 +496,10 @@ export function ImportPage() {
           <>
             <div className="metric-strip">
               <Metric
+                label="Curriculo"
+                value={displayedBundle.studentSnapshot.curriculum.name}
+              />
+              <Metric
                 label="Componentes"
                 value={String(
                   displayedBundle.studentSnapshot.curriculum.components.length,
@@ -513,9 +517,35 @@ export function ImportPage() {
                   displayedBundle.studentSnapshot.pendingRequirements.length,
                 )}
               />
+              <Metric
+                label="Pre-requisitos"
+                value={String(
+                  displayedBundle.studentSnapshot.curriculum.prerequisiteRules
+                    .length,
+                )}
+              />
             </div>
 
             <div className="card-grid subsection">
+              <article className="soft-card">
+                <p className="micro-label">Grade resolvida</p>
+                <p>{displayedBundle.studentSnapshot.curriculum.course.name}</p>
+                <div className="fact-row">
+                  <span className="vault-fact">
+                    ID:{" "}
+                    {displayedBundle.studentSnapshot.curriculum.curriculumId}
+                  </span>
+                  <span className="vault-fact">
+                    Carga total:{" "}
+                    {
+                      displayedBundle.studentSnapshot.curriculum.course
+                        .totalWorkloadHours
+                    }
+                    h
+                  </span>
+                </div>
+              </article>
+
               <article className="soft-card">
                 <p className="micro-label">Componentes concluidos</p>
                 <ul className="list">
@@ -549,6 +579,24 @@ export function ImportPage() {
                 {displayedBundle.studentSnapshot.inProgressComponents.length ===
                 0 ? (
                   <p>Nenhum componente foi classificado como em andamento.</p>
+                ) : null}
+              </article>
+
+              <article className="soft-card">
+                <p className="micro-label">Pre-requisitos seed</p>
+                <ul className="list">
+                  {displayedBundle.studentSnapshot.curriculum.prerequisiteRules.map(
+                    (rule) => (
+                      <li key={`${rule.componentCode}-${rule.expression}`}>
+                        <strong>{rule.componentCode}</strong> ·{" "}
+                        {rule.expression}
+                      </li>
+                    ),
+                  )}
+                </ul>
+                {displayedBundle.studentSnapshot.curriculum.prerequisiteRules
+                  .length === 0 ? (
+                  <p>Nenhuma regra seed foi resolvida para este snapshot.</p>
                 ) : null}
               </article>
 

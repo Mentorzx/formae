@@ -343,6 +343,12 @@ function getFocusPriority(
     return "high";
   }
 
+  if (
+    hasPendingRequirementWithPrefix(item.pendingRequirements, "prerequisite:")
+  ) {
+    return "medium";
+  }
+
   if (item.academicStatus === "inProgress") {
     return "medium";
   }
@@ -373,6 +379,12 @@ function getFocusReason(item: ComponentProgressItem): string {
     hasPendingRequirementWithPrefix(item.pendingRequirements, "catalog-match:")
   ) {
     return "O componente apareceu na importacao, mas ainda nao bate com o catalogo seed local.";
+  }
+
+  if (
+    hasPendingRequirementWithPrefix(item.pendingRequirements, "prerequisite:")
+  ) {
+    return "A grade seed indica pre-requisitos pendentes antes de liberar este componente.";
   }
 
   if (item.academicStatus === "inProgress") {

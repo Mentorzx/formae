@@ -51,6 +51,107 @@
       "summary": "Exemplo de codigo noturno canonico usado como fixture contratual."
     }
   ],
+  "curricula": [
+    {
+      "id": "ufba-trilha-base-2026-seed",
+      "versionTag": "2026.1-seed",
+      "name": "Trilha base UFBA seed local",
+      "course": {
+        "code": "UFBA-BASE-SEED",
+        "name": "Trilha base UFBA",
+        "campus": "Salvador",
+        "degreeLevel": "undergraduate",
+        "totalWorkloadHours": 544
+      },
+      "components": [
+        {
+          "code": "LETR01",
+          "title": "Leitura e Producao de Textos",
+          "credits": 4,
+          "workloadHours": 68,
+          "componentType": "required-seed"
+        },
+        {
+          "code": "MATD01",
+          "title": "Oficina de Estudos",
+          "credits": 2,
+          "workloadHours": 34,
+          "componentType": "required-seed"
+        },
+        {
+          "code": "MATA37",
+          "title": "Introducao a Logica de Programacao",
+          "credits": 4,
+          "workloadHours": 68,
+          "componentType": "required-seed"
+        },
+        {
+          "code": "QUI101",
+          "title": "Quimica Geral",
+          "credits": 4,
+          "workloadHours": 68,
+          "componentType": "required-seed"
+        },
+        {
+          "code": "FIS123",
+          "title": "Fisica I",
+          "credits": 4,
+          "workloadHours": 68,
+          "componentType": "required-seed"
+        },
+        {
+          "code": "BIOD01",
+          "title": "Fundamentos de Anatomia",
+          "credits": 4,
+          "workloadHours": 68,
+          "componentType": "required-seed"
+        },
+        {
+          "code": "BIOT02",
+          "title": "Bases de Biologia Celular",
+          "credits": 4,
+          "workloadHours": 68,
+          "componentType": "required-seed"
+        },
+        {
+          "code": "PROJ01",
+          "title": "Projeto Integrador",
+          "credits": 6,
+          "workloadHours": 102,
+          "componentType": "required-seed"
+        }
+      ],
+      "prerequisiteRules": [
+        {
+          "componentCode": "FIS123",
+          "expression": "MATA37",
+          "requiredComponentCodes": [
+            "MATA37"
+          ]
+        },
+        {
+          "componentCode": "BIOT02",
+          "expression": "BIOD01",
+          "requiredComponentCodes": [
+            "BIOD01"
+          ]
+        },
+        {
+          "componentCode": "PROJ01",
+          "expression": "MATA37 AND LETR01",
+          "requiredComponentCodes": [
+            "MATA37",
+            "LETR01"
+          ]
+        }
+      ],
+      "equivalences": [],
+      "notes": [
+        "Grade seed local versionada para projetar integralizacao no v0.",
+        "Nao representa a matriz oficial completa de nenhum curso da UFBA."
+      ]
+    }
+  ],
   "documentShortcuts": [
     {
       "label": "Validador de documentos SIGAA",
