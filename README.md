@@ -1,77 +1,222 @@
 # Formaê
 
-Formaê is a new academic assistant for UFBA students, inspired by the original MeForma and by the work of Joao Pedro Rodrigues Cerqueira. This repository starts with a static-first, privacy-first monorepo that keeps private academic data on the user's device and avoids a backend with sensitive data.
+O Formaê é um assistente acadêmico para estudantes da UFBA, inspirado no MeForma original e no trabalho de João Pedro Rodrigues Cerqueira, mas com uma arquitetura nova: local-first, sem backend com dados sensíveis, com PWA estática, extensão de navegador e núcleo compartilhado em Rust/WASM.
 
-## Principles
+## Estado atual
 
-- Lightweight by default: static web app first, optional local runtimes later.
-- Honest privacy boundary: no server-side storage of SIGAA credentials or private academic data.
-- Rust-first core: shared domain rules, schedule parsing, normalization and storage contracts live outside the UI.
-- Incremental delivery: public catalog and manual import can ship before automatic private sync is mature.
+Hoje o repositório já entrega:
 
-## Current layout
+- PWA em React + Vite publicada no GitHub Pages
+- planner visual local com busca, filtros, dark mode, modo compacto, drag and drop e mapa de dependências
+- importação manual de texto do SIGAA
+- sincronização automática local com o SIGAA via extensão MV3
+- vault local cifrado no navegador
+- parser de horários UFBA 2025 em Rust/WASM
+- catálogo público seed versionado
 
-```text
-apps/
-  web/         # PWA shell published to GitHub Pages
-  extension/   # reserved MV3 browser integration surface
-  desktop/     # reserved Tauri 2.0 companion surface
-packages/
-  protocol/    # message contracts between web shell and local runtimes
-crates/
-  domain/      # canonical academic domain model
-  parser/      # UFBA/SIGAA schedule code parser
-  rules/       # curriculum and pending-requirement helpers
-  crypto/      # local encrypted vault metadata and wipe policies
-  wasm_core/   # WebAssembly bridge for browser use
-  test_fixtures/
-docs/
-  architecture.md
-  adr/
-infra/
-  public-catalog-builder/
-  static-data/
-fixtures/
-  public/
+Endereço público atual:
+
+- `https://mentorzx.github.io/formae/`
+
+## Compromisso deste README
+
+Este README deve ser atualizado sempre que uma mudança no produto afetar:
+
+- instalação
+- configuração
+- fluxo de uso
+- comandos de desenvolvimento
+- limitações conhecidas
+
+Ou seja: se o jeito de usar o Formaê mudar, este passo a passo também precisa mudar no mesmo commit ou na mesma rodada.
+
+## Como usar hoje, do zero
+
+### 1. Clonar o repositório
+
+```bash
+gh repo clone Mentorzx/formae
+cd formae
 ```
 
-## Local development
+Se você não usa `gh`, pode usar:
+
+```bash
+git clone https://github.com/Mentorzx/formae.git
+cd formae
+```
+
+### 2. Instalar os pré-requisitos
+
+Você precisa ter instalado localmente:
+
+- Node.js `22+`
+- `corepack`
+- `pnpm 10+`
+- Rust stable
+- `wasm-pack`
+
+No Linux/macOS, o caminho feliz fica assim:
 
 ```bash
 corepack enable
 corepack prepare pnpm@10.18.3 --activate
-pnpm install
-pnpm prepare:wasm
-pnpm dev:web
-cargo test --workspace
-pnpm build
+rustup default stable
+cargo install wasm-pack
 ```
 
-## What ships in this bootstrap
+### 3. Instalar as dependências do monorepo
 
-- React + Vite PWA shell with HashRouter and GitHub Pages-friendly base path.
-- Accepted architecture baseline, threat model and ADR set.
-- Rust crates for the canonical domain model, UFBA 2025 timing profile and schedule parsing.
-- Contract fixtures and CI workflows for Node, Rust and GitHub Pages deployment.
-- Seeded public catalog data and an initial manual-import preview that works from pasted text.
-- Public catalog builder with provenance metadata, drift validation and a live UFBA public seed for Engenharia Civil.
-- WASM-backed schedule normalization inside the manual-import flow, loaded from the shared Rust core.
-- Automatic local SIGAA sync through the MV3 extension popup, with ephemeral credentials kept out of the web shell and reused by the same browser-local snapshot and vault pipeline.
-- Direct extension runtime bridge on supported browsers, with the legacy page relay reduced to a fallback path and a short approval window armed from the extension popup.
-- Browser-local snapshot persistence for manual imports, stored in IndexedDB and restorable without backend state.
-- Versioned local vault baseline with AES-GCM sealing, device-local key material, short-lived passkey unlock sessions and migration from the earlier cleartext snapshot store.
-- Automatic sync persistence minimized to a structured local summary instead of full raw SIGAA page text.
-- Minimal `StudentSnapshot` projection derived locally from manual imports, including schedule blocks, in-progress components and explicit pending-review items.
-- Overview page wired to the latest local projection, surfacing initial progress, catalog coverage and open pending items directly from browser storage.
-- Private Playwright harness for authenticated SIGAA captures and end-to-end validation of `web -> extension -> SIGAA -> local vault`.
+Na raiz do projeto:
 
-## Local secrets
+```bash
+pnpm install
+```
 
-Use `.env.example` only as a template. Do not commit real SIGAA credentials, and do not store them in tracked files. The intended product flow keeps SIGAA credentials ephemeral and session-based.
+### 4. Preparar o bundle WASM
 
-## Private sync validation
+O app web usa o núcleo Rust/WASM. Antes do primeiro uso local:
 
-The local-only SIGAA harness lives in `infra/private-sync-e2e`.
+```bash
+pnpm prepare:wasm
+```
+
+### 5. Subir a aplicação web
+
+```bash
+pnpm dev:web
+```
+
+Depois abra:
+
+- `http://localhost:4173/#/`
+
+## Como navegar no app hoje
+
+Depois de abrir a PWA, o fluxo principal é:
+
+1. `Visão Geral`
+   Mostra o estado local do snapshot salvo no navegador.
+2. `Planejador`
+   Mostra a grade viva, com dependências, drag and drop, filtros e simulador local de IRA.
+3. `Catálogo`
+   Mostra os seeds e fontes públicas que o app conhece.
+4. `Importação`
+   É a tela para importar manualmente ou disparar a sincronização automática local com a extensão.
+5. `Arquitetura`
+   Explica as fronteiras técnicas e decisões do projeto.
+
+## Como usar a importação manual
+
+Se você quer testar o Formaê sem extensão:
+
+1. Abra `Importação`
+2. Cole texto copiado do SIGAA
+3. O app detecta códigos de componente e horários
+4. O parser Rust/WASM normaliza horários como `35N12`
+5. Salve o snapshot local no navegador
+6. Volte para `Visão Geral` ou `Planejador`
+
+O que isso já faz:
+
+- detectar componentes
+- detectar horários
+- associar com o catálogo seed
+- gerar um `StudentSnapshot` local
+- alimentar visão geral e planner
+
+## Como usar a sincronização automática com o SIGAA
+
+Hoje o sync automático funciona localmente via extensão MV3, sem enviar suas credenciais para servidor do Formaê.
+
+### 1. Suba a PWA localmente
+
+```bash
+pnpm dev:web
+```
+
+### 2. Carregue a extensão no navegador
+
+No Chrome ou Chromium:
+
+1. Abra `chrome://extensions`
+2. Ative `Modo do desenvolvedor`
+3. Clique em `Carregar sem compactação`
+4. Selecione a pasta:
+   `apps/extension`
+
+### 3. Abra a tela de importação
+
+Use:
+
+- `http://localhost:4173/#/importacao`
+
+### 4. Faça o fluxo de sync
+
+No estado atual:
+
+1. a popup da extensão arma a janela curta de aprovação do sync
+2. a extensão usa as credenciais só em memória
+3. a extensão lê `Minhas Turmas` e `Minhas Notas` localmente no SIGAA
+4. o snapshot automático é salvo localmente no vault do navegador
+5. `Visão Geral` e `Planejador` passam a refletir esse estado local
+
+## Como usar o planner visual
+
+O `Planejador` é hoje a área mais forte da interface.
+
+Você pode:
+
+- buscar por código ou nome
+- ocultar concluídas
+- mostrar só componentes liberadas agora
+- destacar componentes com horário local
+- destacar componentes em revisão
+- passar o mouse para ver cadeia de pré-requisitos e liberações
+- clicar para fixar uma disciplina como foco
+- arrastar componentes planejáveis entre períodos
+- renomear colunas para algo como `2026.2`, `2027.1` etc.
+- alternar entre modo detalhado e compacto
+- alternar entre modo claro e escuro
+- fazer uma projeção local de IRA
+
+Importante:
+
+- o planner é derivado do snapshot local salvo no navegador
+- ele não é uma confirmação oficial do SIGAA em tempo real
+- quando a grade seed ainda estiver rasa ou ambígua, trate a leitura como aproximação local
+
+## Passkey e vault local
+
+O vault local hoje já existe e pode usar passkey como endurecimento de sessão.
+
+Na prática atual:
+
+- os dados do snapshot ficam no navegador
+- o vault é cifrado localmente
+- a passkey ajuda a bloquear/desbloquear a sessão local
+- a chave ainda está em modo `device-local`
+
+Isso significa que a segurança local já melhorou bastante, mas ainda não é o estado final mais forte possível.
+
+## Segredos locais e `.env`
+
+Use `.env.example` apenas como modelo.
+
+Regras do projeto:
+
+- nunca commitar credenciais reais
+- nunca colocar credenciais em arquivos rastreados
+- usar variáveis locais só quando necessário para testes privados
+- tratar credenciais do SIGAA como efêmeras e de sessão
+
+## Harness privado de validação do sync
+
+O teste privado do fluxo `web -> extensão -> SIGAA -> vault local` fica em:
+
+- `infra/private-sync-e2e`
+
+Fluxo básico:
 
 ```bash
 cd infra/private-sync-e2e
@@ -79,9 +224,82 @@ pnpm install
 pnpm sync:web
 ```
 
-That command expects the PWA to be running locally at `http://localhost:4173/#/importacao` and the MV3 extension to be loaded unpacked from `apps/extension`.
-The harness seeds the extension popup with ephemeral credentials for the test session and then triggers the sync from the web shell without filling any credential field in the page itself.
+Observações:
 
-## License and brand
+- a PWA precisa estar rodando localmente
+- a extensão precisa estar carregada no navegador
+- o harness espera a rota `#/importacao`
+- esse fluxo é para validação local privada, não para uso público normal do produto
 
-The source code is licensed under Apache-2.0. The name "Formaê", its future logo and related brand assets are reserved and are not licensed for reuse or derivative branding. See [TRADEMARKS.md](./TRADEMARKS.md).
+## Comandos úteis de desenvolvimento
+
+Na raiz do monorepo:
+
+```bash
+pnpm dev:web
+pnpm prepare:wasm
+pnpm build
+pnpm test
+pnpm lint
+pnpm package:extension
+```
+
+Validação só do app web:
+
+```bash
+pnpm --filter @formae/web typecheck
+pnpm --filter @formae/web test
+```
+
+## Estrutura do repositório
+
+```text
+apps/
+  web/         # PWA publicada no GitHub Pages
+  extension/   # integração local com SIGAA via navegador
+  desktop/     # espaço reservado para companion futuro em Tauri
+
+packages/
+  protocol/    # contratos compartilhados entre web, extensão e runtimes locais
+
+crates/
+  domain/         # modelo acadêmico canônico
+  parser/         # parser de horários UFBA/SIGAA
+  rules/          # regras curriculares e pendências
+  crypto/         # contratos e metadados do vault local
+  wasm_core/      # bridge WebAssembly
+  test_fixtures/  # fixtures e replay de contrato
+
+docs/
+  architecture.md
+  adr/
+
+infra/
+  public-catalog-builder/
+  static-data/
+  private-sync-e2e/
+```
+
+## Limitações conhecidas hoje
+
+O Formaê ainda não é o ponto final do produto. Hoje ainda faltam, entre outras coisas:
+
+- catálogo público mais autoritativo por curso e entrada
+- vault com derivação criptográfica mais forte, além do modo `device-local`
+- distribuição assinada e publicada da extensão
+- cobertura mais profunda de histórico e documentos do SIGAA
+- paridade mais forte com Firefox
+
+## Documentação complementar
+
+- arquitetura: [docs/architecture.md](./docs/architecture.md)
+- decisões arquiteturais: [docs/adr](./docs/adr)
+- marca e uso do nome: [TRADEMARKS.md](./TRADEMARKS.md)
+
+## Licença e marca
+
+O código-fonte está sob `Apache-2.0`.
+
+O nome `Formaê`, sua identidade visual presente e futura, e seus ativos de marca não estão liberados para rebranding derivado. Veja:
+
+- [TRADEMARKS.md](./TRADEMARKS.md)
