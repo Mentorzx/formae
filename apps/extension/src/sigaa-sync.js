@@ -172,14 +172,16 @@ export function buildStructuredSigaaCapture({
             label: capturedView.label,
             routeHint: capturedView.routeHint,
             text: capturedView.text,
+            historyDocument: capturedView.historyDocument ?? null,
             extractedTurmas: extractTurmaEntries(capturedView.text),
           }
-    : capturedView.id === "history"
+        : capturedView.id === "history"
           ? {
               id: capturedView.id,
               label: capturedView.label,
               routeHint: capturedView.routeHint,
               text: capturedView.text,
+              historyDocument: capturedView.historyDocument ?? null,
               extractedHistory:
                 capturedView.extractedHistory ?? extractHistoryEntries(capturedView.text),
             }
@@ -251,14 +253,13 @@ async function captureSigaaView({
     });
     trackedTabIds.add(captureTabId);
 
-    const pageState = await waitForPageText(
-      captureTabId,
-      expectedPattern,
-      timeoutMs,
-    );
+    const historyCapture = label === "Consultar Histórico";
+    const pageState = historyCapture
+      ? await waitForHistoryPageState(captureTabId, expectedPattern, timeoutMs)
+      : await waitForPageText(captureTabId, expectedPattern, timeoutMs);
     const captured = await executeTabScript(
       captureTabId,
-      captureVisibleTextInPage,
+      historyCapture ? captureHistoryVisibleTextInPage : captureVisibleTextInPage,
       {
         label,
       },
@@ -274,6 +275,7 @@ async function captureSigaaView({
       currentUrl: captured?.currentUrl ?? pageState.currentUrl,
       text: capturedText,
       extractedHistory: captured?.extractedHistory ?? null,
+      historyDocument: captured?.historyDocument ?? null,
     };
   } finally {
     for (const trackedTabId of trackedTabIds) {
@@ -313,6 +315,35 @@ async function waitForPageText(tabId, expectedPattern, timeoutMs) {
 
   throw new Error(
     `SIGAA page did not expose the expected markers: ${expectedPattern.source}.`,
+  );
+}
+
+async function waitForHistoryPageState(tabId, expectedPattern, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    const state = await executeTabScript(tabId, inspectHistoryPageStateInPage).catch(
+      () => null,
+    );
+
+    if (!state) {
+      await sleep(400);
+      continue;
+    }
+
+    if (state.text && expectedPattern.test(state.text)) {
+      return state;
+    }
+
+    if (state.hasHistoryMarker || state.isPdfLike || state.isAttachmentLike) {
+      return state;
+    }
+
+    await sleep(400);
+  }
+
+  throw new Error(
+    `SIGAA history page did not expose a readable report or PDF/attachment markers: ${expectedPattern.source}.`,
   );
 }
 
@@ -560,6 +591,31 @@ function captureVisibleTextInPage(input) {
   };
 }
 
+function captureHistoryVisibleTextInPage(input) {
+  const currentUrl = window.location.href;
+  const title = document.title ?? "";
+  const text = normalizeTextWithLines(document.body?.innerText ?? "");
+  const historyDocument = buildHistoryDocumentMetadata({
+    currentUrl,
+    title,
+    text,
+    sourceCandidates: collectHistorySourceCandidatesInPage(),
+    hasPdfLikeMarker: detectPdfLikeMarkerInPage(),
+    hasAttachmentLikeMarker: detectAttachmentLikeMarkerInPage(),
+  });
+  const extractedHistory =
+    extractHistoryTableRowsInPage() ?? extractHistoryEntries(text);
+
+  return {
+    label: input.label,
+    currentUrl,
+    text,
+    title,
+    historyDocument,
+    extractedHistory: extractedHistory.length > 0 ? extractedHistory : null,
+  };
+}
+
 function extractTurmaEntries(text) {
   return splitComponentSegments(text).map(({ componentCode, rawSegment }) => {
     const scheduleCodes = uniqueValues(
@@ -611,6 +667,48 @@ function extractHistoryEntries(text) {
     .filter(Boolean);
 }
 
+export function buildHistoryDocumentMetadata({
+  currentUrl,
+  title,
+  text,
+  sourceCandidates,
+  hasPdfLikeMarker,
+  hasAttachmentLikeMarker,
+}) {
+  const pdfCandidates = sourceCandidates.filter(
+    (candidate) => candidate.kind === "pdf" || /\.pdf(\?|#|$)/i.test(candidate.url),
+  );
+  const attachmentCandidates = sourceCandidates.filter(
+    (candidate) => candidate.kind === "attachment" || candidate.hasDownloadHint,
+  );
+  const hasVisibleHistoryText = /Relat[oó]rio de Notas|Hist[oó]rico|Per[ií]odo|Situa[cç][aã]o/i.test(
+    text,
+  );
+
+  return {
+    currentUrl,
+    title,
+    transportKind: hasPdfLikeMarker
+      ? "pdf"
+      : hasAttachmentLikeMarker
+        ? "attachment"
+        : pdfCandidates.length > 0
+          ? "pdf"
+          : attachmentCandidates.length > 0
+            ? "attachment"
+            : hasVisibleHistoryText
+              ? "html"
+              : "unknown",
+    hasVisibleHistoryText,
+    hasPdfLikeMarker,
+    hasAttachmentLikeMarker,
+    textLength: text.length,
+    sourceCandidates,
+    pdfCandidates,
+    attachmentCandidates,
+  };
+}
+
 function extractHistoryTableRowsInPage() {
   const tables = Array.from(document.querySelectorAll("table"));
 
@@ -656,6 +754,18 @@ function extractHistoryTableRowsInPage() {
   }
 
   return null;
+}
+
+function inspectHistoryPageStateInPage() {
+  const text = normalizeTextWithLines(document.body?.innerText ?? "");
+  return {
+    currentUrl: window.location.href,
+    title: document.title ?? "",
+    text,
+    hasHistoryMarker: /Relat[oó]rio de Notas|Hist[oó]rico|Per[ií]odo|Situa[cç][aã]o/i.test(text),
+    isPdfLike: detectPdfLikeMarkerInPage(),
+    isAttachmentLike: detectAttachmentLikeMarkerInPage(),
+  };
 }
 
 function splitMeaningfulLines(text) {
@@ -744,6 +854,66 @@ function extractGradeValue(rawSegment, statusText) {
 
 function normalizeVisibleCellText(value) {
   return value.replace(/\s+/g, " ").trim();
+}
+
+function detectPdfLikeMarkerInPage() {
+  if (
+    document.querySelector('embed[type="application/pdf"], object[type="application/pdf"]')
+  ) {
+    return true;
+  }
+
+  return (
+    document.querySelector(
+      'iframe[src$=".pdf" i], embed[src$=".pdf" i], object[data$=".pdf" i], a[href$=".pdf" i]',
+    ) !== null ||
+    /\.pdf(\?|#|$)/i.test(window.location.href)
+  );
+}
+
+function detectAttachmentLikeMarkerInPage() {
+  return (
+    document.querySelector("a[download]") !== null ||
+    document.querySelector('a[href*="download" i], a[href*="attachment" i]') !== null ||
+    /download|attachment|anexo/i.test(document.body?.innerText ?? "") ||
+    /download|attachment|anexo/i.test(document.title ?? "")
+  );
+}
+
+function collectHistorySourceCandidatesInPage() {
+  return Array.from(
+    document.querySelectorAll('a[href], iframe[src], embed[src], object[data]'),
+  )
+    .map((node) => {
+      const href =
+        node instanceof HTMLAnchorElement
+          ? node.href
+          : node instanceof HTMLIFrameElement || node instanceof HTMLEmbedElement
+            ? node.src
+            : node instanceof HTMLObjectElement
+              ? node.data
+              : "";
+      const text = normalizeVisibleCellText(node.textContent ?? "");
+      const hasDownloadHint =
+        node instanceof HTMLAnchorElement
+          ? node.hasAttribute("download")
+          : /download|attachment|anexo/i.test(text) || /download|attachment|anexo/i.test(href);
+
+      return {
+        kind:
+          node instanceof HTMLAnchorElement && node.hasAttribute("download")
+            ? "attachment"
+            : /\.pdf(\?|#|$)/i.test(href)
+              ? "pdf"
+              : hasDownloadHint
+                ? "attachment"
+                : "link",
+        url: href || "",
+        text: text || null,
+        hasDownloadHint,
+      };
+    })
+    .filter((candidate) => candidate.url || candidate.text);
 }
 
 function escapeRegex(value) {

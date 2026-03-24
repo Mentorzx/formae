@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   buildCombinedCaptureText,
+  buildHistoryDocumentMetadata,
   buildStructuredSigaaCapture,
 } from "./sigaa-sync.js";
 
@@ -128,4 +129,76 @@ test("buildStructuredSigaaCapture keeps multiple component records from one long
     "ENGC70",
   ]);
   assert.equal(structuredCapture.views[1].extractedGrades[2].statusText, "CURSANDO");
+});
+
+test("buildHistoryDocumentMetadata classifies pdf and attachment-style history responses", () => {
+  const pdfMetadata = buildHistoryDocumentMetadata({
+    currentUrl: "https://sigaa.ufba.br/sigaa/mobile/touch/historico.jsf?download=true",
+    title: "Relatório de Notas em PDF",
+    text: "",
+    sourceCandidates: [
+      {
+        kind: "pdf",
+        url: "https://sigaa.ufba.br/sigaa/mobile/touch/historico.pdf",
+        text: "Abrir histórico",
+        hasDownloadHint: false,
+      },
+    ],
+    hasPdfLikeMarker: true,
+    hasAttachmentLikeMarker: false,
+  });
+
+  assert.equal(pdfMetadata.transportKind, "pdf");
+  assert.equal(pdfMetadata.hasPdfLikeMarker, true);
+  assert.equal(pdfMetadata.pdfCandidates.length, 1);
+
+  const attachmentMetadata = buildHistoryDocumentMetadata({
+    currentUrl: "https://sigaa.ufba.br/sigaa/mobile/touch/historico.jsf",
+    title: "Consultar Histórico",
+    text: "Baixar anexo do histórico",
+    sourceCandidates: [
+      {
+        kind: "attachment",
+        url: "https://sigaa.ufba.br/sigaa/mobile/touch/download?doc=historico",
+        text: "Baixar histórico",
+        hasDownloadHint: true,
+      },
+    ],
+    hasPdfLikeMarker: false,
+    hasAttachmentLikeMarker: true,
+  });
+
+  assert.equal(attachmentMetadata.transportKind, "attachment");
+  assert.equal(attachmentMetadata.hasAttachmentLikeMarker, true);
+  assert.equal(attachmentMetadata.attachmentCandidates.length, 1);
+});
+
+test("buildStructuredSigaaCapture preserves history document metadata", () => {
+  const structuredCapture = buildStructuredSigaaCapture({
+    portalProfile: null,
+    capturedViews: [
+      {
+        id: "history",
+        label: "Consultar Histórico",
+        routeHint: "https://sigaa.ufba.br/sigaa/mobile/touch/historico.jsf",
+        text: "2026.1 ENGC63 PROCESSAMENTO DIGITAL DE SINAIS 10,0 0 APROVADO",
+        historyDocument: {
+          transportKind: "pdf",
+          hasVisibleHistoryText: false,
+          hasPdfLikeMarker: true,
+          hasAttachmentLikeMarker: false,
+          textLength: 0,
+          sourceCandidates: [],
+          pdfCandidates: [],
+          attachmentCandidates: [],
+          currentUrl: "https://sigaa.ufba.br/sigaa/mobile/touch/historico.pdf",
+          title: "Relatório de Notas",
+        },
+      },
+    ],
+  });
+
+  assert.equal(structuredCapture.views[0].historyDocument.transportKind, "pdf");
+  assert.equal(structuredCapture.views[0].extractedHistory.length, 1);
+  assert.equal(structuredCapture.views[0].extractedHistory[0].academicPeriod, "2026.1");
 });
