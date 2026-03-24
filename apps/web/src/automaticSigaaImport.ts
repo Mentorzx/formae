@@ -194,6 +194,10 @@ function buildStructuredManualImportContext(
       continue;
     }
 
+    if (view.id === "history") {
+      continue;
+    }
+
     for (const gradeEntry of mergeGradeEntries(
       view.extractedGrades,
       extractGradeEntriesFromUnstructuredText(view.text),
@@ -353,7 +357,10 @@ function extractGradeEntriesFromUnstructuredText(text: string): Array<{
   }));
 }
 
-function extractComponentSegments(text: string, pattern: RegExp): Array<{
+function extractComponentSegments(
+  text: string,
+  pattern: RegExp,
+): Array<{
   componentCode: string;
   rawLine: string;
 }> {

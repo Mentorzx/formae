@@ -109,6 +109,17 @@ export interface SigaaCapturedTurmaEntry {
 
 export interface SigaaCapturedGradeEntry {
   componentCode: string;
+  componentName?: string | null;
+  gradeValue?: string | null;
+  statusText: string | null;
+  rawLine: string;
+}
+
+export interface SigaaCapturedHistoryEntry {
+  academicPeriod: string;
+  componentName: string;
+  gradeValue: string | null;
+  absences: string | null;
   statusText: string | null;
   rawLine: string;
 }
@@ -132,9 +143,17 @@ export interface SigaaStructuredGradesCaptureView
   extractedGrades: SigaaCapturedGradeEntry[];
 }
 
+export interface SigaaStructuredHistoryCaptureView
+  extends SigaaStructuredCaptureViewBase {
+  id: "history";
+  label: "Consultar Histórico";
+  extractedHistory: SigaaCapturedHistoryEntry[];
+}
+
 export type SigaaStructuredCaptureView =
   | SigaaStructuredClassesCaptureView
-  | SigaaStructuredGradesCaptureView;
+  | SigaaStructuredGradesCaptureView
+  | SigaaStructuredHistoryCaptureView;
 
 export interface SigaaStructuredCapture {
   schemaVersion: 1;
