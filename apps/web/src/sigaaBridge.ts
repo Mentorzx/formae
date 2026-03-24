@@ -99,7 +99,11 @@ async function postBridgeMessage(
     });
 
     const onMessage = (event: MessageEvent<ExtensionBridgeResponse>) => {
-      if (event.source !== window || !isExtensionBridgeResponse(event.data)) {
+      if (
+        event.source !== window ||
+        event.origin !== window.location.origin ||
+        !isExtensionBridgeResponse(event.data)
+      ) {
         return;
       }
 

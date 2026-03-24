@@ -119,4 +119,114 @@ describe("buildAutomaticSigaaSyncBundle", () => {
       ]),
     );
   });
+
+  test("recovers multiple component states from collapsed classes and grades text", async () => {
+    const result = await buildAutomaticSigaaSyncBundle({
+      rawPayload: {
+        syncSessionId: "sync-2",
+        source: "dom",
+        capturedAt: "2026-03-24T05:20:00.000Z",
+        routeHint: "sigaa-mobile:classes+grades",
+        htmlOrText: [
+          "[Minhas Turmas]",
+          "ENGC25 - ANALISE DE CIRCUITOS II - Horário: 24N34 ENGC41 - DISPOSITIVOS ELETRÔNICOS - Horário: 35N34",
+          "[Minhas Notas]",
+          "ENGC25 ANALISE DE CIRCUITOS II -- 0 -- ENGC41 DISPOSITIVOS ELETRÔNICOS -- 0 -- ENGC50 SISTEMAS MICROPROCESSADOS 8,9 12 APROVADO ENGC33 SINAIS E SISTEMAS II 3,3 10 REPROVADO",
+        ].join("\n"),
+        structuredCapture: {
+          schemaVersion: 1,
+          portalProfile: {
+            studentNumber: "219216387",
+            studentName: "Alex de Lira Neto",
+            courseName: "Engenharia da Computacao",
+          },
+          views: [
+            {
+              id: "classes",
+              label: "Minhas Turmas",
+              routeHint: "sigaa-mobile:classes",
+              text: "ENGC25 - ANALISE DE CIRCUITOS II - Horário: 24N34 ENGC41 - DISPOSITIVOS ELETRÔNICOS - Horário: 35N34",
+              extractedTurmas: [
+                {
+                  componentCode: "ENGC25",
+                  scheduleCodes: ["24N34", "35N34"],
+                  rawLine:
+                    "ENGC25 - ANALISE DE CIRCUITOS II - Horário: 24N34 ENGC41 - DISPOSITIVOS ELETRÔNICOS - Horário: 35N34",
+                },
+              ],
+            },
+            {
+              id: "grades",
+              label: "Minhas Notas",
+              routeHint: "sigaa-mobile:grades",
+              text: "ENGC25 ANALISE DE CIRCUITOS II -- 0 -- ENGC41 DISPOSITIVOS ELETRÔNICOS -- 0 -- ENGC50 SISTEMAS MICROPROCESSADOS 8,9 12 APROVADO ENGC33 SINAIS E SISTEMAS II 3,3 10 REPROVADO",
+              extractedGrades: [
+                {
+                  componentCode: "ENGC25",
+                  statusText: null,
+                  rawLine:
+                    "ENGC25 ANALISE DE CIRCUITOS II -- 0 -- ENGC41 DISPOSITIVOS ELETRÔNICOS -- 0 -- ENGC50 SISTEMAS MICROPROCESSADOS 8,9 12 APROVADO ENGC33 SINAIS E SISTEMAS II 3,3 10 REPROVADO",
+                },
+              ],
+            },
+          ],
+        },
+      },
+      timingProfileId: "Ufba2025",
+      normalizeSchedules: async (scheduleCodes) =>
+        scheduleCodes.map((scheduleCode) => ({
+          inputCode: scheduleCode,
+          parser: "rust-wasm",
+          result: {
+            rawCode: scheduleCode,
+            normalizedCode: scheduleCode,
+            canonicalCode: scheduleCode,
+            meetings: [],
+            warnings: [],
+            profileId: "Ufba2025",
+          },
+        })),
+    });
+
+    expect(result.bundle.manualImport.detectedComponentCodes).toEqual(
+      expect.arrayContaining(["ENGC25", "ENGC41", "ENGC50", "ENGC33"]),
+    );
+    expect(result.bundle.manualImport.detectedScheduleCodes).toEqual(
+      expect.arrayContaining(["24N34", "35N34"]),
+    );
+    expect(result.bundle.manualImport.structuredContext?.componentStates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "ENGC25",
+          source: "classes",
+          status: "inProgress",
+        }),
+        expect.objectContaining({
+          code: "ENGC41",
+          source: "classes",
+          status: "inProgress",
+        }),
+        expect.objectContaining({
+          code: "ENGC50",
+          source: "grades",
+          status: "completed",
+        }),
+        expect.objectContaining({
+          code: "ENGC33",
+          source: "grades",
+          status: "failed",
+        }),
+      ]),
+    );
+    expect(result.bundle.manualImport.rawInput).toContain("ENGC50");
+    expect(result.bundle.manualImport.rawInput).toContain("APROVADO");
+    expect(result.bundle.studentSnapshot.curriculum.components).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "ENGC25" }),
+        expect.objectContaining({ code: "ENGC41" }),
+        expect.objectContaining({ code: "ENGC50" }),
+        expect.objectContaining({ code: "ENGC33" }),
+      ]),
+    );
+  });
 });

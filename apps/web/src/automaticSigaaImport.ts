@@ -167,7 +167,10 @@ function buildStructuredManualImportContext(
 
   for (const view of structuredCapture.views) {
     if (view.id === "classes") {
-      for (const turmaEntry of view.extractedTurmas) {
+      for (const turmaEntry of mergeTurmaEntries(
+        view.extractedTurmas,
+        extractTurmaEntriesFromUnstructuredText(view.text),
+      )) {
         const title = extractTitleFromRawLine(turmaEntry.rawLine);
         componentStateByCode.set(turmaEntry.componentCode, {
           code: turmaEntry.componentCode,
@@ -191,8 +194,15 @@ function buildStructuredManualImportContext(
       continue;
     }
 
-    for (const gradeEntry of view.extractedGrades) {
-      if (componentStateByCode.has(gradeEntry.componentCode)) {
+    for (const gradeEntry of mergeGradeEntries(
+      view.extractedGrades,
+      extractGradeEntriesFromUnstructuredText(view.text),
+    )) {
+      const existingComponentState = componentStateByCode.get(
+        gradeEntry.componentCode,
+      );
+
+      if (existingComponentState?.source === "classes") {
         continue;
       }
 
@@ -303,6 +313,154 @@ function extractTitleFromRawLine(rawLine: string): string | null {
   );
 
   return gradeTitleMatch?.[1]?.trim() ?? null;
+}
+
+function extractTurmaEntriesFromUnstructuredText(text: string): Array<{
+  componentCode: string;
+  scheduleCodes: string[];
+  rawLine: string;
+}> {
+  return extractComponentSegments(
+    text,
+    /([A-Z]{3,5}\d{2,3})\s*-\s*(.+?)(?=(?:\s+[A-Z]{3,5}\d{2,3}\s*-)|$)/gs,
+  ).map((segment) => ({
+    componentCode: segment.componentCode,
+    scheduleCodes: uniqueValues(
+      Array.from(
+        segment.rawLine.matchAll(/\b([2-7]+[MTN]\d{1,4})\b/g),
+        (match) => match[1],
+      ),
+    ),
+    rawLine: segment.rawLine,
+  }));
+}
+
+function extractGradeEntriesFromUnstructuredText(text: string): Array<{
+  componentCode: string;
+  statusText: string | null;
+  rawLine: string;
+}> {
+  return extractComponentSegments(
+    text,
+    /([A-Z]{3,5}\d{2,3})\s+(.+?)(?=(?:\s+[A-Z]{3,5}\d{2,3}\b)|$)/gs,
+  ).map((segment) => ({
+    componentCode: segment.componentCode,
+    statusText:
+      segment.rawLine.match(
+        /\b(APROVADO|REPROVADO|CANCELADO|TRANCADO|CURSANDO|MATRICULADO|APTO|INAPTO|EM CURSO|EM ANDAMENTO)\b/i,
+      )?.[1] ?? null,
+    rawLine: segment.rawLine,
+  }));
+}
+
+function extractComponentSegments(text: string, pattern: RegExp): Array<{
+  componentCode: string;
+  rawLine: string;
+}> {
+  const matches = Array.from(text.matchAll(pattern));
+
+  return matches
+    .map((match) => {
+      const componentCode = match[1]?.trim();
+      const rawLine = match[0]
+        ?.replace(/\s+/g, " ")
+        .replace(/\s+-\s+/g, " - ")
+        .trim();
+
+      if (!componentCode || !rawLine) {
+        return null;
+      }
+
+      return {
+        componentCode,
+        rawLine,
+      };
+    })
+    .filter((segment): segment is { componentCode: string; rawLine: string } =>
+      Boolean(segment),
+    );
+}
+
+function mergeTurmaEntries(
+  primaryEntries: Array<{
+    componentCode: string;
+    scheduleCodes: string[];
+    rawLine: string;
+  }>,
+  fallbackEntries: Array<{
+    componentCode: string;
+    scheduleCodes: string[];
+    rawLine: string;
+  }>,
+): Array<{
+  componentCode: string;
+  scheduleCodes: string[];
+  rawLine: string;
+}> {
+  const mergedByCode = new Map<
+    string,
+    { componentCode: string; scheduleCodes: string[]; rawLine: string }
+  >();
+
+  for (const entry of [...primaryEntries, ...fallbackEntries]) {
+    const existing = mergedByCode.get(entry.componentCode);
+    if (!existing) {
+      mergedByCode.set(entry.componentCode, {
+        ...entry,
+        scheduleCodes: uniqueValues(entry.scheduleCodes),
+      });
+      continue;
+    }
+
+    existing.scheduleCodes = uniqueValues([
+      ...existing.scheduleCodes,
+      ...entry.scheduleCodes,
+    ]);
+    if (!existing.rawLine && entry.rawLine) {
+      existing.rawLine = entry.rawLine;
+    }
+  }
+
+  return Array.from(mergedByCode.values());
+}
+
+function mergeGradeEntries(
+  primaryEntries: Array<{
+    componentCode: string;
+    statusText: string | null;
+    rawLine: string;
+  }>,
+  fallbackEntries: Array<{
+    componentCode: string;
+    statusText: string | null;
+    rawLine: string;
+  }>,
+): Array<{
+  componentCode: string;
+  statusText: string | null;
+  rawLine: string;
+}> {
+  const mergedByCode = new Map<
+    string,
+    { componentCode: string; statusText: string | null; rawLine: string }
+  >();
+
+  for (const entry of [...primaryEntries, ...fallbackEntries]) {
+    const existing = mergedByCode.get(entry.componentCode);
+    if (!existing) {
+      mergedByCode.set(entry.componentCode, entry);
+      continue;
+    }
+
+    if (!existing.statusText && entry.statusText) {
+      existing.statusText = entry.statusText;
+    }
+    if (!existing.rawLine && entry.rawLine) {
+      existing.rawLine = entry.rawLine;
+    }
+  }
+
+  return Array.from(mergedByCode.values());
 }
 
 function uniqueValues(values: string[]): string[] {
