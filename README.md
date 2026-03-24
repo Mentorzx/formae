@@ -41,10 +41,10 @@ fixtures/
 corepack enable
 corepack prepare pnpm@10.18.3 --activate
 pnpm install
+pnpm prepare:wasm
 pnpm dev:web
 cargo test --workspace
 pnpm build
-pnpm build:wasm
 ```
 
 ## What ships in this bootstrap
@@ -54,6 +54,7 @@ pnpm build:wasm
 - Rust crates for the canonical domain model, UFBA 2025 timing profile and schedule parsing.
 - Contract fixtures and CI workflows for Node, Rust and GitHub Pages deployment.
 - Seeded public catalog data and an initial manual-import preview that works from pasted text.
+- WASM-backed schedule normalization inside the manual-import flow, loaded from the shared Rust core.
 
 ## Local secrets
 

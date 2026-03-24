@@ -5,6 +5,7 @@ coverage/
 .turbo/
 .vite/
 target/
+apps/web/public/wasm/
 .env
 .env.local
 .env.*

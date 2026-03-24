@@ -222,6 +222,10 @@ a {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
+.subsection {
+  margin-top: 1rem;
+}
+
 .split-grid {
   display: grid;
   gap: 1rem;
@@ -299,6 +303,24 @@ a {
 
 .warnings-card {
   margin-top: 1rem;
+}
+
+.status-banner {
+  margin: 0 0 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(11, 79, 108, 0.12);
+  border-radius: 18px;
+  background: rgba(179, 217, 230, 0.2);
+}
+
+.status-banner-success {
+  border-color: rgba(39, 99, 70, 0.18);
+  background: rgba(108, 181, 137, 0.14);
+}
+
+.status-banner-error {
+  border-color: rgba(164, 58, 58, 0.18);
+  background: rgba(214, 89, 89, 0.12);
 }
 
 @media (max-width: 720px) {

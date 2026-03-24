@@ -16,6 +16,24 @@ export type SyncReason = "manual" | "rehydrate" | "background-refresh";
 export type WipeMode = "memory-only" | "full-device-purge";
 export type ManualImportSource = "sigaa-history" | "sigaa-html" | "plain-text";
 export type ManualImportStatus = "idle" | "ready";
+export type Weekday =
+  | "monday"
+  | "tuesday"
+  | "wednesday"
+  | "thursday"
+  | "friday"
+  | "saturday";
+export type TurnCode = "morning" | "afternoon" | "night";
+export type ScheduleParseWarningCode =
+  | "emptyInput"
+  | "normalizedWhitespace"
+  | "normalizedCase"
+  | "canonicalizedSegment"
+  | "reorderedSegments"
+  | "deduplicatedDays"
+  | "deduplicatedSlots"
+  | "unparsedToken"
+  | "outOfRangeSlot";
 
 export interface BridgeEnvelope<TKind extends BridgeMessageKind, TPayload> {
   kind: TKind;
@@ -73,6 +91,35 @@ export interface ManualImportDraft {
   timingProfileId: TimingProfileId;
 }
 
+export interface ClockTime {
+  hour: number;
+  minute: number;
+}
+
+export interface ScheduleMeeting {
+  day: Weekday;
+  turn: TurnCode;
+  slotStart: number;
+  slotEnd: number;
+  startTime: ClockTime;
+  endTime: ClockTime;
+  sourceSegment: string;
+}
+
+export interface ScheduleParseWarning {
+  code: ScheduleParseWarningCode;
+  message: string;
+}
+
+export interface ScheduleParseResult {
+  rawCode: string;
+  normalizedCode: string;
+  canonicalCode: string;
+  meetings: ScheduleMeeting[];
+  warnings: ScheduleParseWarning[];
+  profileId: TimingProfileId;
+}
+
 export interface ManualImportPreview {
   status: ManualImportStatus;
   rawLength: number;
@@ -80,6 +127,12 @@ export interface ManualImportPreview {
   detectedComponentCodes: string[];
   warnings: string[];
   timingProfileId: TimingProfileId;
+}
+
+export interface ManualImportNormalizedSchedule {
+  inputCode: string;
+  parser: "rust-wasm";
+  result: ScheduleParseResult;
 }
 
 export type RequestSyncMessage = BridgeEnvelope<

@@ -1,0 +1,260 @@
+import type { ManualImportNormalizedSchedule } from "@formae/protocol";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { createManualImportPreview } from "../manualImport";
+import { findCatalogMatches } from "../publicCatalog";
+import { formatMeeting } from "../schedulePresentation";
+import { normalizeScheduleCodesWithWasm } from "../wasmScheduleParser";
+
+type ParserStatus = "idle" | "loading" | "ready" | "error";
+
+interface ParserState {
+  status: ParserStatus;
+  normalizedSchedules: ManualImportNormalizedSchedule[];
+  errorMessage: string | null;
+}
+
+const CAPTURED_AT = "2026-03-23T21:25:00Z";
+
+export function ImportPage() {
+  const [rawInput, setRawInput] = useState("");
+  const deferredRawInput = useDeferredValue(rawInput);
+  const preview = useMemo(
+    () =>
+      createManualImportPreview({
+        source: "plain-text",
+        rawInput: deferredRawInput,
+        capturedAt: CAPTURED_AT,
+        timingProfileId: "Ufba2025",
+      }),
+    [deferredRawInput],
+  );
+  const [parserState, setParserState] = useState<ParserState>({
+    status: "idle",
+    normalizedSchedules: [],
+    errorMessage: null,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (preview.detectedScheduleCodes.length === 0) {
+      setParserState({
+        status: "idle",
+        normalizedSchedules: [],
+        errorMessage: null,
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setParserState((currentState) => ({
+      status: "loading",
+      normalizedSchedules: currentState.normalizedSchedules,
+      errorMessage: null,
+    }));
+
+    void normalizeScheduleCodesWithWasm(
+      preview.detectedScheduleCodes,
+      preview.timingProfileId,
+    )
+      .then((normalizedSchedules) => {
+        if (cancelled) {
+          return;
+        }
+
+        setParserState({
+          status: "ready",
+          normalizedSchedules,
+          errorMessage: null,
+        });
+      })
+      .catch((error: unknown) => {
+        if (cancelled) {
+          return;
+        }
+
+        setParserState({
+          status: "error",
+          normalizedSchedules: [],
+          errorMessage:
+            error instanceof Error
+              ? error.message
+              : "Falha ao carregar o parser Rust/WASM.",
+        });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [preview.detectedScheduleCodes, preview.timingProfileId]);
+
+  const matchedComponents = findCatalogMatches(preview.detectedComponentCodes);
+
+  return (
+    <div className="page-grid">
+      <section className="hero-card">
+        <p className="section-label">Importacao manual inicial</p>
+        <h2>
+          Cole texto exportado do SIGAA sem nunca guardar senha em arquivo
+        </h2>
+        <p>
+          Esta previa trabalha apenas com texto colado localmente. O objetivo
+          agora e detectar codigos de horario e componentes para preparar o
+          caminho da importacao manual antes do sync automatico.
+        </p>
+      </section>
+
+      <section className="panel">
+        <p className="section-label">Cole um trecho</p>
+        <div className="split-grid">
+          <label className="input-panel" htmlFor="manual-import">
+            <span className="micro-label">Texto bruto</span>
+            <textarea
+              id="manual-import"
+              className="import-textarea"
+              value={rawInput}
+              onChange={(event) => setRawInput(event.target.value)}
+              placeholder="Exemplo: MATA37 - Introducao a Logica de Programacao - 3M23 5T23"
+            />
+          </label>
+
+          <div className="soft-card">
+            <h3>Privacidade operacional</h3>
+            <ul className="list">
+              <li>Nao cole senha do SIGAA.</li>
+              <li>Use apenas trechos de historico, matricula ou turmas.</li>
+              <li>O processamento desta previa e local ao navegador.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section className="panel">
+        <p className="section-label">Preview extraido</p>
+        <div className="split-grid">
+          <div className="soft-card">
+            <h3>Codigos detectados</h3>
+            <p>Caracteres analisados: {preview.rawLength}</p>
+            <div className="tag-grid compact-grid">
+              {preview.detectedComponentCodes.map((code) => (
+                <span key={code} className="tag">
+                  {code}
+                </span>
+              ))}
+              {preview.detectedScheduleCodes.map((code) => (
+                <span key={code} className="tag">
+                  {code}
+                </span>
+              ))}
+            </div>
+            {preview.detectedComponentCodes.length === 0 &&
+            preview.detectedScheduleCodes.length === 0 ? (
+              <p>Nenhum codigo detectado ainda.</p>
+            ) : null}
+          </div>
+
+          <div className="soft-card">
+            <h3>Matching com catalogo seed</h3>
+            <ul className="list">
+              {matchedComponents.map((component) => (
+                <li key={component.code}>
+                  {component.code} - {component.title}
+                </li>
+              ))}
+            </ul>
+            {matchedComponents.length === 0 ? (
+              <p>Nenhum componente seed casou com a entrada.</p>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="soft-card warnings-card">
+          <h3>Warnings do texto bruto</h3>
+          <ul className="list">
+            {preview.warnings.map((warning) => (
+              <li key={warning}>{warning}</li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section className="panel">
+        <p className="section-label">Normalizacao pelo core Rust/WASM</p>
+        <ParserStatusBanner
+          status={parserState.status}
+          errorMessage={parserState.errorMessage}
+        />
+        <div className="card-grid">
+          {parserState.normalizedSchedules.map((normalizedSchedule) => (
+            <article key={normalizedSchedule.inputCode} className="soft-card">
+              <p className="micro-label">{normalizedSchedule.inputCode}</p>
+              <h3>{normalizedSchedule.result.canonicalCode}</h3>
+              <p>
+                Parser: {normalizedSchedule.parser} · Meetings:{" "}
+                {normalizedSchedule.result.meetings.length}
+              </p>
+              <ul className="list">
+                {normalizedSchedule.result.meetings.map((meeting) => (
+                  <li
+                    key={`${normalizedSchedule.inputCode}-${meeting.day}-${meeting.turn}-${meeting.slotStart}-${meeting.slotEnd}`}
+                  >
+                    {formatMeeting(meeting)}
+                  </li>
+                ))}
+              </ul>
+              {normalizedSchedule.result.warnings.length > 0 ? (
+                <div className="subsection">
+                  <p className="micro-label">Warnings do parser</p>
+                  <ul className="list">
+                    {normalizedSchedule.result.warnings.map((warning) => (
+                      <li
+                        key={`${normalizedSchedule.inputCode}-${warning.code}-${warning.message}`}
+                      >
+                        {warning.message}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </article>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function ParserStatusBanner({
+  status,
+  errorMessage,
+}: {
+  status: ParserStatus;
+  errorMessage: string | null;
+}) {
+  if (status === "idle") {
+    return (
+      <p className="status-banner">
+        Cole pelo menos um codigo de horario para ativar o parser compartilhado.
+      </p>
+    );
+  }
+
+  if (status === "loading") {
+    return <p className="status-banner">Carregando o parser Rust/WASM...</p>;
+  }
+
+  if (status === "error") {
+    return (
+      <p className="status-banner status-banner-error">
+        {errorMessage ?? "Falha ao inicializar o parser Rust/WASM."}
+      </p>
+    );
+  }
+
+  return (
+    <p className="status-banner status-banner-success">
+      Parser Rust/WASM carregado e normalizando os codigos detectados.
+    </p>
+  );
+}

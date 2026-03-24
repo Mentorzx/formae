@@ -33,11 +33,23 @@ jobs:
           node-version: 22
           cache: pnpm
 
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.92.0
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack --locked
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Prepare WASM artifacts
+        run: pnpm prepare:wasm
 
       - name: Build web shell
         env:
@@ -60,4 +72,3 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
-
