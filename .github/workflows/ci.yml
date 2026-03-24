@@ -20,10 +20,12 @@ jobs:
           version: 10.18.3
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 22.19.0
           cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+          package-manager-cache: false
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -76,11 +78,12 @@ jobs:
           version: 10.18.3
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 22.19.0
           cache: pnpm
           cache-dependency-path: infra/private-sync-e2e/pnpm-lock.yaml
+          package-manager-cache: false
 
       - name: Install private sync harness dependencies
         run: pnpm install --frozen-lockfile

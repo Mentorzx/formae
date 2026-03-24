@@ -37,21 +37,33 @@ export async function verifyExtensionRelease({
     const [
       firstZipChecksum,
       secondZipChecksum,
+      firstZipArchive,
+      secondZipArchive,
       firstFirefoxChecksum,
       secondFirefoxChecksum,
+      firstFirefoxArchive,
+      secondFirefoxArchive,
       firstReleaseManifest,
       secondReleaseManifest,
       firstPackageMetadata,
       secondPackageMetadata,
+      firstPackagedManifest,
+      secondPackagedManifest,
     ] = await Promise.all([
       readFile(firstBuild.checksumPath, "utf8"),
       readFile(secondBuild.checksumPath, "utf8"),
+      readFile(firstBuild.archivePath),
+      readFile(secondBuild.archivePath),
       readFile(firstBuild.firefoxChecksumPath, "utf8"),
       readFile(secondBuild.firefoxChecksumPath, "utf8"),
+      readFile(firstBuild.firefoxArchivePath),
+      readFile(secondBuild.firefoxArchivePath),
       readFile(firstBuild.releaseManifestPath, "utf8"),
       readFile(secondBuild.releaseManifestPath, "utf8"),
       readFile(join(firstBuild.packageRoot, "package-metadata.json"), "utf8"),
       readFile(join(secondBuild.packageRoot, "package-metadata.json"), "utf8"),
+      readFile(join(firstBuild.packageRoot, "manifest.json"), "utf8"),
+      readFile(join(secondBuild.packageRoot, "manifest.json"), "utf8"),
     ]);
 
     assert.equal(
@@ -65,6 +77,16 @@ export async function verifyExtensionRelease({
       "Firefox extension xpi checksum drifted across deterministic rebuilds.",
     );
     assert.equal(
+      Buffer.compare(firstZipArchive, firstFirefoxArchive),
+      0,
+      "Firefox archive should be byte-identical to the packaged Chrome archive in the current release baseline.",
+    );
+    assert.equal(
+      Buffer.compare(secondZipArchive, secondFirefoxArchive),
+      0,
+      "Firefox archive should be byte-identical to the packaged Chrome archive in the current release baseline.",
+    );
+    assert.equal(
       firstReleaseManifest,
       secondReleaseManifest,
       "Release manifest drifted across deterministic rebuilds.",
@@ -74,15 +96,31 @@ export async function verifyExtensionRelease({
       secondPackageMetadata,
       "Packaged metadata drifted across deterministic rebuilds.",
     );
+    assert.equal(
+      firstPackagedManifest,
+      secondPackagedManifest,
+      "Packaged manifest drifted across deterministic rebuilds.",
+    );
 
     const releaseManifest = JSON.parse(firstReleaseManifest);
     const packageMetadata = JSON.parse(firstPackageMetadata);
 
     assert.equal(releaseManifest.runtimeTargets.includes("chrome"), true);
     assert.equal(releaseManifest.runtimeTargets.includes("firefox"), true);
+    assert.deepEqual(releaseManifest.runtimeTargets, ["chrome", "firefox"]);
     assert.equal(packageMetadata.browserSpecificSettings?.gecko?.id != null, true);
     assert.equal(packageMetadata.distribution.chromeArchive.endsWith(".zip"), true);
     assert.equal(packageMetadata.distribution.firefoxArchive.endsWith(".xpi"), true);
+    assert.deepEqual(
+      JSON.parse(firstPackagedManifest).permissions,
+      ["scripting", "tabs"],
+    );
+    assert.equal(packageMetadata.permissions.includes("<all_urls>"), false);
+    assert.equal(packageMetadata.hostPermissions.includes("<all_urls>"), false);
+    assert.equal(
+      packageMetadata.hostPermissions.includes("http://127.0.0.1:*/*"),
+      false,
+    );
 
     process.stdout.write(
       [

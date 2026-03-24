@@ -88,10 +88,33 @@ export async function auditExtensionPackage({
     const releaseManifest = JSON.parse(
       await readFile(build.releaseManifestPath, "utf8"),
     );
+    const packagedManifest = JSON.parse(
+      await readFile(join(build.packageRoot, "manifest.json"), "utf8"),
+    );
     const packagedFiles = packageMetadata.files;
 
     assert.ok(Array.isArray(packagedFiles) && packagedFiles.length > 0);
     assert.equal(releaseManifest.version, build.version);
+    assert.equal(packagedManifest.manifest_version, 3);
+    assert.deepEqual(packagedManifest.permissions, ["scripting", "tabs"]);
+    assert.deepEqual(
+      [...packagedManifest.host_permissions].sort(),
+      [
+        "http://localhost:*/*",
+        "https://mentorzx.github.io/*",
+        "https://sigaa.ufba.br/*",
+      ].sort(),
+    );
+    assert.equal(
+      packagedManifest.browser_specific_settings?.gecko?.id,
+      "formae-extension@formae.local",
+    );
+    assert.equal(
+      packagedManifest.browser_specific_settings?.gecko?.strict_min_version,
+      "128.0",
+    );
+    assert.equal(packagedManifest.permissions.includes("<all_urls>"), false);
+    assert.equal(packagedManifest.host_permissions.includes("<all_urls>"), false);
 
     let inspectedTextFileCount = 0;
 
