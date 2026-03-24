@@ -178,4 +178,39 @@ describe("buildLocalStudentSnapshotBundle", () => {
       ]),
     );
   });
+
+  it("adds a general review requirement when the seed curriculum match is weak", () => {
+    const bundle = buildLocalStudentSnapshotBundle({
+      derivedAt: "2026-03-24T01:00:00.000Z",
+      manualImport: {
+        schemaVersion: 1,
+        snapshotId: "manual-weak",
+        savedAt: "2026-03-24T00:59:00.000Z",
+        source: "plain-text",
+        timingProfileId: "Ufba2025",
+        rawInput: "FIS123 - Fisica I - CURSANDO",
+        detectedScheduleCodes: [],
+        detectedComponentCodes: ["FIS123"],
+        matchedCatalogComponentCodes: [],
+        previewWarnings: [],
+        normalizedSchedules: [],
+      },
+      matchedCatalogComponents: [],
+    });
+
+    expect(bundle.studentSnapshot.curriculum.curriculumId).toBe(
+      "ufba-trilha-base-2026-seed",
+    );
+    expect(bundle.studentSnapshot.pendingRequirements).toEqual(
+      expect.arrayContaining([
+        {
+          id: "curriculum-seed-review",
+          title: "Revisar selecao da grade seed",
+          status: "outstanding",
+          details: expect.stringMatching(/apenas 1 componente/i),
+          relatedComponentCode: null,
+        },
+      ]),
+    );
+  });
 });

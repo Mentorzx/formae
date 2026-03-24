@@ -12,9 +12,10 @@ import {
   type ManualDetectedComponentInference,
 } from "./manualComponentStatus";
 import {
-  findBestCurriculumSeed,
+  type CurriculumSeedResolution,
   type PublicCatalogComponent,
   type PublicCatalogCurriculumSeed,
+  resolveCurriculumSeed,
 } from "./publicCatalog";
 
 interface BuildLocalStudentSnapshotBundleInput {
@@ -51,9 +52,11 @@ interface BuildStudentSnapshotFromManualImportInput {
 export function buildStudentSnapshotFromManualImport(
   input: BuildStudentSnapshotFromManualImportInput,
 ): StudentSnapshot {
-  const resolvedCurriculum = findBestCurriculumSeed(
+  const curriculumResolution = resolveCurriculumSeed(
     input.manualImport.detectedComponentCodes,
   );
+  const resolvedCurriculum =
+    curriculumResolution.selectedMatch?.curriculum ?? null;
   const componentInferences = inferManualComponentStatuses(
     input.manualImport.rawInput,
     input.manualImport.detectedComponentCodes,
@@ -81,6 +84,7 @@ export function buildStudentSnapshotFromManualImport(
     inProgressComponents,
     scheduleBlocks,
     resolvedCurriculum,
+    curriculumResolution,
     resolvedCurriculum?.prerequisiteRules ?? [],
     input.matchedCatalogComponents,
   );
@@ -183,6 +187,7 @@ function buildPendingRequirements(
   inProgressComponents: Component[],
   scheduleBlocks: ScheduleBlock[],
   resolvedCurriculum: PublicCatalogCurriculumSeed | null,
+  curriculumResolution: CurriculumSeedResolution,
   prerequisiteRules: PrerequisiteRule[],
   matchedCatalogComponents: PublicCatalogComponent[],
 ): PendingRequirement[] {
@@ -191,9 +196,6 @@ function buildPendingRequirements(
     ...(resolvedCurriculum?.components.map((component) => component.code) ??
       []),
   ]);
-  const curriculumComponentCodes = new Set(
-    resolvedCurriculum?.components.map((component) => component.code) ?? [],
-  );
   const completedCodes = new Set(
     completedComponents.map((component) => component.code),
   );
@@ -208,6 +210,16 @@ function buildPendingRequirements(
     return normalizedSchedule?.result.warnings ?? [];
   });
   const requirements: PendingRequirement[] = [];
+
+  if (curriculumResolution.requiresReview) {
+    requirements.push({
+      id: "curriculum-seed-review",
+      title: "Revisar selecao da grade seed",
+      status: "outstanding",
+      details: buildCurriculumResolutionDetails(curriculumResolution),
+      relatedComponentCode: null,
+    });
+  }
 
   for (const componentCode of manualImport.detectedComponentCodes) {
     if (!matchedCodes.has(componentCode)) {
@@ -292,13 +304,9 @@ function buildPendingRequirements(
       !inProgressCodes.has(component.code);
 
     if (isPending) {
-      const pendingTitle = curriculumComponentCodes.has(component.code)
-        ? `Concluir ${component.title}`
-        : `Concluir ${component.title}`;
-
       requirements.push({
         id: `component:${component.code}`,
-        title: pendingTitle,
+        title: `Concluir ${component.title}`,
         status: "outstanding",
         details: `Componente ainda nao concluido nem em andamento: ${component.code}`,
         relatedComponentCode: component.code,
@@ -366,6 +374,34 @@ function deduplicateRequirements(
     seenIds.add(requirement.id);
     return true;
   });
+}
+
+function buildCurriculumResolutionDetails(
+  curriculumResolution: CurriculumSeedResolution,
+): string {
+  const candidateSummary = [
+    curriculumResolution.selectedMatch,
+    ...curriculumResolution.alternativeMatches,
+  ]
+    .filter(
+      (
+        match,
+      ): match is NonNullable<typeof curriculumResolution.selectedMatch> =>
+        match !== null,
+    )
+    .map(
+      (match) =>
+        `${match.curriculum.id} (${match.matchedCount} match, ${Math.round(
+          match.detectedCoverageRatio * 100,
+        )}% dos codigos detectados)`,
+    )
+    .join(" | ");
+
+  if (!candidateSummary) {
+    return curriculumResolution.reason;
+  }
+
+  return `${curriculumResolution.reason} Candidatas locais: ${candidateSummary}.`;
 }
 
 function mergeSeededCurriculumComponents(

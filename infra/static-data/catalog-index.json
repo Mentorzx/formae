@@ -150,6 +150,98 @@
         "Grade seed local versionada para projetar integralizacao no v0.",
         "Nao representa a matriz oficial completa de nenhum curso da UFBA."
       ]
+    },
+    {
+      "id": "ufba-trilha-interdisciplinar-2026-seed",
+      "versionTag": "2026.1-seed",
+      "name": "Trilha interdisciplinar UFBA seed local",
+      "course": {
+        "code": "UFBA-INTER-SEED",
+        "name": "Trilha interdisciplinar UFBA",
+        "campus": "Salvador",
+        "degreeLevel": "undergraduate",
+        "totalWorkloadHours": 544
+      },
+      "components": [
+        {
+          "code": "LETR01",
+          "title": "Leitura e Producao de Textos",
+          "credits": 4,
+          "workloadHours": 68,
+          "componentType": "required-seed"
+        },
+        {
+          "code": "MATD01",
+          "title": "Oficina de Estudos",
+          "credits": 2,
+          "workloadHours": 34,
+          "componentType": "required-seed"
+        },
+        {
+          "code": "MATA37",
+          "title": "Introducao a Logica de Programacao",
+          "credits": 4,
+          "workloadHours": 68,
+          "componentType": "required-seed"
+        },
+        {
+          "code": "BIOD01",
+          "title": "Fundamentos de Anatomia",
+          "credits": 4,
+          "workloadHours": 68,
+          "componentType": "required-seed"
+        },
+        {
+          "code": "EST201",
+          "title": "Estatistica Aplicada",
+          "credits": 4,
+          "workloadHours": 68,
+          "componentType": "required-seed"
+        },
+        {
+          "code": "SOC115",
+          "title": "Sociedade, Ciencia e Tecnologia",
+          "credits": 4,
+          "workloadHours": 68,
+          "componentType": "required-seed"
+        },
+        {
+          "code": "DCC105",
+          "title": "Computacao e Dados",
+          "credits": 4,
+          "workloadHours": 68,
+          "componentType": "required-seed"
+        },
+        {
+          "code": "PROJ11",
+          "title": "Projeto Interdisciplinar",
+          "credits": 6,
+          "workloadHours": 102,
+          "componentType": "required-seed"
+        }
+      ],
+      "prerequisiteRules": [
+        {
+          "componentCode": "EST201",
+          "expression": "MATA37",
+          "requiredComponentCodes": [
+            "MATA37"
+          ]
+        },
+        {
+          "componentCode": "PROJ11",
+          "expression": "MATA37 AND BIOD01",
+          "requiredComponentCodes": [
+            "MATA37",
+            "BIOD01"
+          ]
+        }
+      ],
+      "equivalences": [],
+      "notes": [
+        "Segunda grade seed para testar ranking e ambiguidade de selecao.",
+        "Mantida apenas como fixture publica local do bootstrap."
+      ]
     }
   ],
   "documentShortcuts": [

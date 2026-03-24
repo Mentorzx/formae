@@ -16,6 +16,10 @@ import {
   loadLatestProjectedStudentSnapshot,
 } from "../localStudentSnapshot";
 import {
+  type CurriculumSeedResolutionConfidence,
+  resolveCurriculumSeed,
+} from "../publicCatalog";
+import {
   type ComponentAcademicStatus,
   type ComponentProgressStatus,
   type CurriculumFocusPriority,
@@ -81,6 +85,11 @@ export function OverviewPage() {
       cancelled = true;
     };
   }, []);
+  const curriculumResolution = overviewState.bundle
+    ? resolveCurriculumSeed(
+        overviewState.bundle.manualImport.detectedComponentCodes,
+      )
+    : null;
 
   return (
     <div className="page-grid">
@@ -276,6 +285,14 @@ export function OverviewPage() {
                     }
                   </li>
                   <li>
+                    Confianca da grade:{" "}
+                    {curriculumResolution
+                      ? formatCurriculumConfidence(
+                          curriculumResolution.confidence,
+                        )
+                      : "nao avaliada"}
+                  </li>
+                  <li>
                     Catalogo coberto:{" "}
                     {overviewState.summary.matchedCatalogCount}/
                     {overviewState.summary.componentCount}
@@ -303,6 +320,53 @@ export function OverviewPage() {
                     )}
                   </li>
                 </ul>
+              </div>
+
+              <div className="soft-card">
+                <h3>Selecao da grade seed</h3>
+                {curriculumResolution?.selectedMatch ? (
+                  <>
+                    <p>{curriculumResolution.reason}</p>
+                    <div className="fact-row">
+                      <span
+                        className={`status-pill ${formatCurriculumConfidenceClassName(
+                          curriculumResolution.confidence,
+                        )}`}
+                      >
+                        Confianca{" "}
+                        {formatCurriculumConfidence(
+                          curriculumResolution.confidence,
+                        )}
+                      </span>
+                      <span className="vault-fact">
+                        {curriculumResolution.selectedMatch.matchedCount} match
+                      </span>
+                    </div>
+                    <ul className="list subsection">
+                      <li>
+                        <strong>
+                          {curriculumResolution.selectedMatch.curriculum.name}
+                        </strong>{" "}
+                        ·{" "}
+                        {Math.round(
+                          curriculumResolution.selectedMatch
+                            .detectedCoverageRatio * 100,
+                        )}
+                        % dos codigos detectados
+                      </li>
+                      {curriculumResolution.alternativeMatches.map((match) => (
+                        <li key={match.curriculum.id}>
+                          {match.curriculum.name} · {match.matchedCount} match
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : (
+                  <p>
+                    Nenhuma grade seed publica conseguiu cobrir os componentes
+                    detectados neste snapshot.
+                  </p>
+                )}
               </div>
             </div>
           </section>
@@ -541,4 +605,32 @@ function formatPendingRequirementStatus(
   }
 
   return "Pendente:";
+}
+
+function formatCurriculumConfidence(
+  confidence: CurriculumSeedResolutionConfidence,
+): string {
+  if (confidence === "high") {
+    return "forte";
+  }
+
+  if (confidence === "medium") {
+    return "media";
+  }
+
+  return "fraca";
+}
+
+function formatCurriculumConfidenceClassName(
+  confidence: CurriculumSeedResolutionConfidence,
+): string {
+  if (confidence === "high") {
+    return "status-pill-ready";
+  }
+
+  if (confidence === "medium") {
+    return "status-pill-partial";
+  }
+
+  return "status-pill-review";
 }

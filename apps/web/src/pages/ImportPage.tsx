@@ -21,7 +21,11 @@ import {
   type ManualImportVaultState,
   saveLatestLocalStudentSnapshotBundle,
 } from "../manualSnapshotStore";
-import { findCatalogMatches } from "../publicCatalog";
+import {
+  type CurriculumSeedResolutionConfidence,
+  findCatalogMatches,
+  resolveCurriculumSeed,
+} from "../publicCatalog";
 import { formatMeeting } from "../schedulePresentation";
 import { buildLocalStudentSnapshotBundle } from "../studentSnapshot";
 import { normalizeScheduleCodesWithWasm } from "../wasmScheduleParser";
@@ -210,6 +214,11 @@ export function ImportPage() {
     [currentManualSnapshot, matchedComponents],
   );
   const displayedBundle = currentBundle ?? latestBundle;
+  const curriculumResolution = resolveCurriculumSeed(
+    currentManualSnapshot?.detectedComponentCodes ??
+      displayedBundle?.manualImport.detectedComponentCodes ??
+      preview.detectedComponentCodes,
+  );
   const canSaveSnapshot =
     rawInput === deferredRawInput &&
     rawInput.trim().length > 0 &&
@@ -543,7 +552,18 @@ export function ImportPage() {
                     }
                     h
                   </span>
+                  <span
+                    className={`status-pill ${formatCurriculumConfidenceClassName(
+                      curriculumResolution.confidence,
+                    )}`}
+                  >
+                    Grade{" "}
+                    {formatCurriculumConfidence(
+                      curriculumResolution.confidence,
+                    )}
+                  </span>
                 </div>
+                <p className="subsection">{curriculumResolution.reason}</p>
               </article>
 
               <article className="soft-card">
@@ -580,6 +600,38 @@ export function ImportPage() {
                 0 ? (
                   <p>Nenhum componente foi classificado como em andamento.</p>
                 ) : null}
+              </article>
+
+              <article className="soft-card">
+                <p className="micro-label">Candidatas de grade</p>
+                {curriculumResolution.selectedMatch ? (
+                  <ul className="list">
+                    <li>
+                      <strong>
+                        {curriculumResolution.selectedMatch.curriculum.name}
+                      </strong>{" "}
+                      · {curriculumResolution.selectedMatch.matchedCount} match
+                      ·{" "}
+                      {Math.round(
+                        curriculumResolution.selectedMatch
+                          .detectedCoverageRatio * 100,
+                      )}
+                      % dos codigos detectados
+                    </li>
+                    {curriculumResolution.alternativeMatches.map((match) => (
+                      <li key={match.curriculum.id}>
+                        {match.curriculum.name} · {match.matchedCount} match ·{" "}
+                        {Math.round(match.detectedCoverageRatio * 100)}% dos
+                        codigos detectados
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>
+                    Nenhuma grade seed teve sobreposicao suficiente com os
+                    codigos detectados ate agora.
+                  </p>
+                )}
               </article>
 
               <article className="soft-card">
@@ -837,4 +889,32 @@ function formatPendingRequirementStatus(
   }
 
   return "Pendente:";
+}
+
+function formatCurriculumConfidence(
+  confidence: CurriculumSeedResolutionConfidence,
+): string {
+  if (confidence === "high") {
+    return "forte";
+  }
+
+  if (confidence === "medium") {
+    return "media";
+  }
+
+  return "fraca";
+}
+
+function formatCurriculumConfidenceClassName(
+  confidence: CurriculumSeedResolutionConfidence,
+): string {
+  if (confidence === "high") {
+    return "status-pill-ready";
+  }
+
+  if (confidence === "medium") {
+    return "status-pill-partial";
+  }
+
+  return "status-pill-review";
 }
