@@ -4,6 +4,8 @@ export interface VaultPasskeyCredentialConfig {
   displayName: string;
   rpId: string;
   origin: string;
+  prfSaltB64: string | null;
+  prfReady: boolean;
   createdAt: string;
   lastVerifiedAt: string | null;
   userVerification: "required";
@@ -13,6 +15,7 @@ interface VaultPasskeySessionMarker {
   credentialId: string;
   unlockedAt: string;
   expiresAt: string;
+  keyMaterialMode: "webauthn-prf" | "browser-local-wrap";
 }
 
 const WEBAUTHN_TIMEOUT_MS = 60_000;
@@ -66,28 +69,37 @@ export async function createVaultPasskeyCredential(
 
   const challenge = randomBytes(CHALLENGE_BYTE_LENGTH);
   const userId = randomBytes(USER_ID_BYTE_LENGTH);
+  const prfSalt = randomBytes(CHALLENGE_BYTE_LENGTH);
   const rpId = resolveVaultPasskeyRpId();
   const createdAt = new Date().toISOString();
-  const credential = await globalThis.navigator.credentials.create({
-    publicKey: {
-      challenge: toArrayBuffer(challenge),
-      rp: {
-        name: "Formae",
-        id: rpId,
-      },
-      user: {
-        id: toArrayBuffer(userId),
-        name: `vault@${rpId}`,
-        displayName,
-      },
-      pubKeyCredParams: [{ type: "public-key", alg: -7 }],
-      timeout: WEBAUTHN_TIMEOUT_MS,
-      attestation: "none",
-      authenticatorSelection: {
-        residentKey: "preferred",
-        userVerification: "required",
+  const publicKeyOptions = {
+    challenge: toArrayBuffer(challenge),
+    rp: {
+      name: "Formae",
+      id: rpId,
+    },
+    user: {
+      id: toArrayBuffer(userId),
+      name: `vault@${rpId}`,
+      displayName,
+    },
+    pubKeyCredParams: [{ type: "public-key", alg: -7 }],
+    timeout: WEBAUTHN_TIMEOUT_MS,
+    attestation: "none",
+    authenticatorSelection: {
+      residentKey: "preferred",
+      userVerification: "required",
+    },
+    extensions: {
+      prf: {
+        eval: {
+          first: toArrayBuffer(prfSalt),
+        },
       },
     },
+  } as PublicKeyCredentialCreationOptions;
+  const credential = await globalThis.navigator.credentials.create({
+    publicKey: publicKeyOptions,
   });
 
   const createdCredential = assertPublicKeyCredential(
@@ -97,8 +109,20 @@ export async function createVaultPasskeyCredential(
   const credentialId = bytesToBase64Url(
     new Uint8Array(createdCredential.rawId),
   );
+  const extensionResults = createdCredential.getClientExtensionResults() as {
+    prf?: { enabled?: boolean };
+  };
+  const prfReady = extensionResults.prf?.enabled === true;
+  const keyMaterialMode: VaultPasskeySessionMarker["keyMaterialMode"] = prfReady
+    ? "webauthn-prf"
+    : "browser-local-wrap";
 
-  writeVaultPasskeySession(credentialId, createdAt);
+  writeVaultPasskeySession(
+    credentialId,
+    createdAt,
+    keyMaterialMode,
+    VAULT_PASSKEY_SESSION_TTL_MS,
+  );
 
   return {
     schemaVersion: 1,
@@ -106,6 +130,8 @@ export async function createVaultPasskeyCredential(
     displayName,
     rpId,
     origin: globalThis.location.origin,
+    prfSaltB64: bytesToBase64Url(prfSalt),
+    prfReady,
     createdAt,
     lastVerifiedAt: createdAt,
     userVerification: "required",
@@ -118,18 +144,32 @@ export async function verifyVaultPasskeyCredential(
   assertVaultPasskeySupport();
 
   const challenge = randomBytes(CHALLENGE_BYTE_LENGTH);
+  const requestOptions = {
+    challenge: toArrayBuffer(challenge),
+    allowCredentials: [
+      {
+        type: "public-key",
+        id: toArrayBuffer(base64UrlToBytes(config.credentialId)),
+      },
+    ],
+    userVerification: config.userVerification,
+    timeout: WEBAUTHN_TIMEOUT_MS,
+    ...(config.prfReady && config.prfSaltB64
+      ? {
+          extensions: {
+            prf: {
+              evalByCredential: {
+                [config.credentialId]: {
+                  first: toArrayBuffer(base64UrlToBytes(config.prfSaltB64)),
+                },
+              },
+            },
+          },
+        }
+      : {}),
+  } as PublicKeyCredentialRequestOptions;
   const assertion = await globalThis.navigator.credentials.get({
-    publicKey: {
-      challenge: toArrayBuffer(challenge),
-      allowCredentials: [
-        {
-          type: "public-key",
-          id: toArrayBuffer(base64UrlToBytes(config.credentialId)),
-        },
-      ],
-      userVerification: config.userVerification,
-      timeout: WEBAUTHN_TIMEOUT_MS,
-    },
+    publicKey: requestOptions,
   });
 
   const credential = assertPublicKeyCredential(
@@ -190,7 +230,14 @@ export async function verifyVaultPasskeyCredential(
   }
 
   const verifiedAt = new Date().toISOString();
-  writeVaultPasskeySession(config.credentialId, verifiedAt);
+  const extensionResults = credential.getClientExtensionResults() as {
+    prf?: { results?: { first?: ArrayBuffer } };
+  };
+  const keyMaterialMode =
+    config.prfReady && extensionResults.prf?.results?.first
+      ? "webauthn-prf"
+      : "browser-local-wrap";
+  writeVaultPasskeySession(config.credentialId, verifiedAt, keyMaterialMode);
 
   return {
     ...config,
@@ -307,12 +354,14 @@ function toArrayBuffer(value: Uint8Array): ArrayBuffer {
 function writeVaultPasskeySession(
   credentialId: string,
   unlockedAt: string,
+  keyMaterialMode: VaultPasskeySessionMarker["keyMaterialMode"],
   ttlMs = VAULT_PASSKEY_SESSION_TTL_MS,
 ): void {
   currentVaultPasskeySession = {
     credentialId,
     unlockedAt,
     expiresAt: new Date(new Date(unlockedAt).getTime() + ttlMs).toISOString(),
+    keyMaterialMode,
   };
 }
 

@@ -197,7 +197,11 @@ export interface StoreEncryptedSnapshotPayload {
   syncSessionId: string;
   encryptionContext: "indexeddb-webcrypto";
   storedAt: string;
-  keyDerivation: "webauthn-unlock" | "device-local";
+  keyDerivation:
+    | "webauthn-unlock"
+    | "device-local"
+    | "browser-local-wrap"
+    | "webauthn-prf";
 }
 
 export interface WipeLocalVaultPayload {

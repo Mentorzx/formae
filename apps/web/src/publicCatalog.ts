@@ -227,12 +227,13 @@ export const publicCatalogCurriculumStructures = [
   ...publicCatalogSnapshot.curriculumStructures,
 ].sort((left, right) => {
   const curriculumCompare = left.curriculumId.localeCompare(right.curriculumId);
-  return curriculumCompare !== 0 ? curriculumCompare : left.code.localeCompare(right.code);
+  return curriculumCompare !== 0
+    ? curriculumCompare
+    : left.code.localeCompare(right.code);
 });
 
-export const publicCatalogCurriculumStructureIndex = buildCurriculumStructureIndex(
-  publicCatalogCurriculumStructures,
-);
+export const publicCatalogCurriculumStructureIndex =
+  buildCurriculumStructureIndex(publicCatalogCurriculumStructures);
 
 export const publicCatalogCurriculumProfiles = publicCatalog.curricula.map(
   (curriculum) => buildCurriculumProfile(curriculum),
@@ -249,9 +250,10 @@ export const publicCatalogProvenance = {
   ).length,
   componentCount: publicCatalogSnapshot.components.length,
   curriculumStructureCount: publicCatalogSnapshot.curriculumStructures.length,
-  activeCurriculumStructureCount: publicCatalogSnapshot.curriculumStructures.filter(
-    (entry) => entry.status === "active",
-  ).length,
+  activeCurriculumStructureCount:
+    publicCatalogSnapshot.curriculumStructures.filter(
+      (entry) => entry.status === "active",
+    ).length,
   scheduleGuideCount: publicCatalogSnapshot.scheduleGuide.length,
   timeSlotCount: publicCatalogSnapshot.timeSlots.length,
   noteCount: publicCatalogSnapshot.notes.length,
@@ -590,9 +592,12 @@ function buildCurriculumStructureIndex(
       return {
         curriculumId,
         structureCount: entries.length,
-        activeCount: entries.filter((entry) => entry.status === "active").length,
-        inactiveCount: entries.filter((entry) => entry.status === "inactive").length,
-        unknownCount: entries.filter((entry) => entry.status === "unknown").length,
+        activeCount: entries.filter((entry) => entry.status === "active")
+          .length,
+        inactiveCount: entries.filter((entry) => entry.status === "inactive")
+          .length,
+        unknownCount: entries.filter((entry) => entry.status === "unknown")
+          .length,
         codes: uniqueSorted(entries.map((entry) => entry.code)),
         groupLabels: uniqueSorted(entries.map((entry) => entry.groupLabel)),
         sourceIds: uniqueSorted(entries.map((entry) => entry.sourceId)),
@@ -628,7 +633,9 @@ function buildCurriculumPrerequisiteGraph(
   leafComponentCodes: string[];
   maxPrerequisiteDepth: number;
 } {
-  const componentCodes = curriculum.components.map((component) => component.code);
+  const componentCodes = curriculum.components.map(
+    (component) => component.code,
+  );
   const prerequisiteMap = new Map<string, string[]>(
     componentCodes.map((code) => [code, []]),
   );
@@ -698,5 +705,7 @@ function buildCurriculumPrerequisiteGraph(
 }
 
 function uniqueSorted(values: string[]): string[] {
-  return Array.from(new Set(values)).sort((left, right) => left.localeCompare(right));
+  return Array.from(new Set(values)).sort((left, right) =>
+    left.localeCompare(right),
+  );
 }

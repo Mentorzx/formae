@@ -53,7 +53,8 @@ describe("manualSnapshotStore vault helpers", () => {
     );
 
     expect(vaultRecord.payloadKind).toBe("manualImportStoredSnapshot");
-    expect(vaultRecord.keyId).toBe("test-key");
+    expect(vaultRecord.contentKeyId).toBe("test-key");
+    expect(vaultRecord.keyDerivation).toBe("browser-local-wrap");
     expect(vaultRecord.ciphertextB64).not.toContain(snapshot.rawInput);
     expect(restoredSnapshot).toEqual(snapshot);
   });
@@ -122,6 +123,8 @@ describe("manualSnapshotStore vault helpers", () => {
     );
 
     expect(vaultRecord.payloadKind).toBe("localStudentSnapshotBundle");
+    expect(vaultRecord.contentKeyId).toBe("test-key");
+    expect(vaultRecord.keyDerivation).toBe("browser-local-wrap");
     expect(vaultRecord.ciphertextB64).not.toContain(
       bundle.manualImport.rawInput,
     );

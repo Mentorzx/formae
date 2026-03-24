@@ -557,7 +557,7 @@ export function ImportPage() {
       setLocalSnapshotMessage(null);
       setVaultPasskeyActionStatus("success");
       setVaultPasskeyMessage(
-        "Passkey desativada. O vault volta a usar apenas a chave device-local.",
+        "Passkey desativada. O vault segue com o modo local atual de wrap no navegador.",
       );
     } catch (error: unknown) {
       setVaultPasskeyActionStatus("error");
@@ -1219,7 +1219,7 @@ function VaultStateFacts({
     `Vault v${vaultState.storageVersion}`,
     vaultState.status === "sealed" ? "Estado: selado" : "Estado: vazio",
     `Chave: ${vaultState.keyId ?? "nenhuma"}`,
-    "Derivacao: device-local",
+    `Derivacao: ${formatVaultKeyDerivation(vaultState.keyDerivation)}`,
   ];
 
   if (vaultState.updatedAt) {
@@ -1405,4 +1405,19 @@ function formatCurriculumSelectionMode(
   }
 
   return "Auto";
+}
+
+function formatVaultKeyDerivation(
+  keyDerivation: ManualImportVaultState["keyDerivation"],
+): string {
+  switch (keyDerivation) {
+    case "browser-local-wrap":
+      return "wrap browser-local";
+    case "webauthn-prf":
+      return "WebAuthn PRF";
+    case "device-local":
+      return "device-local legado";
+    default:
+      return keyDerivation;
+  }
 }

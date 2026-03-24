@@ -10,53 +10,77 @@ import {
 import { runAutomaticSigaaSync } from "./sigaa-sync.js";
 import { extensionApi } from "./runtime.js";
 
+const ALLOWED_EXTERNAL_BRIDGE_MESSAGE_KINDS = new Set(["RequestSync"]);
+
 const syncState = {
   credentialState: createCredentialState(),
   latestRawPayload: null,
   latestNormalizedSnapshot: null,
 };
 
-extensionApi.runtime.onInstalled.addListener(() => {
-  syncState.credentialState = createCredentialState();
-  syncState.latestRawPayload = null;
-  syncState.latestNormalizedSnapshot = null;
-});
+if (extensionApi?.runtime?.onInstalled) {
+  extensionApi.runtime.onInstalled.addListener(() => {
+    syncState.credentialState = createCredentialState();
+    syncState.latestRawPayload = null;
+    syncState.latestNormalizedSnapshot = null;
+  });
+}
 
-extensionApi.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (!isBridgeMessage(message)) {
-    return false;
+if (extensionApi?.runtime?.onMessage) {
+  extensionApi.runtime.onMessage.addListener(
+    (message, _sender, sendResponse) => {
+      if (!isBridgeMessage(message)) {
+        return false;
+      }
+
+      handleBridgeMessage(message, { source: "internal" })
+        .then((response) => sendResponse(response))
+        .catch((error) =>
+          sendResponse({
+            ok: false,
+            error:
+              error instanceof Error ? error.message : "Unknown bridge error",
+          }),
+        );
+
+      return true;
+    },
+  );
+}
+
+if (extensionApi?.runtime?.onMessageExternal) {
+  extensionApi.runtime.onMessageExternal.addListener(
+    (message, sender, sendResponse) => {
+      if (!isBridgeMessage(message)) {
+        return false;
+      }
+
+      handleBridgeMessage(message, { source: "external", sender })
+        .then((response) => sendResponse(response))
+        .catch((error) =>
+          sendResponse({
+            ok: false,
+            error:
+              error instanceof Error ? error.message : "Unknown bridge error",
+          }),
+        );
+
+      return true;
+    },
+  );
+}
+
+export function isExternalBridgeMessageKindAllowed(kind) {
+  return ALLOWED_EXTERNAL_BRIDGE_MESSAGE_KINDS.has(kind);
+}
+
+export function shouldRequireApprovalForRequestSync(context, message) {
+  if (context.source === "external") {
+    return true;
   }
 
-  handleBridgeMessage(message, { source: "internal" })
-    .then((response) => sendResponse(response))
-    .catch((error) =>
-      sendResponse({
-        ok: false,
-        error: error instanceof Error ? error.message : "Unknown bridge error",
-      }),
-    );
-
-  return true;
-});
-
-extensionApi.runtime.onMessageExternal?.addListener(
-  (message, sender, sendResponse) => {
-    if (!isBridgeMessage(message)) {
-      return false;
-    }
-
-    handleBridgeMessage(message, { source: "external", sender })
-      .then((response) => sendResponse(response))
-      .catch((error) =>
-        sendResponse({
-          ok: false,
-          error: error instanceof Error ? error.message : "Unknown bridge error",
-        }),
-      );
-
-    return true;
-  },
-);
+  return message.payload.reason !== "popup";
+}
 
 async function handleBridgeMessage(message, context) {
   if (
@@ -67,6 +91,17 @@ async function handleBridgeMessage(message, context) {
       ok: false,
       error:
         "This web origin is not allowed to talk directly to the Formaê extension.",
+    };
+  }
+
+  if (
+    context.source === "external" &&
+    !isExternalBridgeMessageKindAllowed(message.kind)
+  ) {
+    return {
+      ok: false,
+      error:
+        "This web origin can only request a sync from the Formaê extension.",
     };
   }
 
@@ -83,7 +118,7 @@ async function handleBridgeMessage(message, context) {
       }
 
       if (
-        message.payload.reason !== "popup" &&
+        shouldRequireApprovalForRequestSync(context, message) &&
         !hasActiveSyncApproval(syncState.credentialState)
       ) {
         return {

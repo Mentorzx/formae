@@ -14,6 +14,7 @@ vi.mock("./manualSnapshotStore", () => ({
     supportReason: null,
     configured: false,
     sessionStatus: "not-configured",
+    keyMaterialMode: null,
     displayName: null,
     rpId: null,
     createdAt: null,

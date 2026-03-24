@@ -26,6 +26,11 @@ describe("vaultPasskey", () => {
     const challengeAwareCreate = vi.fn().mockImplementation(async () => ({
       rawId: new Uint8Array([1, 2, 3, 4]).buffer,
       response: {},
+      getClientExtensionResults: () => ({
+        prf: {
+          enabled: true,
+        },
+      }),
     }));
 
     Object.defineProperty(globalThis.navigator, "credentials", {
@@ -86,6 +91,13 @@ describe("vaultPasskey", () => {
               1,
             ]),
           },
+          getClientExtensionResults: () => ({
+            prf: {
+              results: {
+                first: new Uint8Array([9, 9, 9, 9]).buffer,
+              },
+            },
+          }),
         };
       });
 
@@ -107,6 +119,8 @@ describe("vaultPasskey", () => {
       displayName: "Vault de teste",
       rpId: globalThis.location.hostname,
       origin: globalThis.location.origin,
+      prfSaltB64: "CQkJCQ",
+      prfReady: true,
       createdAt: "2026-03-24T03:30:00.000Z",
       lastVerifiedAt: null,
       userVerification: "required",
@@ -144,6 +158,11 @@ describe("vaultPasskey", () => {
         create: vi.fn(async () => ({
           rawId: new Uint8Array([1, 2, 3, 4]).buffer,
           response: {},
+          getClientExtensionResults: () => ({
+            prf: {
+              enabled: false,
+            },
+          }),
         })),
         get: vi.fn(),
       },

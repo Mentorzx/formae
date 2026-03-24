@@ -19,24 +19,39 @@ function bootstrapContentScript() {
       !isPageBridgeRequest(event.data)
     ) {
       return;
-    }
+  }
 
-    sendRuntimeMessage(event.data.envelope)
-      .then((response) => {
-        window.postMessage(
-          createExtensionBridgeResponse(event.data.requestId, response),
-          window.location.origin,
-        );
-      })
-      .catch((error) => {
+  void (async () => {
+    try {
+      const canRelay = await canRelayLegacyRequestSync();
+
+      if (!canRelay) {
         window.postMessage(
           createExtensionBridgeResponse(event.data.requestId, {
             ok: false,
-            error: error instanceof Error ? error.message : String(error),
+            error:
+              "Legacy sync relay is available only after popup approval is armed.",
           }),
           window.location.origin,
         );
-      });
+        return;
+      }
+
+      const response = await sendRuntimeMessage(event.data.envelope);
+      window.postMessage(
+        createExtensionBridgeResponse(event.data.requestId, response),
+        window.location.origin,
+      );
+    } catch (error) {
+      window.postMessage(
+        createExtensionBridgeResponse(event.data.requestId, {
+          ok: false,
+          error: error instanceof Error ? error.message : String(error),
+        }),
+        window.location.origin,
+      );
+    }
+  })();
   });
 }
 
@@ -116,4 +131,21 @@ function sendRuntimeMessage(message) {
   }
 
   return Promise.reject(new Error("Extension runtime is unavailable."));
+}
+
+async function canRelayLegacyRequestSync() {
+  const credentialStateResponse = await sendRuntimeMessage({
+    kind: "GetCredentialState",
+    protocolVersion: BRIDGE_PROTOCOL_VERSION,
+    payload: {
+      requestedAt: new Date().toISOString(),
+    },
+  });
+
+  const credentialState = credentialStateResponse?.credentialState;
+  return Boolean(
+    credentialState &&
+      credentialState.hasSession &&
+      credentialState.syncApprovalActive,
+  );
 }

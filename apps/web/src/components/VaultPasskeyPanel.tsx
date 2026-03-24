@@ -64,12 +64,18 @@ export function VaultPasskeyPanel({
 
       <p className="muted-note">
         No modo atual, a passkey endurece o desbloqueio local da sessao e a
-        leitura/escrita do vault, mas a chave AES ainda segue em modo
-        `device-local`. O proximo degrau e ligar esse unlock a derivacao
-        criptografica da chave do vault.
+        leitura/escrita do vault, enquanto o conteudo fica protegido por um DEK
+        local envolvido por um segredo de wrap persistido no navegador. Quando
+        WebAuthn PRF estiver disponivel, a interface destaca esse modo; quando
+        nao estiver, o estado continua honesto como wrap browser-local.
       </p>
 
       <div className="fact-row">
+        {passkeyState.keyMaterialMode ? (
+          <span className="vault-fact">
+            Modo: {formatKeyMaterialMode(passkeyState.keyMaterialMode)}
+          </span>
+        ) : null}
         {passkeyState.rpId ? (
           <span className="vault-fact">RP ID: {passkeyState.rpId}</span>
         ) : null}
@@ -183,4 +189,19 @@ function formatLocalDateTime(value: string): string {
     dateStyle: "short",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function formatKeyMaterialMode(
+  value: NonNullable<ManualImportVaultPasskeyState["keyMaterialMode"]>,
+): string {
+  switch (value) {
+    case "webauthn-prf":
+      return "WebAuthn PRF";
+    case "browser-local-wrap":
+      return "Wrap browser-local";
+    case "device-local":
+      return "Device-local legado";
+    default:
+      return value;
+  }
 }
