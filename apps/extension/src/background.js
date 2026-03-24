@@ -1,19 +1,22 @@
 import { isBridgeMessage } from "./bridge.js";
 import {
-  createEphemeralSigaaSession,
-  isSigaaSessionExpired,
-} from "./login-session.js";
+  clearExpiredSession,
+  createCredentialState,
+  clearEphemeralCredentials,
+  storeEphemeralCredentials,
+  takeEphemeralCredentials,
+} from "./credential-store.js";
 import { runAutomaticSigaaSync } from "./sigaa-sync.js";
 import { extensionApi } from "./runtime.js";
 
 const syncState = {
-  session: null,
+  credentialState: createCredentialState(),
   latestRawPayload: null,
   latestNormalizedSnapshot: null,
 };
 
 extensionApi.runtime.onInstalled.addListener(() => {
-  syncState.session = null;
+  syncState.credentialState = createCredentialState();
   syncState.latestRawPayload = null;
   syncState.latestNormalizedSnapshot = null;
 });
@@ -38,38 +41,44 @@ extensionApi.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 async function handleBridgeMessage(message) {
   switch (message.kind) {
     case "RequestSync":
-      if (!syncState.session) {
+      clearExpiredSession(syncState.credentialState);
+
+      if (!syncState.credentialState.session) {
         return {
           ok: false,
           error:
-            "SIGAA credentials are missing in memory. Provide them before starting the sync.",
+            "SIGAA credentials are missing in the extension popup. Open the extension, enter the credentials, and try again.",
         };
       }
 
-      if (isSigaaSessionExpired(syncState.session)) {
-        syncState.session = null;
-        return {
-          ok: false,
-          error: "The in-memory SIGAA session expired before the sync started.",
-        };
-      }
-
+      const session = takeEphemeralCredentials(syncState.credentialState);
       const syncResult = await runAutomaticSigaaSync({
         syncSessionId: message.payload.syncSessionId,
-        session: syncState.session,
+        session,
       });
       syncState.latestRawPayload = syncResult.rawPayloadMessage.payload;
       return syncResult.rawPayloadMessage;
-    case "ProvideEphemeralCredentials":
-      syncState.session = createEphemeralSigaaSession({
-        syncSessionId: message.payload.syncSessionId,
-        usernameOrCpf: message.payload.usernameOrCpf,
-        password: message.payload.password,
-      });
+    case "SetEphemeralCredentials":
       return {
         ok: true,
-        kind: "ProvideEphemeralCredentials",
-        syncSessionId: message.payload.syncSessionId,
+        kind: "SetEphemeralCredentials",
+        credentialState: storeEphemeralCredentials(syncState.credentialState, {
+          syncSessionId: message.payload.syncSessionId,
+          usernameOrCpf: message.payload.usernameOrCpf,
+          password: message.payload.password,
+        }),
+      };
+    case "GetCredentialState":
+      return {
+        ok: true,
+        kind: "GetCredentialState",
+        credentialState: clearExpiredSession(syncState.credentialState),
+      };
+    case "ClearEphemeralCredentials":
+      return {
+        ok: true,
+        kind: "ClearEphemeralCredentials",
+        credentialState: clearEphemeralCredentials(syncState.credentialState),
       };
     case "RawSigaaPayload":
       syncState.latestRawPayload = message.payload;
@@ -92,7 +101,7 @@ async function handleBridgeMessage(message) {
         syncSessionId: message.payload.syncSessionId,
       };
     case "WipeLocalVault":
-      syncState.session = null;
+      syncState.credentialState = createCredentialState();
       syncState.latestRawPayload = null;
       syncState.latestNormalizedSnapshot = null;
       return {

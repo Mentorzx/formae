@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Formaê SIGAA</title>
+    <link rel="stylesheet" href="./popup.css" />
+  </head>
+  <body>
+    <main class="popup-shell">
+      <header class="hero">
+        <p class="eyebrow">Formaê</p>
+        <h1>Credenciais SIGAA</h1>
+        <p id="statusText" class="status" aria-live="polite">Carregando estado local...</p>
+      </header>
+
+      <form id="credentialForm" class="card">
+        <label>
+          CPF ou usuário
+          <input id="usernameOrCpf" name="usernameOrCpf" type="text" autocomplete="username" inputmode="numeric" required />
+        </label>
+
+        <label>
+          Senha SIGAA
+          <input id="password" name="password" type="password" autocomplete="current-password" required />
+        </label>
+
+        <div class="actions">
+          <button type="submit">Salvar em memória</button>
+          <button type="button" id="syncNowButton">Sincronizar agora</button>
+          <button type="button" id="clearButton" class="ghost">Limpar</button>
+        </div>
+      </form>
+
+      <section class="card details" aria-labelledby="detailsTitle">
+        <h2 id="detailsTitle">Sessão atual</h2>
+        <dl>
+          <div>
+            <dt>Sync ID</dt>
+            <dd id="syncSessionId">-</dd>
+          </div>
+          <div>
+            <dt>Usuário mascarado</dt>
+            <dd id="usernameMasked">-</dd>
+          </div>
+          <div>
+            <dt>Expira em</dt>
+            <dd id="expiresAt">-</dd>
+          </div>
+        </dl>
+      </section>
+    </main>
+
+    <script type="module" src="./popup.js"></script>
+  </body>
+</html>

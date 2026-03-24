@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createRequestSyncMessage } from "./bridge.js";
+import {
+  createRequestSyncMessage,
+  createSetEphemeralCredentialsMessage,
+} from "./bridge.js";
 import {
   createExtensionBridgeResponse,
   createPageBridgeRequest,
@@ -21,6 +24,19 @@ test("page bridge requests keep the protocol envelope intact", () => {
   assert.equal(isPageBridgeRequest(request), true);
   assert.equal(request.requestId, "req-1");
   assert.equal(request.envelope.kind, "RequestSync");
+});
+
+test("page bridge rejects credential-bearing messages", () => {
+  const request = createPageBridgeRequest(
+    "req-2",
+    createSetEphemeralCredentialsMessage({
+      syncSessionId: "sync-2",
+      usernameOrCpf: "08800261540",
+      password: "secret",
+    }),
+  );
+
+  assert.equal(isPageBridgeRequest(request), false);
 });
 
 test("extension bridge responses preserve request correlation", () => {

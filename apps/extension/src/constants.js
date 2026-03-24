@@ -7,6 +7,17 @@ export const DEFAULT_SESSION_TTL_MS = 15 * 60 * 1000;
 export const bridgeMessageKinds = [
   "RequestSync",
   "ProvideEphemeralCredentials",
+  "SetEphemeralCredentials",
+  "GetCredentialState",
+  "ClearEphemeralCredentials",
+  "RawSigaaPayload",
+  "NormalizedSnapshot",
+  "StoreEncryptedSnapshot",
+  "WipeLocalVault",
+];
+
+export const pageBridgeMessageKinds = [
+  "RequestSync",
   "RawSigaaPayload",
   "NormalizedSnapshot",
   "StoreEncryptedSnapshot",

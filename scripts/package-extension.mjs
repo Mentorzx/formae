@@ -34,6 +34,7 @@ export async function packageExtension({
   await copyOptionalFile(join(extensionRoot, "README.md"), join(packageRoot, "README.md"));
   await copyOptionalFile(join(extensionRoot, "package.json"), join(packageRoot, "package.json"));
   await copyTree(join(extensionRoot, "src"), join(packageRoot, "src"));
+  const packageFiles = await listFiles(packageRoot);
   await writeMetadata({
     manifest,
     repoRoot: providedRepoRoot,
@@ -41,6 +42,7 @@ export async function packageExtension({
     packageRoot,
     archivePath,
     checksumPath,
+    files: packageFiles,
   });
 
   const fileList = await listFiles(packageRoot);
@@ -153,6 +155,7 @@ async function writeMetadata({
   packageRoot,
   archivePath,
   checksumPath,
+  files,
 }) {
   const metadata = {
     name: manifest.name,
@@ -164,6 +167,7 @@ async function writeMetadata({
       archive: relative(providedRepoRoot, resolve(archivePath)),
       checksum: relative(providedRepoRoot, resolve(checksumPath)),
     },
+    files,
     runtimeTargets: ["chrome", "firefox"],
     permissions: manifest.permissions ?? [],
     browserSpecificSettings: manifest.browser_specific_settings ?? null,

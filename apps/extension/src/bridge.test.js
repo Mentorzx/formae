@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   createBridgeEnvelope,
   createRawSigaaPayloadMessage,
+  createSetEphemeralCredentialsMessage,
   isBridgeMessage,
 } from "./bridge.js";
 
@@ -33,4 +34,15 @@ test("isBridgeMessage validates bridge payloads", () => {
     true,
   );
   assert.equal(isBridgeMessage({ kind: "Nope" }), false);
+});
+
+test("creates internal credential envelopes for extension pages", () => {
+  const envelope = createSetEphemeralCredentialsMessage({
+    syncSessionId: "sync-2",
+    usernameOrCpf: "08800261540",
+    password: "secret",
+  });
+
+  assert.equal(envelope.kind, "SetEphemeralCredentials");
+  assert.equal(envelope.payload.usernameOrCpf, "08800261540");
 });

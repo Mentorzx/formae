@@ -4,7 +4,8 @@
   "version": "0.1.0",
   "description": "Local-only SIGAA sync scaffold for Formae with bridge contracts and DOM extraction placeholders.",
   "action": {
-    "default_title": "Formae SIGAA Sync"
+    "default_title": "Formae SIGAA Sync",
+    "default_popup": "src/popup.html"
   },
   "browser_specific_settings": {
     "gecko": {
@@ -16,16 +17,14 @@
     "service_worker": "src/background.js",
     "type": "module"
   },
-  "permissions": ["scripting", "storage", "tabs"],
+  "permissions": ["scripting", "tabs"],
   "host_permissions": [
     "https://sigaa.ufba.br/*",
-    "http://localhost:*/*",
     "https://*.github.io/*"
   ],
   "externally_connectable": {
     "matches": [
       "https://sigaa.ufba.br/*",
-      "http://localhost:*/*",
       "https://*.github.io/*"
     ]
   },
@@ -33,7 +32,6 @@
     {
       "matches": [
         "https://sigaa.ufba.br/*",
-        "http://localhost:*/*",
         "https://*.github.io/*"
       ],
       "js": ["src/content-script.js"],

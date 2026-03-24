@@ -4,12 +4,13 @@ Extensao MV3 para sincronizacao local com o SIGAA. O foco continua sendo manter 
 
 ## O que existe agora
 
-- `manifest.json` com permissões reduzidas para `storage` e `tabs`
+- `manifest.json` com permissões reduzidas para `scripting` e `tabs`
 - `browser_specific_settings.gecko` para carga em Firefox compatível com MV3
+- `src/popup.html` como UI de credenciais efêmeras controlada pela extensão
 - `src/background.js` como service worker de coordenacao
 - `src/content-script.js` como relay `window.postMessage -> runtime message`
 - `src/bridge.js` com os kinds de mensagens do protocolo
-- `src/login-session.js` com sessao efemera em memoria
+- `src/credential-store.js` e `src/login-session.js` com sessao efemera em memoria
 - `src/dom-contract.js` com contrato de seletores e classificacao de pagina
 - `src/page-bridge.js` com helpers para a ponte de pagina
 - `src/sigaa-sync.js` com o runtime automatico que autentica localmente e captura `Minhas Turmas` e `Minhas Notas`
@@ -17,17 +18,19 @@ Extensao MV3 para sincronizacao local com o SIGAA. O foco continua sendo manter 
 
 ## Como a extensao conversa com a web app
 
-1. A PWA envia `ProvideEphemeralCredentials` via `window.postMessage`.
-2. O content script recebe o envelope e repassa a mensagem para o service worker.
-3. O background guarda a sessao apenas em memoria e executa `RequestSync`.
-4. O runtime abre abas locais do SIGAA, autentica, captura as views esperadas e devolve um `RawSigaaPayload`.
-5. A PWA reaproveita o pipeline local de normalizacao e sela o bundle no vault do navegador.
+1. A pessoa abre a popup da extensão e salva CPF/usuário e senha.
+2. O background guarda a sessão apenas em memória e expõe um estado resumido sem senha.
+3. A PWA envia apenas `RequestSync` via `window.postMessage`.
+4. O content script recebe o envelope e o repassa para o service worker.
+5. O runtime abre abas locais do SIGAA, autentica, captura as views esperadas e devolve um `RawSigaaPayload`.
+6. Depois do sync a sessão efêmera é consumida e removida da memória.
 
 ## Firefox e Chrome
 
 - O manifesto inclui `browser_specific_settings` para Firefox.
 - O codigo prefere `globalThis.browser ?? globalThis.chrome`, entao funciona nos dois runtimes sem mudar o contrato de mensagens.
 - O suporte em Firefox depende da disponibilidade de MV3/service worker na versao instalada. Para distribuicao publica, a assinatura do addon continua sendo requisito.
+- A UI da popup não depende de APIs específicas de Chrome para a camada de credenciais.
 
 ## Empacotamento e release
 
@@ -48,7 +51,8 @@ Esses artefatos sao os que o workflow de GitHub Releases publica.
 ## Convenções
 
 - Credenciais do SIGAA nunca sao persistidas em disco.
-- `ProvideEphemeralCredentials` existe apenas para sessao em memoria.
+- `SetEphemeralCredentials`, `GetCredentialState` e `ClearEphemeralCredentials` existem apenas para a sessão em memória da extensão.
+- `ProvideEphemeralCredentials` fica como compatibilidade interna, mas nao é aceito pela ponte da pagina.
 - `NormalizedSnapshot` e `StoreEncryptedSnapshot` continuam como contratos da proxima etapa da integracao.
 - `SIGAA_SELECTOR_VERSION` em `src/constants.js` marca o conjunto de seletores testado nesta fase.
 

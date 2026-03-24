@@ -36,6 +36,18 @@ export function createProvideEphemeralCredentialsMessage(payload) {
   return createBridgeEnvelope("ProvideEphemeralCredentials", payload);
 }
 
+export function createSetEphemeralCredentialsMessage(payload) {
+  return createBridgeEnvelope("SetEphemeralCredentials", payload);
+}
+
+export function createGetCredentialStateMessage(payload) {
+  return createBridgeEnvelope("GetCredentialState", payload);
+}
+
+export function createClearEphemeralCredentialsMessage(payload) {
+  return createBridgeEnvelope("ClearEphemeralCredentials", payload);
+}
+
 export function createRawSigaaPayloadMessage(payload) {
   return createBridgeEnvelope("RawSigaaPayload", payload);
 }

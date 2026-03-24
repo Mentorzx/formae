@@ -24,5 +24,6 @@ test("packageExtension stages files and produces zip plus sha256", async () => {
   assert.ok(archiveStats.size > 0);
   assert.ok(checksumStats.size > 0);
   assert.equal(metadata.runtimeTargets.includes("firefox"), true);
+  assert.ok(metadata.files.includes("src/popup.html"));
   assert.match(archiveChecksum, /formae-extension-0\.1\.0\.zip/);
 });
