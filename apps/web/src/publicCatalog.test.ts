@@ -1,9 +1,9 @@
 import {
   findBestCurriculumSeed,
   publicCatalogProvenance,
-  publicCatalogSummary,
   publicCatalogSnapshot,
   publicCatalogSourceCoverage,
+  publicCatalogSummary,
   rankCurriculumSeeds,
   resolveCurriculumSeed,
 } from "./publicCatalog";

@@ -8,6 +8,23 @@ vi.mock("./localStudentSnapshot", () => ({
   })),
 }));
 
+vi.mock("./manualSnapshotStore", () => ({
+  loadManualImportVaultPasskeyState: vi.fn(async () => ({
+    supported: true,
+    supportReason: null,
+    configured: false,
+    sessionStatus: "not-configured",
+    displayName: null,
+    rpId: null,
+    createdAt: null,
+    lastVerifiedAt: null,
+  })),
+  unlockManualImportVaultPasskey: vi.fn(),
+  lockManualImportVaultSession: vi.fn(),
+  disableManualImportVaultPasskey: vi.fn(),
+  isVaultLockedError: vi.fn(() => false),
+}));
+
 import App from "./App";
 
 describe("App", () => {

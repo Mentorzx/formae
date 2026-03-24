@@ -16,9 +16,10 @@
     "service_worker": "src/background.js",
     "type": "module"
   },
-  "permissions": ["storage", "tabs"],
+  "permissions": ["scripting", "storage", "tabs"],
   "host_permissions": [
     "https://sigaa.ufba.br/*",
+    "http://localhost:*/*",
     "https://*.github.io/*"
   ],
   "externally_connectable": {

@@ -4,6 +4,7 @@ import {
   createTab,
   executeScript,
   getTab,
+  queryTabs,
   removeTab,
 } from "./runtime.js";
 
@@ -184,6 +185,7 @@ async function captureSigaaView({
     url: SIGAA_LOGIN_URL,
     active: false,
   });
+  const trackedTabIds = new Set([tab.id].filter(Boolean));
 
   try {
     await waitForTabComplete(tab.id, timeoutMs);
@@ -207,9 +209,14 @@ async function captureSigaaView({
 
     const portalProfile = await executeTabScript(tab.id, capturePortalProfileInPage);
 
-    const actionResult = await executeTabScript(tab.id, submitPortalActionInPage, {
-      portalActionId,
-    });
+    const knownSigaaTabIds = await listSigaaTabIds();
+    const actionResult = await executeTabScript(
+      tab.id,
+      submitPortalActionInPage,
+      {
+        portalActionId,
+      },
+    );
 
     if (!actionResult?.submitted) {
       throw new Error(
@@ -217,22 +224,40 @@ async function captureSigaaView({
       );
     }
 
-    const pageState = await waitForPageText(tab.id, expectedPattern, timeoutMs);
-    const captured = await executeTabScript(tab.id, captureVisibleTextInPage, {
-      label,
+    const captureTabId = await resolveCaptureTabId({
+      defaultTabId: tab.id,
+      knownSigaaTabIds,
+      timeoutMs,
     });
+    trackedTabIds.add(captureTabId);
 
-    if (!captured?.text) {
+    const pageState = await waitForPageText(
+      captureTabId,
+      expectedPattern,
+      timeoutMs,
+    );
+    const captured = await executeTabScript(
+      captureTabId,
+      captureVisibleTextInPage,
+      {
+        label,
+      },
+    );
+    const capturedText = captured?.text?.trim() ? captured.text : pageState.text;
+
+    if (!capturedText) {
       throw new Error(`SIGAA view ${label} returned an empty body.`);
     }
 
     return {
       portalProfile,
-      currentUrl: captured.currentUrl ?? pageState.currentUrl,
-      text: captured.text,
+      currentUrl: captured?.currentUrl ?? pageState.currentUrl,
+      text: capturedText,
     };
   } finally {
-    await closeTab(tab.id);
+    for (const trackedTabId of trackedTabIds) {
+      await closeTab(trackedTabId);
+    }
   }
 }
 
@@ -299,6 +324,40 @@ async function waitForAuthenticatedPortal(tabId, timeoutMs) {
   throw new Error(
     "The SIGAA mobile portal did not confirm an authenticated session.",
   );
+}
+
+async function resolveCaptureTabId({
+  defaultTabId,
+  knownSigaaTabIds,
+  timeoutMs,
+}) {
+  const deadline = Date.now() + Math.min(timeoutMs, 10_000);
+
+  while (Date.now() < deadline) {
+    const currentSigaaTabIds = await listSigaaTabIds();
+    const popupTabId = currentSigaaTabIds.find(
+      (tabId) => !knownSigaaTabIds.includes(tabId),
+    );
+
+    if (popupTabId) {
+      return popupTabId;
+    }
+
+    await sleep(250);
+  }
+
+  return defaultTabId;
+}
+
+async function listSigaaTabIds() {
+  const tabs = await queryTabs({}).catch(() => []);
+
+  return tabs
+    .filter((tab) => {
+      const url = `${tab.url ?? tab.pendingUrl ?? ""}`;
+      return typeof tab.id === "number" && url.includes("sigaa.ufba.br");
+    })
+    .map((tab) => tab.id);
 }
 
 async function executeTabScript(tabId, func, arg) {
@@ -444,11 +503,6 @@ function submitPortalActionInPage(input) {
     };
   }
 
-  if (control instanceof HTMLElement) {
-    control.click();
-    return { submitted: true };
-  }
-
   if (submitter) {
     submitter(
       form,
@@ -458,6 +512,11 @@ function submitPortalActionInPage(input) {
       "",
     );
 
+    return { submitted: true };
+  }
+
+  if (control instanceof HTMLElement) {
+    control.click();
     return { submitted: true };
   }
 

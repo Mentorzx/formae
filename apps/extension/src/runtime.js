@@ -91,6 +91,28 @@ export function removeTab(tabId) {
   return Promise.reject(new Error("Extension tabs API is unavailable."));
 }
 
+export function queryTabs(queryInfo = {}) {
+  if (browserApi?.tabs?.query) {
+    return browserApi.tabs.query(queryInfo);
+  }
+
+  if (chromeApi?.tabs?.query) {
+    return new Promise((resolve, reject) => {
+      chromeApi.tabs.query(queryInfo, (tabs) => {
+        const lastError = chromeApi.runtime.lastError;
+        if (lastError) {
+          reject(new Error(lastError.message));
+          return;
+        }
+
+        resolve(tabs ?? []);
+      });
+    });
+  }
+
+  return Promise.reject(new Error("Extension tabs API is unavailable."));
+}
+
 export function executeScript(details) {
   if (browserApi?.scripting?.executeScript) {
     return browserApi.scripting.executeScript(details);

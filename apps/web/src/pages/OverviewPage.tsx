@@ -5,6 +5,7 @@ import type {
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Metric } from "../components/Metric";
+import { VaultPasskeyPanel } from "../components/VaultPasskeyPanel";
 import {
   messageKinds,
   milestones,
@@ -15,6 +16,14 @@ import {
   type LocalStudentSnapshotSource,
   loadLatestProjectedStudentSnapshot,
 } from "../localStudentSnapshot";
+import {
+  disableManualImportVaultPasskey,
+  isVaultLockedError,
+  loadManualImportVaultPasskeyState,
+  lockManualImportVaultSession,
+  type ManualImportVaultPasskeyState,
+  unlockManualImportVaultPasskey,
+} from "../manualSnapshotStore";
 import {
   type CurriculumSeedResolutionConfidence,
   type CurriculumSeedSelectionMode,
@@ -30,6 +39,7 @@ import {
 } from "../studentProgress";
 
 type OverviewStatus = "loading" | "ready" | "error";
+type VaultPasskeyActionStatus = "idle" | "working" | "success" | "error";
 
 interface OverviewState {
   status: OverviewStatus;
@@ -47,40 +57,78 @@ export function OverviewPage() {
     summary: null,
     errorMessage: null,
   });
+  const [vaultPasskeyState, setVaultPasskeyState] =
+    useState<ManualImportVaultPasskeyState | null>(null);
+  const [vaultPasskeyActionStatus, setVaultPasskeyActionStatus] =
+    useState<VaultPasskeyActionStatus>("idle");
+  const [vaultPasskeyMessage, setVaultPasskeyMessage] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     let cancelled = false;
 
-    void loadLatestProjectedStudentSnapshot()
-      .then(({ bundle, source }) => {
-        if (cancelled) {
-          return;
-        }
+    void (async () => {
+      const nextVaultPasskeyState = await loadManualImportVaultPasskeyState();
 
+      if (cancelled) {
+        return;
+      }
+
+      setVaultPasskeyState(nextVaultPasskeyState);
+      setVaultPasskeyMessage(null);
+
+      if (nextVaultPasskeyState.sessionStatus === "locked") {
         setOverviewState({
           status: "ready",
-          bundle,
-          bundleSource: source,
-          summary: bundle ? summarizeStudentProgress(bundle) : null,
-          errorMessage: null,
-        });
-      })
-      .catch((error: unknown) => {
-        if (cancelled) {
-          return;
-        }
-
-        setOverviewState({
-          status: "error",
           bundle: null,
           bundleSource: "none",
           summary: null,
-          errorMessage:
-            error instanceof Error
-              ? error.message
-              : "Falha ao carregar o snapshot local do navegador.",
+          errorMessage: null,
         });
+        return;
+      }
+
+      const { bundle, source } = await loadLatestProjectedStudentSnapshot();
+
+      if (cancelled) {
+        return;
+      }
+
+      setOverviewState({
+        status: "ready",
+        bundle,
+        bundleSource: source,
+        summary: bundle ? summarizeStudentProgress(bundle) : null,
+        errorMessage: null,
       });
+    })().catch((error: unknown) => {
+      if (cancelled) {
+        return;
+      }
+
+      if (isVaultLockedError(error)) {
+        setOverviewState({
+          status: "ready",
+          bundle: null,
+          bundleSource: "none",
+          summary: null,
+          errorMessage: null,
+        });
+        return;
+      }
+
+      setOverviewState({
+        status: "error",
+        bundle: null,
+        bundleSource: "none",
+        summary: null,
+        errorMessage:
+          error instanceof Error
+            ? error.message
+            : "Falha ao carregar o snapshot local do navegador.",
+      });
+    });
 
     return () => {
       cancelled = true;
@@ -92,6 +140,95 @@ export function OverviewPage() {
         overviewState.bundle.manualImport.preferredCurriculumSeedId ?? null,
       )
     : null;
+
+  async function handleUnlockVaultPasskey() {
+    setVaultPasskeyActionStatus("working");
+    setVaultPasskeyMessage(null);
+
+    try {
+      const nextVaultPasskeyState = await unlockManualImportVaultPasskey();
+      const { bundle, source } = await loadLatestProjectedStudentSnapshot();
+
+      setVaultPasskeyState(nextVaultPasskeyState);
+      setOverviewState({
+        status: "ready",
+        bundle,
+        bundleSource: source,
+        summary: bundle ? summarizeStudentProgress(bundle) : null,
+        errorMessage: null,
+      });
+      setVaultPasskeyActionStatus("success");
+      setVaultPasskeyMessage(
+        "Vault local desbloqueado por passkey nesta sessao.",
+      );
+    } catch (error: unknown) {
+      setVaultPasskeyActionStatus("error");
+      setVaultPasskeyMessage(
+        error instanceof Error
+          ? error.message
+          : "Falha ao desbloquear o vault local.",
+      );
+    }
+  }
+
+  async function handleLockVaultSession() {
+    setVaultPasskeyActionStatus("working");
+    setVaultPasskeyMessage(null);
+
+    try {
+      const nextVaultPasskeyState = await lockManualImportVaultSession();
+
+      setVaultPasskeyState(nextVaultPasskeyState);
+      setOverviewState({
+        status: "ready",
+        bundle: null,
+        bundleSource: "none",
+        summary: null,
+        errorMessage: null,
+      });
+      setVaultPasskeyActionStatus("success");
+      setVaultPasskeyMessage(
+        "Sessao do vault bloqueada. Um novo unlock por passkey sera exigido.",
+      );
+    } catch (error: unknown) {
+      setVaultPasskeyActionStatus("error");
+      setVaultPasskeyMessage(
+        error instanceof Error
+          ? error.message
+          : "Falha ao bloquear a sessao local do vault.",
+      );
+    }
+  }
+
+  async function handleDisableVaultPasskey() {
+    setVaultPasskeyActionStatus("working");
+    setVaultPasskeyMessage(null);
+
+    try {
+      const nextVaultPasskeyState = await disableManualImportVaultPasskey();
+      const { bundle, source } = await loadLatestProjectedStudentSnapshot();
+
+      setVaultPasskeyState(nextVaultPasskeyState);
+      setOverviewState({
+        status: "ready",
+        bundle,
+        bundleSource: source,
+        summary: bundle ? summarizeStudentProgress(bundle) : null,
+        errorMessage: null,
+      });
+      setVaultPasskeyActionStatus("success");
+      setVaultPasskeyMessage(
+        "Passkey desativada. O vault volta a depender apenas da chave local do navegador.",
+      );
+    } catch (error: unknown) {
+      setVaultPasskeyActionStatus("error");
+      setVaultPasskeyMessage(
+        error instanceof Error
+          ? error.message
+          : "Falha ao desativar a passkey do vault.",
+      );
+    }
+  }
 
   return (
     <div className="page-grid">
@@ -146,7 +283,15 @@ export function OverviewPage() {
         ) : null}
       </section>
 
-      <OverviewSnapshotPanel overviewState={overviewState} />
+      <OverviewSnapshotPanel
+        overviewState={overviewState}
+        vaultPasskeyState={vaultPasskeyState}
+        vaultPasskeyActionStatus={vaultPasskeyActionStatus}
+        vaultPasskeyMessage={vaultPasskeyMessage}
+        onUnlockVaultPasskey={() => void handleUnlockVaultPasskey()}
+        onLockVaultSession={() => void handleLockVaultSession()}
+        onDisableVaultPasskey={() => void handleDisableVaultPasskey()}
+      />
 
       {overviewState.summary ? (
         <>
@@ -462,8 +607,20 @@ export function OverviewPage() {
 
 function OverviewSnapshotPanel({
   overviewState,
+  vaultPasskeyState,
+  vaultPasskeyActionStatus,
+  vaultPasskeyMessage,
+  onUnlockVaultPasskey,
+  onLockVaultSession,
+  onDisableVaultPasskey,
 }: {
   overviewState: OverviewState;
+  vaultPasskeyState: ManualImportVaultPasskeyState | null;
+  vaultPasskeyActionStatus: VaultPasskeyActionStatus;
+  vaultPasskeyMessage: string | null;
+  onUnlockVaultPasskey: () => void;
+  onLockVaultSession: () => void;
+  onDisableVaultPasskey: () => void;
 }) {
   if (overviewState.status === "loading") {
     return (
@@ -481,6 +638,35 @@ function OverviewSnapshotPanel({
         <p className="status-banner status-banner-error">
           {overviewState.errorMessage ??
             "Falha ao ler o snapshot local do navegador."}
+        </p>
+      </section>
+    );
+  }
+
+  if (vaultPasskeyState?.sessionStatus === "locked") {
+    return (
+      <section className="panel accent-panel">
+        <p className="section-label">Vault local bloqueado</p>
+        <h3>Desbloqueie o snapshot salvo com a passkey local</h3>
+        <p>
+          O bundle local ja existe neste navegador, mas a sessao atual exige
+          verificacao local antes de ler componentes, horarios e pendencias.
+        </p>
+        <VaultPasskeyPanel
+          passkeyState={vaultPasskeyState}
+          actionStatus={vaultPasskeyActionStatus}
+          message={vaultPasskeyMessage}
+          onEnable={() => {}}
+          onUnlock={onUnlockVaultPasskey}
+          onLock={onLockVaultSession}
+          onDisable={onDisableVaultPasskey}
+        />
+        <p>
+          Se preferir ajustar isso na tela de importacao, abra a{" "}
+          <Link className="inline-link" to="/importacao">
+            area de importacao
+          </Link>
+          .
         </p>
       </section>
     );

@@ -2,15 +2,26 @@ import type {
   LocalStudentSnapshotBundle,
   ManualImportStoredSnapshot,
 } from "@formae/protocol";
+import {
+  clearVaultPasskeySession,
+  createVaultPasskeyCredential,
+  defaultVaultPasskeyLabel,
+  getVaultPasskeySupportReason,
+  isVaultPasskeySessionUnlocked,
+  type VaultPasskeyCredentialConfig,
+  verifyVaultPasskeyCredential,
+} from "./vaultPasskey";
 
 const DATABASE_NAME = "formae-local";
-const DATABASE_VERSION = 2;
+const DATABASE_VERSION = 3;
 const LEGACY_STORE_NAME = "manual-import-snapshots";
 const VAULT_STATE_STORE_NAME = "vault-state";
 const VAULT_RECORD_STORE_NAME = "vault-records";
 const VAULT_KEY_STORE_NAME = "vault-keys";
+const VAULT_PASSKEY_STORE_NAME = "vault-passkey";
 const ACTIVE_VAULT_STATE_KEY = "active";
 const LATEST_SNAPSHOT_KEY = "latest";
+const ACTIVE_VAULT_PASSKEY_KEY = "active";
 const DEVICE_LOCAL_KEY_ID = "device-local-v1";
 const CURRENT_VAULT_STORAGE_VERSION = 3;
 const textEncoder = new TextEncoder();
@@ -26,6 +37,11 @@ export type ManualImportVaultWipeReason =
   | "logout"
   | "legacy-migration";
 export type ManualImportVaultMigrationSource = "legacy-cleartext-store";
+export type ManualImportVaultPasskeySessionStatus =
+  | "unsupported"
+  | "not-configured"
+  | "locked"
+  | "unlocked";
 
 export interface ManualImportVaultState {
   schemaVersion: 1;
@@ -40,6 +56,17 @@ export interface ManualImportVaultState {
   migrationSource: ManualImportVaultMigrationSource | null;
 }
 
+export interface ManualImportVaultPasskeyState {
+  supported: boolean;
+  supportReason: string | null;
+  configured: boolean;
+  sessionStatus: ManualImportVaultPasskeySessionStatus;
+  displayName: string | null;
+  rpId: string | null;
+  createdAt: string | null;
+  lastVerifiedAt: string | null;
+}
+
 interface ManualImportVaultRecord {
   schemaVersion: 1;
   payloadKind: VaultPayloadKind;
@@ -52,9 +79,23 @@ interface ManualImportVaultRecord {
   updatedAt: string;
 }
 
+export class VaultLockedError extends Error {
+  constructor() {
+    super(
+      "O vault local esta bloqueado por passkey. Desbloqueie a sessao antes de acessar ou alterar os snapshots.",
+    );
+    this.name = "VaultLockedError";
+  }
+}
+
+export function isVaultLockedError(error: unknown): error is VaultLockedError {
+  return error instanceof VaultLockedError;
+}
+
 export async function loadLatestManualImportSnapshot(): Promise<ManualImportStoredSnapshot | null> {
   const database = await openManualSnapshotDatabase();
   await migrateLegacySnapshotIfNeeded(database);
+  await assertVaultUnlockedIfRequired(database);
 
   const vaultRecord = await readVaultRecord(database);
 
@@ -86,6 +127,7 @@ export async function saveLatestManualImportSnapshot(
   snapshot: ManualImportStoredSnapshot,
 ): Promise<ManualImportVaultState> {
   const database = await openManualSnapshotDatabase();
+  await assertVaultUnlockedIfRequired(database);
   const { key, keyId } = await ensureDeviceLocalKey(database);
   const vaultRecord = await sealManualImportSnapshotForVault(
     snapshot,
@@ -102,6 +144,7 @@ export async function saveLatestManualImportSnapshot(
 export async function loadLatestLocalStudentSnapshotBundle(): Promise<LocalStudentSnapshotBundle | null> {
   const database = await openManualSnapshotDatabase();
   await migrateLegacySnapshotIfNeeded(database);
+  await assertVaultUnlockedIfRequired(database);
 
   const vaultRecord = await readVaultRecord(database);
 
@@ -127,6 +170,7 @@ export async function saveLatestLocalStudentSnapshotBundle(
   bundle: LocalStudentSnapshotBundle,
 ): Promise<ManualImportVaultState> {
   const database = await openManualSnapshotDatabase();
+  await assertVaultUnlockedIfRequired(database);
   const { key, keyId } = await ensureDeviceLocalKey(database);
   const vaultRecord = await sealLocalStudentSnapshotBundleForVault(
     bundle,
@@ -144,6 +188,7 @@ export async function clearLatestManualImportSnapshot(
   reason: ManualImportVaultWipeReason = "manual-clear",
 ): Promise<ManualImportVaultState> {
   const database = await openManualSnapshotDatabase();
+  await assertVaultUnlockedIfRequired(database);
   const wipedAt = new Date().toISOString();
   const vaultState = buildEmptyVaultState({
     lastWipeAt: wipedAt,
@@ -160,6 +205,57 @@ export async function loadManualImportVaultState(): Promise<ManualImportVaultSta
   await migrateLegacySnapshotIfNeeded(database);
 
   return (await readVaultState(database)) ?? buildEmptyVaultState();
+}
+
+export async function loadManualImportVaultPasskeyState(): Promise<ManualImportVaultPasskeyState> {
+  const database = await openManualSnapshotDatabase();
+  const config = await readVaultPasskeyConfig(database);
+
+  return buildManualImportVaultPasskeyState(config);
+}
+
+export async function enableManualImportVaultPasskey(
+  displayName = defaultVaultPasskeyLabel(),
+): Promise<ManualImportVaultPasskeyState> {
+  const database = await openManualSnapshotDatabase();
+  const config = await createVaultPasskeyCredential(displayName);
+
+  await writeVaultPasskeyConfig(database, config);
+
+  return buildManualImportVaultPasskeyState(config);
+}
+
+export async function unlockManualImportVaultPasskey(): Promise<ManualImportVaultPasskeyState> {
+  const database = await openManualSnapshotDatabase();
+  const config = await readVaultPasskeyConfig(database);
+
+  if (!config) {
+    return buildManualImportVaultPasskeyState(null);
+  }
+
+  const verifiedConfig = await verifyVaultPasskeyCredential(config);
+  await writeVaultPasskeyConfig(database, verifiedConfig);
+
+  return buildManualImportVaultPasskeyState(verifiedConfig);
+}
+
+export async function lockManualImportVaultSession(): Promise<ManualImportVaultPasskeyState> {
+  const database = await openManualSnapshotDatabase();
+  const config = await readVaultPasskeyConfig(database);
+
+  clearVaultPasskeySession();
+
+  return buildManualImportVaultPasskeyState(config);
+}
+
+export async function disableManualImportVaultPasskey(): Promise<ManualImportVaultPasskeyState> {
+  const database = await openManualSnapshotDatabase();
+  await assertVaultUnlockedIfRequired(database);
+
+  clearVaultPasskeySession();
+  await deleteVaultPasskeyConfig(database);
+
+  return buildManualImportVaultPasskeyState(null);
 }
 
 export async function sealManualImportSnapshotForVault(
@@ -321,6 +417,7 @@ function normalizeManualImportStoredSnapshot(
   return {
     ...snapshot,
     preferredCurriculumSeedId: snapshot.preferredCurriculumSeedId ?? null,
+    structuredContext: snapshot.structuredContext ?? null,
   };
 }
 
@@ -416,6 +513,20 @@ async function decryptJsonPayload<TPayload>(
   return JSON.parse(textDecoder.decode(plaintextBuffer)) as TPayload;
 }
 
+async function assertVaultUnlockedIfRequired(
+  database: IDBDatabase,
+): Promise<void> {
+  const config = await readVaultPasskeyConfig(database);
+
+  if (!config) {
+    return;
+  }
+
+  if (!isVaultPasskeySessionUnlocked(config)) {
+    throw new VaultLockedError();
+  }
+}
+
 async function readLegacySnapshot(
   database: IDBDatabase,
 ): Promise<ManualImportStoredSnapshot | null> {
@@ -505,6 +616,34 @@ async function readVaultKey(
   });
 }
 
+async function readVaultPasskeyConfig(
+  database: IDBDatabase,
+): Promise<VaultPasskeyCredentialConfig | null> {
+  if (!database.objectStoreNames.contains(VAULT_PASSKEY_STORE_NAME)) {
+    return null;
+  }
+
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(
+      VAULT_PASSKEY_STORE_NAME,
+      "readonly",
+    );
+    const store = transaction.objectStore(VAULT_PASSKEY_STORE_NAME);
+    const request = store.get(ACTIVE_VAULT_PASSKEY_KEY);
+
+    request.onsuccess = () => {
+      resolve(
+        (request.result as VaultPasskeyCredentialConfig | undefined) ?? null,
+      );
+    };
+    request.onerror = () => {
+      reject(
+        request.error ?? new Error("Failed to read the local vault passkey."),
+      );
+    };
+  });
+}
+
 async function writeVaultKey(
   database: IDBDatabase,
   keyId: string,
@@ -523,6 +662,55 @@ async function writeVaultKey(
 
     const store = transaction.objectStore(VAULT_KEY_STORE_NAME);
     store.put(encryptionKey, keyId);
+  });
+}
+
+async function writeVaultPasskeyConfig(
+  database: IDBDatabase,
+  config: VaultPasskeyCredentialConfig,
+): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction(
+      VAULT_PASSKEY_STORE_NAME,
+      "readwrite",
+    );
+
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => {
+      reject(
+        requestError(transaction) ??
+          new Error("Failed to persist the local vault passkey."),
+      );
+    };
+
+    transaction
+      .objectStore(VAULT_PASSKEY_STORE_NAME)
+      .put(config, ACTIVE_VAULT_PASSKEY_KEY);
+  });
+}
+
+async function deleteVaultPasskeyConfig(database: IDBDatabase): Promise<void> {
+  if (!database.objectStoreNames.contains(VAULT_PASSKEY_STORE_NAME)) {
+    return;
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction(
+      VAULT_PASSKEY_STORE_NAME,
+      "readwrite",
+    );
+
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => {
+      reject(
+        requestError(transaction) ??
+          new Error("Failed to clear the local vault passkey."),
+      );
+    };
+
+    transaction
+      .objectStore(VAULT_PASSKEY_STORE_NAME)
+      .delete(ACTIVE_VAULT_PASSKEY_KEY);
   });
 }
 
@@ -657,6 +845,10 @@ async function openManualSnapshotDatabase(): Promise<IDBDatabase> {
       if (!database.objectStoreNames.contains(VAULT_KEY_STORE_NAME)) {
         database.createObjectStore(VAULT_KEY_STORE_NAME);
       }
+
+      if (!database.objectStoreNames.contains(VAULT_PASSKEY_STORE_NAME)) {
+        database.createObjectStore(VAULT_PASSKEY_STORE_NAME);
+      }
     };
 
     request.onsuccess = () => resolve(request.result);
@@ -698,4 +890,38 @@ function assertSubtleCrypto(): void {
   if (!("crypto" in globalThis) || !("subtle" in globalThis.crypto)) {
     throw new Error("Web Crypto is unavailable in this browser.");
   }
+}
+
+function buildManualImportVaultPasskeyState(
+  config: VaultPasskeyCredentialConfig | null,
+): ManualImportVaultPasskeyState {
+  const supportReason = getVaultPasskeySupportReason();
+  const supported = supportReason === null;
+
+  if (!config) {
+    return {
+      supported,
+      supportReason,
+      configured: false,
+      sessionStatus: supported ? "not-configured" : "unsupported",
+      displayName: null,
+      rpId: null,
+      createdAt: null,
+      lastVerifiedAt: null,
+    };
+  }
+
+  return {
+    supported,
+    supportReason,
+    configured: true,
+    sessionStatus:
+      supported && isVaultPasskeySessionUnlocked(config)
+        ? "unlocked"
+        : "locked",
+    displayName: config.displayName,
+    rpId: config.rpId,
+    createdAt: config.createdAt,
+    lastVerifiedAt: config.lastVerifiedAt,
+  };
 }

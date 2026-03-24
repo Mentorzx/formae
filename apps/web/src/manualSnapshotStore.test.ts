@@ -24,6 +24,7 @@ describe("manualSnapshotStore vault helpers", () => {
       preferredCurriculumSeedId: null,
       matchedCatalogComponentCodes: ["MATA37"],
       previewWarnings: [],
+      structuredContext: null,
       normalizedSchedules: [
         {
           inputCode: "35N12",
@@ -78,6 +79,7 @@ describe("manualSnapshotStore vault helpers", () => {
         preferredCurriculumSeedId: null,
         matchedCatalogComponentCodes: ["MATA37"],
         previewWarnings: [],
+        structuredContext: null,
         normalizedSchedules: [],
       },
       studentSnapshot: {

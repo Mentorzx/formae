@@ -1,5 +1,14 @@
-import { EXTENSION_BRIDGE_SOURCE, PAGE_BRIDGE_SOURCE } from "./page-bridge.js";
-import { sendRuntimeMessage } from "./runtime.js";
+const PAGE_BRIDGE_SOURCE = "formae-web-page";
+const EXTENSION_BRIDGE_SOURCE = "formae-extension";
+const BRIDGE_KINDS = new Set([
+  "RequestSync",
+  "ProvideEphemeralCredentials",
+  "RawSigaaPayload",
+  "NormalizedSnapshot",
+  "StoreEncryptedSnapshot",
+  "WipeLocalVault",
+]);
+const extensionApi = globalThis.browser ?? globalThis.chrome ?? null;
 
 bootstrapContentScript();
 
@@ -26,15 +35,6 @@ function bootstrapContentScript() {
   return cleanup;
 }
 
-const BRIDGE_KINDS = new Set([
-  "RequestSync",
-  "ProvideEphemeralCredentials",
-  "RawSigaaPayload",
-  "NormalizedSnapshot",
-  "StoreEncryptedSnapshot",
-  "WipeLocalVault",
-]);
-
 function installPageBridgeRelay(onMessage) {
   if (typeof window === "undefined") {
     return () => {};
@@ -51,6 +51,28 @@ function installPageBridgeRelay(onMessage) {
   window.addEventListener("message", listener);
 
   return () => window.removeEventListener("message", listener);
+}
+
+function sendRuntimeMessage(message) {
+  if (extensionApi?.runtime?.sendMessage && extensionApi === globalThis.browser) {
+    return extensionApi.runtime.sendMessage(message);
+  }
+
+  if (extensionApi?.runtime?.sendMessage) {
+    return new Promise((resolve, reject) => {
+      extensionApi.runtime.sendMessage(message, (response) => {
+        const lastError = extensionApi.runtime.lastError;
+        if (lastError) {
+          reject(new Error(lastError.message));
+          return;
+        }
+
+        resolve(response);
+      });
+    });
+  }
+
+  return Promise.reject(new Error("Extension runtime is unavailable."));
 }
 
 function isPageBridgeRequest(value) {

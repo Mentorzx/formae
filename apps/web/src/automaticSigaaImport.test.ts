@@ -70,6 +70,7 @@ describe("buildAutomaticSigaaSyncBundle", () => {
     });
 
     expect(result.bundle.manualImport.source).toBe("sigaa-html");
+    expect(result.bundle.source).toBe("automatic-sigaa-sync");
     expect(result.bundle.manualImport.detectedComponentCodes).toContain(
       "ENGC63",
     );

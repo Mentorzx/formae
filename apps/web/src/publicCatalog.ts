@@ -202,7 +202,8 @@ export const publicCatalogSummary = {
   shortcutCount: publicCatalog.documentShortcuts.length,
   snapshotSourceCount: publicCatalogSnapshot.sources.length,
   snapshotPageCount: publicCatalogSnapshot.pages.length,
-  snapshotFixtureBackedPageCount: publicCatalogProvenance.fixtureBackedPageCount,
+  snapshotFixtureBackedPageCount:
+    publicCatalogProvenance.fixtureBackedPageCount,
 };
 
 export function findCatalogMatches(
@@ -475,9 +476,8 @@ function buildSourceCoverage(source: PublicCatalogSnapshotSource) {
       pii: catalogSource?.pii ?? "none",
     },
     pageCount: pages.length,
-    fixtureBackedPageCount: pages.filter(
-      (page) => page.origin === "fixture",
-    ).length,
+    fixtureBackedPageCount: pages.filter((page) => page.origin === "fixture")
+      .length,
     componentCodeCount: uniqueComponentCodes.size,
     scheduleCodeCount: uniqueScheduleCodes.size,
     timeSlotCodeCount: uniqueTimeSlotCodes.size,

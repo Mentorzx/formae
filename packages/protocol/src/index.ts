@@ -312,7 +312,7 @@ export interface ManualImportStoredSnapshot {
 
 export interface LocalStudentSnapshotBundle {
   schemaVersion: 1;
-  source: "manual-import";
+  source: "automatic-sigaa-sync" | "manual-import";
   derivedAt: string;
   manualImport: ManualImportStoredSnapshot;
   studentSnapshot: StudentSnapshot;

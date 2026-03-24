@@ -13,14 +13,22 @@ import {
 } from "react";
 import { buildAutomaticSigaaSyncBundle } from "../automaticSigaaImport";
 import { Metric } from "../components/Metric";
+import { VaultPasskeyPanel } from "../components/VaultPasskeyPanel";
 import { loadLatestProjectedStudentSnapshot } from "../localStudentSnapshot";
 import { createManualImportPreview } from "../manualImport";
 import { buildManualImportStoredSnapshot } from "../manualSnapshot";
 import {
   clearLatestManualImportSnapshot,
+  disableManualImportVaultPasskey,
+  enableManualImportVaultPasskey,
+  isVaultLockedError,
+  loadManualImportVaultPasskeyState,
   loadManualImportVaultState,
+  lockManualImportVaultSession,
+  type ManualImportVaultPasskeyState,
   type ManualImportVaultState,
   saveLatestLocalStudentSnapshotBundle,
+  unlockManualImportVaultPasskey,
 } from "../manualSnapshotStore";
 import {
   type CurriculumSeedResolutionConfidence,
@@ -44,6 +52,7 @@ type LocalSnapshotStatus =
   | "cleared"
   | "error";
 type AutomaticSyncStatus = "idle" | "syncing" | "ready" | "error";
+type VaultPasskeyActionStatus = "idle" | "working" | "success" | "error";
 
 interface ParserState {
   status: ParserStatus;
@@ -78,6 +87,8 @@ export function ImportPage() {
   const [vaultState, setVaultState] = useState<ManualImportVaultState | null>(
     null,
   );
+  const [vaultPasskeyState, setVaultPasskeyState] =
+    useState<ManualImportVaultPasskeyState | null>(null);
   const [preferredCurriculumSeedId, setPreferredCurriculumSeedId] = useState<
     string | null
   >(null);
@@ -93,13 +104,18 @@ export function ImportPage() {
   const [automaticSyncMessage, setAutomaticSyncMessage] = useState<
     string | null
   >(null);
+  const [vaultPasskeyActionStatus, setVaultPasskeyActionStatus] =
+    useState<VaultPasskeyActionStatus>("idle");
+  const [vaultPasskeyMessage, setVaultPasskeyMessage] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     let cancelled = false;
 
     void (async () => {
-      const [loadedSnapshot, nextVaultState] = await Promise.all([
-        loadLatestProjectedStudentSnapshot(),
+      const [nextVaultPasskeyState, nextVaultState] = await Promise.all([
+        loadManualImportVaultPasskeyState(),
         loadManualImportVaultState(),
       ]);
 
@@ -107,15 +123,42 @@ export function ImportPage() {
         return;
       }
 
+      setVaultPasskeyState(nextVaultPasskeyState);
+      setVaultState(nextVaultState);
+      setVaultPasskeyMessage(null);
+
+      if (nextVaultPasskeyState.sessionStatus === "locked") {
+        setLatestSnapshot(null);
+        setLatestBundle(null);
+        setPreferredCurriculumSeedId(null);
+        setLocalSnapshotStatus("idle");
+        setLocalSnapshotMessage(
+          "O vault local esta bloqueado por passkey nesta sessao.",
+        );
+        return;
+      }
+
+      const loadedSnapshot = await loadLatestProjectedStudentSnapshot();
+
+      if (cancelled) {
+        return;
+      }
+
       setLatestSnapshot(loadedSnapshot.bundle?.manualImport ?? null);
       setLatestBundle(loadedSnapshot.bundle);
-      setVaultState(nextVaultState);
       setPreferredCurriculumSeedId(
         loadedSnapshot.bundle?.manualImport.preferredCurriculumSeedId ?? null,
       );
       setLocalSnapshotStatus("idle");
+      setLocalSnapshotMessage(null);
     })().catch((error: unknown) => {
       if (cancelled) {
+        return;
+      }
+
+      if (isVaultLockedError(error)) {
+        setLocalSnapshotStatus("idle");
+        setLocalSnapshotMessage(error.message);
         return;
       }
 
@@ -270,7 +313,9 @@ export function ImportPage() {
       (latestBundle.manualImport.preferredCurriculumSeedId ?? null);
   const canSaveSnapshot =
     currentBundle !== null &&
-    (hasSnapshotDraftFromText || hasCurriculumPreferenceChange);
+    (hasSnapshotDraftFromText || hasCurriculumPreferenceChange) &&
+    vaultPasskeyState?.sessionStatus !== "locked";
+  const isVaultLocked = vaultPasskeyState?.sessionStatus === "locked";
 
   async function handleSaveSnapshot() {
     if (!canSaveSnapshot || !currentBundle) {
@@ -295,9 +340,11 @@ export function ImportPage() {
     } catch (error: unknown) {
       setLocalSnapshotStatus("error");
       setLocalSnapshotMessage(
-        error instanceof Error
+        isVaultLockedError(error)
           ? error.message
-          : "Falha ao salvar o snapshot localmente no navegador.",
+          : error instanceof Error
+            ? error.message
+            : "Falha ao salvar o snapshot localmente no navegador.",
       );
     }
   }
@@ -345,9 +392,11 @@ export function ImportPage() {
     } catch (error: unknown) {
       setLocalSnapshotStatus("error");
       setLocalSnapshotMessage(
-        error instanceof Error
+        isVaultLockedError(error)
           ? error.message
-          : "Falha ao limpar o snapshot salvo do navegador.",
+          : error instanceof Error
+            ? error.message
+            : "Falha ao limpar o snapshot salvo do navegador.",
       );
     }
   }
@@ -404,13 +453,133 @@ export function ImportPage() {
       setAutomaticSyncMessage(
         "Minhas Turmas e Minhas Notas foram lidas localmente do SIGAA pela extensao.",
       );
+      setSigaaUsername("");
       setSigaaPassword("");
     } catch (error: unknown) {
       setAutomaticSyncStatus("error");
       setAutomaticSyncMessage(
+        isVaultLockedError(error)
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Falha ao sincronizar localmente com o SIGAA.",
+      );
+    }
+  }
+
+  async function handleEnableVaultPasskey() {
+    setVaultPasskeyActionStatus("working");
+    setVaultPasskeyMessage(null);
+
+    try {
+      const nextPasskeyState = await enableManualImportVaultPasskey();
+      setVaultPasskeyState(nextPasskeyState);
+      setVaultPasskeyActionStatus("success");
+      setVaultPasskeyMessage(
+        "Passkey ativada. Esta sessao local do vault ja foi destravada.",
+      );
+    } catch (error: unknown) {
+      setVaultPasskeyActionStatus("error");
+      setVaultPasskeyMessage(
         error instanceof Error
           ? error.message
-          : "Falha ao sincronizar localmente com o SIGAA.",
+          : "Falha ao ativar a passkey local do vault.",
+      );
+    }
+  }
+
+  async function handleUnlockVaultPasskey() {
+    setVaultPasskeyActionStatus("working");
+    setVaultPasskeyMessage(null);
+
+    try {
+      const nextPasskeyState = await unlockManualImportVaultPasskey();
+      const [loadedSnapshot, nextVaultState] = await Promise.all([
+        loadLatestProjectedStudentSnapshot(),
+        loadManualImportVaultState(),
+      ]);
+
+      setVaultPasskeyState(nextPasskeyState);
+      setVaultState(nextVaultState);
+      setLatestSnapshot(loadedSnapshot.bundle?.manualImport ?? null);
+      setLatestBundle(loadedSnapshot.bundle);
+      setPreferredCurriculumSeedId(
+        loadedSnapshot.bundle?.manualImport.preferredCurriculumSeedId ?? null,
+      );
+      setLocalSnapshotStatus("idle");
+      setLocalSnapshotMessage(null);
+      setVaultPasskeyActionStatus("success");
+      setVaultPasskeyMessage(
+        "Vault local desbloqueado por passkey nesta sessao.",
+      );
+    } catch (error: unknown) {
+      setVaultPasskeyActionStatus("error");
+      setVaultPasskeyMessage(
+        error instanceof Error
+          ? error.message
+          : "Falha ao desbloquear o vault com passkey.",
+      );
+    }
+  }
+
+  async function handleLockVaultSession() {
+    setVaultPasskeyActionStatus("working");
+    setVaultPasskeyMessage(null);
+
+    try {
+      const nextPasskeyState = await lockManualImportVaultSession();
+      setVaultPasskeyState(nextPasskeyState);
+      setLatestSnapshot(null);
+      setLatestBundle(null);
+      setPreferredCurriculumSeedId(null);
+      setLocalSnapshotStatus("idle");
+      setLocalSnapshotMessage(
+        "O vault local foi bloqueado para esta sessao do navegador.",
+      );
+      setVaultPasskeyActionStatus("success");
+      setVaultPasskeyMessage(
+        "Sessao do vault bloqueada. Um novo unlock por passkey sera exigido.",
+      );
+    } catch (error: unknown) {
+      setVaultPasskeyActionStatus("error");
+      setVaultPasskeyMessage(
+        error instanceof Error
+          ? error.message
+          : "Falha ao bloquear a sessao local do vault.",
+      );
+    }
+  }
+
+  async function handleDisableVaultPasskey() {
+    setVaultPasskeyActionStatus("working");
+    setVaultPasskeyMessage(null);
+
+    try {
+      const nextPasskeyState = await disableManualImportVaultPasskey();
+      const [loadedSnapshot, nextVaultState] = await Promise.all([
+        loadLatestProjectedStudentSnapshot(),
+        loadManualImportVaultState(),
+      ]);
+
+      setVaultPasskeyState(nextPasskeyState);
+      setVaultState(nextVaultState);
+      setLatestSnapshot(loadedSnapshot.bundle?.manualImport ?? null);
+      setLatestBundle(loadedSnapshot.bundle);
+      setPreferredCurriculumSeedId(
+        loadedSnapshot.bundle?.manualImport.preferredCurriculumSeedId ?? null,
+      );
+      setLocalSnapshotStatus("idle");
+      setLocalSnapshotMessage(null);
+      setVaultPasskeyActionStatus("success");
+      setVaultPasskeyMessage(
+        "Passkey desativada. O vault volta a usar apenas a chave device-local.",
+      );
+    } catch (error: unknown) {
+      setVaultPasskeyActionStatus("error");
+      setVaultPasskeyMessage(
+        error instanceof Error
+          ? error.message
+          : "Falha ao desativar a passkey do vault.",
       );
     }
   }
@@ -474,7 +643,8 @@ export function ImportPage() {
                 onClick={() => void handleAutomaticSync()}
                 disabled={
                   automaticSyncStatus === "syncing" ||
-                  isLocalSnapshotBusy(localSnapshotStatus)
+                  isLocalSnapshotBusy(localSnapshotStatus) ||
+                  isVaultLocked
                 }
               >
                 {automaticSyncStatus === "syncing"
@@ -582,26 +752,39 @@ export function ImportPage() {
             </div>
           </div>
 
+          <VaultPasskeyPanel
+            passkeyState={vaultPasskeyState}
+            actionStatus={vaultPasskeyActionStatus}
+            message={vaultPasskeyMessage}
+            onEnable={() => void handleEnableVaultPasskey()}
+            onUnlock={() => void handleUnlockVaultPasskey()}
+            onLock={() => void handleLockVaultSession()}
+            onDisable={() => void handleDisableVaultPasskey()}
+          />
+
           <LocalSnapshotBanner
             status={localSnapshotStatus}
             latestSnapshot={latestSnapshot}
             latestBundle={latestBundle}
             message={localSnapshotMessage}
             vaultState={vaultState}
+            vaultPasskeyState={vaultPasskeyState}
           />
 
           {!canSaveSnapshot ? (
             <p className="storage-hint">
-              {rawInput !== deferredRawInput
-                ? "Aguarde a analise local terminar antes de salvar."
-                : preview.detectedComponentCodes.length === 0 &&
-                    preview.detectedScheduleCodes.length === 0
-                  ? hasCurriculumPreferenceChange
-                    ? "A preferencia manual da grade pode ser salva mesmo sem alterar o texto restaurado."
-                    : "Cole um trecho com componentes ou codigos de horario para gerar um snapshot util."
-                  : requiresParser && parserState.status !== "ready"
-                    ? "O parser precisa concluir a normalizacao dos horarios antes do save."
-                    : "Nenhum snapshot pode ser salvo com o estado atual."}
+              {isVaultLocked
+                ? "Desbloqueie o vault com a passkey antes de salvar ou limpar o snapshot local."
+                : rawInput !== deferredRawInput
+                  ? "Aguarde a analise local terminar antes de salvar."
+                  : preview.detectedComponentCodes.length === 0 &&
+                      preview.detectedScheduleCodes.length === 0
+                    ? hasCurriculumPreferenceChange
+                      ? "A preferencia manual da grade pode ser salva mesmo sem alterar o texto restaurado."
+                      : "Cole um trecho com componentes ou codigos de horario para gerar um snapshot util."
+                    : requiresParser && parserState.status !== "ready"
+                      ? "O parser precisa concluir a normalizacao dos horarios antes do save."
+                      : "Nenhum snapshot pode ser salvo com o estado atual."}
             </p>
           ) : null}
         </div>
@@ -976,12 +1159,14 @@ function LocalSnapshotBanner({
   latestBundle,
   message,
   vaultState,
+  vaultPasskeyState,
 }: {
   status: LocalSnapshotStatus;
   latestSnapshot: ManualImportStoredSnapshot | null;
   latestBundle: LocalStudentSnapshotBundle | null;
   message: string | null;
   vaultState: ManualImportVaultState | null;
+  vaultPasskeyState: ManualImportVaultPasskeyState | null;
 }) {
   const facts = vaultState ? <VaultStateFacts vaultState={vaultState} /> : null;
 
@@ -1027,7 +1212,9 @@ function LocalSnapshotBanner({
     return (
       <>
         <p className="status-banner" role="status">
-          Ainda nao existe snapshot salvo neste navegador.
+          {vaultPasskeyState?.sessionStatus === "locked"
+            ? "O vault esta bloqueado por passkey. Desbloqueie a sessao para ler o ultimo snapshot salvo."
+            : "Ainda nao existe snapshot salvo neste navegador."}
         </p>
         {facts}
       </>

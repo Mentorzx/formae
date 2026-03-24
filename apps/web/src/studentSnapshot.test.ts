@@ -342,6 +342,7 @@ describe("buildLocalStudentSnapshotBundle", () => {
 
     expect(bundle.studentSnapshot.studentNumber).toBe("219216387");
     expect(bundle.studentSnapshot.studentName).toBe("Alex de Lira Neto");
+    expect(bundle.source).toBe("automatic-sigaa-sync");
     expect(bundle.studentSnapshot.curriculum.course.name).toBe(
       "Engenharia da Computacao",
     );

@@ -4,6 +4,7 @@ import type {
   RequestSyncMessage,
   RequestSyncPayload,
   TimingProfileId,
+  WipeLocalVaultMessage,
 } from "@formae/protocol";
 import { BRIDGE_PROTOCOL_VERSION } from "@formae/protocol";
 
@@ -33,41 +34,59 @@ export async function runAutomaticSigaaSync(input: {
   timingProfileId: TimingProfileId;
 }): Promise<RawSigaaPayloadMessage["payload"]> {
   const syncSessionId = globalThis.crypto.randomUUID();
+  const wipeMessage: WipeLocalVaultMessage = {
+    kind: "WipeLocalVault",
+    protocolVersion: BRIDGE_PROTOCOL_VERSION,
+    payload: {
+      reason: "logout",
+      wipeMode: "memory-only",
+      requestedAt: new Date().toISOString(),
+    },
+  };
 
-  await postBridgeMessage(
-    {
-      kind: "ProvideEphemeralCredentials",
+  try {
+    await postBridgeMessage(
+      {
+        kind: "ProvideEphemeralCredentials",
+        protocolVersion: BRIDGE_PROTOCOL_VERSION,
+        payload: {
+          syncSessionId,
+          usernameOrCpf: input.usernameOrCpf,
+          password: input.password,
+          keepOnlyInMemory: true,
+        },
+      },
+      10_000,
+    );
+
+    const requestMessage: RequestSyncMessage = {
+      kind: "RequestSync",
       protocolVersion: BRIDGE_PROTOCOL_VERSION,
       payload: {
         syncSessionId,
-        usernameOrCpf: input.usernameOrCpf,
-        password: input.password,
-        keepOnlyInMemory: true,
-      },
-    },
-    10_000,
-  );
+        timingProfileId: input.timingProfileId,
+        requestedAt: new Date().toISOString(),
+        reason: "manual",
+      } satisfies RequestSyncPayload,
+    };
 
-  const requestMessage: RequestSyncMessage = {
-    kind: "RequestSync",
-    protocolVersion: BRIDGE_PROTOCOL_VERSION,
-    payload: {
-      syncSessionId,
-      timingProfileId: input.timingProfileId,
-      requestedAt: new Date().toISOString(),
-      reason: "manual",
-    } satisfies RequestSyncPayload,
-  };
+    const response = await postBridgeMessage(requestMessage, 90_000);
 
-  const response = await postBridgeMessage(requestMessage, 90_000);
+    if (response.kind !== "RawSigaaPayload") {
+      throw new Error(
+        `Unexpected bridge response from the extension: ${response.kind}.`,
+      );
+    }
 
-  if (response.kind !== "RawSigaaPayload") {
-    throw new Error(
-      `Unexpected bridge response from the extension: ${response.kind}.`,
-    );
+    return response.payload;
+  } finally {
+    try {
+      await postBridgeMessage(wipeMessage, 10_000);
+    } catch {
+      // The local app already has the payload at this point; a failed wipe
+      // should not mask the sync result, but it still shortens extension retention when possible.
+    }
   }
-
-  return response.payload;
 }
 
 async function postBridgeMessage(

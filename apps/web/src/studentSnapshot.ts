@@ -38,7 +38,10 @@ export function buildLocalStudentSnapshotBundle(
 
   return {
     schemaVersion: 1,
-    source: "manual-import",
+    source:
+      input.manualImport.source === "sigaa-html"
+        ? "automatic-sigaa-sync"
+        : "manual-import",
     derivedAt,
     manualImport: input.manualImport,
     studentSnapshot,

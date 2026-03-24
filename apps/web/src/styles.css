@@ -482,6 +482,24 @@ a {
   color: #1c5f3b;
 }
 
+.status-pill-warning {
+  border-color: rgba(156, 65, 33, 0.16);
+  background: rgba(223, 122, 59, 0.14);
+  color: #8a4727;
+}
+
+.status-pill-error {
+  border-color: rgba(164, 58, 58, 0.18);
+  background: rgba(214, 89, 89, 0.12);
+  color: #8e3535;
+}
+
+.status-pill-idle {
+  border-color: rgba(11, 79, 108, 0.12);
+  background: rgba(179, 217, 230, 0.2);
+  color: #0b4f6c;
+}
+
 .status-pill-partial {
   border-color: rgba(156, 65, 33, 0.16);
   background: rgba(223, 122, 59, 0.14);
@@ -497,6 +515,10 @@ a {
 .storage-summary p:last-child,
 .storage-hint {
   margin-bottom: 0;
+}
+
+.vault-passkey-panel {
+  margin-bottom: 1rem;
 }
 
 .storage-hint {

@@ -12,10 +12,12 @@ export function CatalogPage() {
     <div className="page-grid">
       <section className="hero-card accent-panel">
         <p className="section-label">Catalogo publico e proveniencia</p>
-        <h2>Snapshot publico versionado para mostrar origem, cobertura e seed</h2>
+        <h2>
+          Snapshot publico versionado para mostrar origem, cobertura e seed
+        </h2>
         <p>
-          O app consome dois contratos complementares: o snapshot publico
-          gerado em <code>infra/static-data/public-catalog.snapshot.json</code>
+          O app consome dois contratos complementares: o snapshot publico gerado
+          em <code>infra/static-data/public-catalog.snapshot.json</code>
           para provar cobertura e origem, e o indice seed em
           <code>infra/static-data/catalog-index.json</code> para manter a
           selecao de curriculos local e estavel.
@@ -65,11 +67,15 @@ export function CatalogPage() {
             <div className="detail-stack">
               <p>
                 <span className="detail-label">Paginas com componentes</span>
-                <strong>{publicCatalogProvenance.pagesWithComponentEvidence}</strong>
+                <strong>
+                  {publicCatalogProvenance.pagesWithComponentEvidence}
+                </strong>
               </p>
               <p>
                 <span className="detail-label">Paginas com horarios</span>
-                <strong>{publicCatalogProvenance.pagesWithScheduleEvidence}</strong>
+                <strong>
+                  {publicCatalogProvenance.pagesWithScheduleEvidence}
+                </strong>
               </p>
               <p>
                 <span className="detail-label">Atalhos e notas</span>
@@ -94,9 +100,15 @@ export function CatalogPage() {
               <p>{coverage.source.url}</p>
               <div className="tag-grid compact-grid">
                 <span className="tag">{coverage.pageCount} paginas</span>
-                <span className="tag">{coverage.fixtureBackedPageCount} fixtures</span>
-                <span className="tag">{coverage.componentCodeCount} componentes</span>
-                <span className="tag">{coverage.scheduleCodeCount} codigos</span>
+                <span className="tag">
+                  {coverage.fixtureBackedPageCount} fixtures
+                </span>
+                <span className="tag">
+                  {coverage.componentCodeCount} componentes
+                </span>
+                <span className="tag">
+                  {coverage.scheduleCodeCount} codigos
+                </span>
               </div>
               <div className="detail-stack">
                 <p>
@@ -109,7 +121,9 @@ export function CatalogPage() {
                 </p>
                 <p>
                   <span className="detail-label">Cobertura relativa</span>
-                  <strong>{Math.round(coverage.pageCoverageRatio * 100)}%</strong>
+                  <strong>
+                    {Math.round(coverage.pageCoverageRatio * 100)}%
+                  </strong>
                 </p>
                 <p>
                   <span className="detail-label">Fixture</span>
@@ -153,7 +167,9 @@ export function CatalogPage() {
                 <span className="tag">
                   {curriculum.prerequisiteRules.length} regras
                 </span>
-                <span className="tag">{curriculum.equivalences.length} equivalencias</span>
+                <span className="tag">
+                  {curriculum.equivalences.length} equivalencias
+                </span>
               </div>
               <div className="detail-stack">
                 <p>
