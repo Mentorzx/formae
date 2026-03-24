@@ -1,0 +1,52 @@
+name: Verify Extension Release
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/verify-extension-release.yml"
+      - ".github/workflows/release-extension.yml"
+      - "apps/extension/**"
+      - "scripts/package-extension.mjs"
+      - "scripts/verify-extension-release.mjs"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/verify-extension-release.yml"
+      - ".github/workflows/release-extension.yml"
+      - "apps/extension/**"
+      - "scripts/package-extension.mjs"
+      - "scripts/verify-extension-release.mjs"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run extension contract tests
+        run: node --test apps/extension/src/*.test.js
+
+      - name: Verify reproducible Chrome and Firefox packaging
+        run: node scripts/verify-extension-release.mjs
+
+      - name: Build releasable extension artifacts
+        run: node scripts/package-extension.mjs
+
+      - name: Upload verified extension artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: formae-extension-verified
+          path: dist/releases/*
+
+      - name: Surface extension release drift alarm
+        if: failure()
+        run: |
+          echo "::error title=Extension release verification failed::Chrome/Firefox packaging drifted or the packaged manifest references missing assets. Inspect apps/extension/manifest.json and scripts/package-extension.mjs."

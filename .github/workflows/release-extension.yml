@@ -22,7 +22,13 @@ jobs:
         with:
           node-version: 22
 
-      - name: Package extension
+      - name: Run extension contract tests
+        run: node --test apps/extension/src/*.test.js
+
+      - name: Verify reproducible Chrome and Firefox packaging
+        run: node scripts/verify-extension-release.mjs
+
+      - name: Package release artifacts
         run: node scripts/package-extension.mjs
 
       - name: Upload packaged artifacts
