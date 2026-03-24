@@ -238,7 +238,9 @@ export function simulateIra(
     maxGrade: resolvedOptions.maxGrade,
     average,
     roundedAverage:
-      average === null ? null : roundValue(average, resolvedOptions.decimalPlaces),
+      average === null
+        ? null
+        : roundValue(average, resolvedOptions.decimalPlaces),
     consideredWeight,
     weightedPoints,
     consideredCount: consideredEntries.length,
@@ -364,7 +366,9 @@ function getEntryWeight(
   return normalizePositiveNumber(originalWeight);
 }
 
-function normalizePositiveNumber(value: number | null | undefined): number | null {
+function normalizePositiveNumber(
+  value: number | null | undefined,
+): number | null {
   if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
     return null;
   }

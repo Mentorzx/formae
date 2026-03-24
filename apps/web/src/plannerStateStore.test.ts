@@ -5,8 +5,8 @@ import {
   createDefaultPlannerState,
   loadPlannerState,
   migratePlannerState,
-  savePlannerState,
   type PlannerStateStorageLike,
+  savePlannerState,
   updatePlannerState,
 } from "./plannerStateStore";
 
@@ -62,7 +62,7 @@ describe("plannerStateStore", () => {
       compact: true,
       darkGraphFocus: true,
       termLabels: {
-        "completed": "Concluídos",
+        completed: "Concluídos",
         "planned-1": "Plano 1",
       },
       filterDraft: {
@@ -100,7 +100,10 @@ describe("plannerStateStore", () => {
 
   it("clears planner state from storage", () => {
     const storage = createMemoryStorage();
-    storage.setItem("formae:planner-state:v1", JSON.stringify(createDefaultPlannerState()));
+    storage.setItem(
+      "formae:planner-state:v1",
+      JSON.stringify(createDefaultPlannerState()),
+    );
 
     clearPlannerState(storage);
 

@@ -1,6 +1,8 @@
 import type { PrerequisiteRule } from "@formae/protocol";
-import type { ComponentAcademicStatus } from "./studentProgress";
-import type { StudentProgressSummary } from "./studentProgress";
+import type {
+  ComponentAcademicStatus,
+  StudentProgressSummary,
+} from "./studentProgress";
 
 export type PlannerTermKind =
   | "completed"
@@ -144,7 +146,9 @@ export function buildPlannerDependencyGraph(
     rootComponentCodes: allCodes.filter(
       (code) => (prerequisiteMap[code] ?? []).length === 0,
     ),
-    leafComponentCodes: allCodes.filter((code) => (dependentMap[code] ?? []).length === 0),
+    leafComponentCodes: allCodes.filter(
+      (code) => (dependentMap[code] ?? []).length === 0,
+    ),
   };
 }
 
@@ -154,7 +158,9 @@ export function createPlannerBoardFromProgress(
 ): PlannerBoard {
   const dependencyGraph = buildPlannerDependencyGraph(
     summary.studentSnapshot.curriculum.prerequisiteRules,
-    summary.studentSnapshot.curriculum.components.map((component) => component.code),
+    summary.studentSnapshot.curriculum.components.map(
+      (component) => component.code,
+    ),
   );
   const cardsByCode = buildPlannerCards(summary, dependencyGraph);
   const terms = seedPlannerTerms(summary, dependencyGraph, cardsByCode);
@@ -173,7 +179,9 @@ export function validatePlannerMove(
   componentCode: string,
   targetTermId: string,
 ): PlannerMoveValidation {
-  const targetTermIndex = board.terms.findIndex((term) => term.id === targetTermId);
+  const targetTermIndex = board.terms.findIndex(
+    (term) => term.id === targetTermId,
+  );
   const targetTerm = targetTermIndex >= 0 ? board.terms[targetTermIndex] : null;
   const sourceTerm = findTermContainingCode(board.terms, componentCode);
 
@@ -190,17 +198,22 @@ export function validatePlannerMove(
 
   const prerequisiteCodes =
     board.dependencyGraph.prerequisiteCodesByComponentCode[componentCode] ?? [];
-  const blockingPrerequisiteCodes = prerequisiteCodes.filter((prerequisiteCode) => {
-    const prerequisiteTerm = findTermContainingCode(board.terms, prerequisiteCode);
-    if (!prerequisiteTerm) {
-      return true;
-    }
+  const blockingPrerequisiteCodes = prerequisiteCodes.filter(
+    (prerequisiteCode) => {
+      const prerequisiteTerm = findTermContainingCode(
+        board.terms,
+        prerequisiteCode,
+      );
+      if (!prerequisiteTerm) {
+        return true;
+      }
 
-    return (
-      board.terms.findIndex((term) => term.id === prerequisiteTerm.id) >=
-      targetTermIndex
-    );
-  });
+      return (
+        board.terms.findIndex((term) => term.id === prerequisiteTerm.id) >=
+        targetTermIndex
+      );
+    },
+  );
 
   if (blockingPrerequisiteCodes.length > 0) {
     return {
@@ -227,8 +240,10 @@ export function buildPlannerRelationHighlights(
   graph: PlannerDependencyGraph,
   componentCode: string,
 ): PlannerRelationHighlights {
-  const prerequisiteCodes = graph.prerequisiteCodesByComponentCode[componentCode] ?? [];
-  const dependentCodes = graph.dependentCodesByComponentCode[componentCode] ?? [];
+  const prerequisiteCodes =
+    graph.prerequisiteCodesByComponentCode[componentCode] ?? [];
+  const dependentCodes =
+    graph.dependentCodesByComponentCode[componentCode] ?? [];
   const upstreamComponentCodes =
     graph.transitivePrerequisiteCodesByComponentCode[componentCode] ?? [];
   const downstreamComponentCodes =
@@ -298,14 +313,20 @@ export function projectPlannerBoard(
         return false;
       }
 
-      if (connectedOnly && connectedCodes && !connectedCodes.has(componentCode)) {
+      if (
+        connectedOnly &&
+        connectedCodes &&
+        !connectedCodes.has(componentCode)
+      ) {
         return false;
       }
 
       return true;
     });
 
-    visibleCodes.forEach((componentCode) => visibleComponentCodes.add(componentCode));
+    visibleCodes.forEach((componentCode) => {
+      visibleComponentCodes.add(componentCode);
+    });
 
     return {
       ...term,
@@ -414,7 +435,9 @@ function seedPlannerTerms(
     });
   }
 
-  let unresolvedCodes = remainingCodes.filter((code) => !occupiedCodes.has(code));
+  let unresolvedCodes = remainingCodes.filter(
+    (code) => !occupiedCodes.has(code),
+  );
   const satisfiedCodes = new Set<string>([
     ...completedCodes,
     ...inProgressCodes,
@@ -478,7 +501,9 @@ function seedPlannerTerms(
 }
 
 function findTermContainingCode(terms: PlannerTerm[], componentCode: string) {
-  return terms.find((term) => term.componentCodes.includes(componentCode)) ?? null;
+  return (
+    terms.find((term) => term.componentCodes.includes(componentCode)) ?? null
+  );
 }
 
 function matchesPlannerQuery(

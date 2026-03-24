@@ -161,7 +161,8 @@ export function sanitizePlannerUiPreferences(
     | null
     | undefined,
 ): PlannerUiPreferences {
-  const compact = typeof preferences?.compact === "boolean" ? preferences.compact : false;
+  const compact =
+    typeof preferences?.compact === "boolean" ? preferences.compact : false;
   const darkGraphFocus =
     typeof preferences?.darkGraphFocus === "boolean"
       ? preferences.darkGraphFocus
@@ -187,7 +188,8 @@ function sanitizeFilterDraft(
   const query = typeof draft.query === "string" ? draft.query.trim() : "";
   const connectedOnly = Boolean(draft.connectedOnly);
   const focusComponentCode =
-    typeof draft.focusComponentCode === "string" && draft.focusComponentCode.trim().length > 0
+    typeof draft.focusComponentCode === "string" &&
+    draft.focusComponentCode.trim().length > 0
       ? draft.focusComponentCode.trim()
       : null;
 
@@ -210,17 +212,16 @@ function sanitizeTermLabels(
   }
 
   return Object.fromEntries(
-    Object.entries(termLabels)
-      .flatMap(([key, value]) => {
-        const normalizedKey = key.trim();
-        const normalizedValue = typeof value === "string" ? value.trim() : "";
+    Object.entries(termLabels).flatMap(([key, value]) => {
+      const normalizedKey = key.trim();
+      const normalizedValue = typeof value === "string" ? value.trim() : "";
 
-        if (!normalizedKey || !normalizedValue) {
-          return [];
-        }
+      if (!normalizedKey || !normalizedValue) {
+        return [];
+      }
 
-        return [[normalizedKey, normalizedValue] as const];
-      }),
+      return [[normalizedKey, normalizedValue] as const];
+    }),
   );
 }
 
@@ -247,7 +248,8 @@ function clonePlannerState(state: PlannerState): PlannerState {
         ? {
             query: state.preferences.filterDraft.query,
             connectedOnly: state.preferences.filterDraft.connectedOnly,
-            focusComponentCode: state.preferences.filterDraft.focusComponentCode,
+            focusComponentCode:
+              state.preferences.filterDraft.focusComponentCode,
           }
         : null,
     },

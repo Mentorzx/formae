@@ -1,6 +1,4 @@
 import { describe, expect, it } from "vitest";
-
-import type { StudentProgressSummary } from "./studentProgress";
 import {
   buildPlannerDependencyGraph,
   buildPlannerRelationHighlights,
@@ -8,6 +6,7 @@ import {
   projectPlannerBoard,
   validatePlannerMove,
 } from "./plannerModel";
+import type { StudentProgressSummary } from "./studentProgress";
 
 describe("plannerModel", () => {
   it("creates seeded planner terms from progress summary", () => {
@@ -31,7 +30,9 @@ describe("plannerModel", () => {
     const summary = createSummary();
     const graph = buildPlannerDependencyGraph(
       summary.studentSnapshot.curriculum.prerequisiteRules,
-      summary.studentSnapshot.curriculum.components.map((component) => component.code),
+      summary.studentSnapshot.curriculum.components.map(
+        (component) => component.code,
+      ),
     );
 
     expect(graph.prerequisiteCodesByComponentCode.MATA03).toEqual(["MATA02"]);
@@ -84,7 +85,11 @@ describe("plannerModel", () => {
 
 function createSummary(): StudentProgressSummary {
   const components = [
-    { code: "MATA01", title: "Calculo I", academicStatus: "completed" as const },
+    {
+      code: "MATA01",
+      title: "Calculo I",
+      academicStatus: "completed" as const,
+    },
     {
       code: "MATA02",
       title: "Algebra Linear",

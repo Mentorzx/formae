@@ -4,8 +4,12 @@ import { ArchitecturePage } from "./pages/ArchitecturePage";
 import { CatalogPage } from "./pages/CatalogPage";
 import { ImportPage } from "./pages/ImportPage";
 import { OverviewPage } from "./pages/OverviewPage";
+import { PlannerPage } from "./pages/PlannerPage";
+import { useThemePreference } from "./useThemePreference";
 
 function App() {
+  const { theme, toggleTheme } = useThemePreference();
+
   return (
     <HashRouter>
       <div className="app-shell">
@@ -22,17 +26,30 @@ function App() {
             </p>
           </div>
 
-          <nav className="site-nav" aria-label="Secoes principais">
-            <NavLink to="/">Visao Geral</NavLink>
-            <NavLink to="/catalogo">Catalogo</NavLink>
-            <NavLink to="/importacao">Importacao</NavLink>
-            <NavLink to="/arquitetura">Arquitetura</NavLink>
-          </nav>
+          <div className="site-chrome">
+            <nav className="site-nav" aria-label="Secoes principais">
+              <NavLink to="/">Visao Geral</NavLink>
+              <NavLink to="/planejador">Planejador</NavLink>
+              <NavLink to="/catalogo">Catalogo</NavLink>
+              <NavLink to="/importacao">Importacao</NavLink>
+              <NavLink to="/arquitetura">Arquitetura</NavLink>
+            </nav>
+
+            <button
+              type="button"
+              className="theme-toggle"
+              onClick={toggleTheme}
+              aria-pressed={theme === "dark"}
+            >
+              {theme === "dark" ? "Modo claro" : "Modo escuro"}
+            </button>
+          </div>
         </header>
 
         <main className="page-main">
           <Routes>
             <Route path="/" element={<OverviewPage />} />
+            <Route path="/planejador" element={<PlannerPage />} />
             <Route path="/catalogo" element={<CatalogPage />} />
             <Route path="/importacao" element={<ImportPage />} />
             <Route path="/arquitetura" element={<ArchitecturePage />} />
