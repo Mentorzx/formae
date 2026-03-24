@@ -39,10 +39,10 @@ test("isBridgeMessage validates bridge payloads", () => {
 test("creates internal credential envelopes for extension pages", () => {
   const envelope = createSetEphemeralCredentialsMessage({
     syncSessionId: "sync-2",
-    usernameOrCpf: "08800261540",
+    usernameOrCpf: "00011122233",
     password: "secret",
   });
 
   assert.equal(envelope.kind, "SetEphemeralCredentials");
-  assert.equal(envelope.payload.usernameOrCpf, "08800261540");
+  assert.equal(envelope.payload.usernameOrCpf, "00011122233");
 });

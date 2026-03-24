@@ -25,6 +25,7 @@ describe("buildManualImportStoredSnapshot", () => {
       snapshotId: "snapshot-1",
       savedAt: "2026-03-23T22:00:00.000Z",
       source: "plain-text",
+      retentionMode: "full-raw-text",
       timingProfileId: "Ufba2025",
       rawInput: "MATA37 3M23 5T23",
       detectedScheduleCodes: ["3M23", "5T23"],

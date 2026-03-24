@@ -16,7 +16,7 @@ test("selector drift alarm: offline login contract still authenticates against t
     const loginResult = await signInToSigaa(
       page,
       LOGIN_URL,
-      "08800261540",
+      "00011122233",
       "not-a-real-password",
       5_000,
     );

@@ -26,15 +26,18 @@ export async function buildAutomaticSigaaSyncBundle(input: {
   bundle: LocalStudentSnapshotBundle;
   matchedComponentCodes: string[];
 }> {
-  const textPreview = createManualImportPreview({
-    source: "sigaa-html",
-    rawInput: input.rawPayload.htmlOrText,
-    capturedAt: input.rawPayload.capturedAt,
-    timingProfileId: input.timingProfileId,
-  });
   const structuredContext = buildStructuredManualImportContext(
     input.rawPayload,
   );
+  const persistedRawInput =
+    buildMinimizedPersistedRawInput(structuredContext) ??
+    input.rawPayload.htmlOrText;
+  const textPreview = createManualImportPreview({
+    source: "sigaa-html",
+    rawInput: persistedRawInput,
+    capturedAt: input.rawPayload.capturedAt,
+    timingProfileId: input.timingProfileId,
+  });
   const preview = mergeStructuredPreview(textPreview, structuredContext);
   const normalizeSchedules =
     input.normalizeSchedules ?? normalizeScheduleCodesWithWasm;
@@ -46,8 +49,9 @@ export async function buildAutomaticSigaaSyncBundle(input: {
     preview.detectedComponentCodes,
   );
   const manualImport = buildManualImportStoredSnapshot({
-    rawInput: input.rawPayload.htmlOrText,
+    rawInput: persistedRawInput,
     source: "sigaa-html",
+    retentionMode: structuredContext ? "structured-minimized" : "full-raw-text",
     timingProfileId: input.timingProfileId,
     preview,
     normalizedSchedules,
@@ -67,6 +71,35 @@ export async function buildAutomaticSigaaSyncBundle(input: {
       (component) => component.code,
     ),
   };
+}
+
+function buildMinimizedPersistedRawInput(
+  structuredContext: ManualImportStructuredContext | null,
+): string | null {
+  if (!structuredContext) {
+    return null;
+  }
+
+  const lines = ["SIGAA Sync Local", "[Resumo minimizado]"];
+
+  for (const componentState of structuredContext.componentStates) {
+    const summaryParts = [
+      componentState.code,
+      componentState.title,
+      formatStructuredStatus(componentState.status, componentState.statusText),
+      componentState.scheduleCodes.length > 0
+        ? `Horario: ${componentState.scheduleCodes.join(" ")}`
+        : null,
+    ].filter(Boolean);
+
+    lines.push(summaryParts.join(" - "));
+  }
+
+  if (lines.length === 2) {
+    lines.push("Nenhum componente estruturado foi preservado neste resumo.");
+  }
+
+  return `${lines.join("\n")}\n`;
 }
 
 function mergeStructuredPreview(
@@ -234,6 +267,26 @@ function mapGradeStatusText(
   }
 
   return "unknown";
+}
+
+function formatStructuredStatus(
+  status: AcademicComponentStatus,
+  statusText: string | null,
+): string | null {
+  if (statusText) {
+    return statusText;
+  }
+
+  switch (status) {
+    case "completed":
+      return "APROVADO";
+    case "inProgress":
+      return "CURSANDO";
+    case "failed":
+      return "REPROVADO";
+    default:
+      return null;
+  }
 }
 
 function extractTitleFromRawLine(rawLine: string): string | null {

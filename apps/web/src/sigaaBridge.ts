@@ -29,8 +29,6 @@ interface ExtensionBridgeResponse {
 }
 
 export async function runAutomaticSigaaSync(input: {
-  usernameOrCpf: string;
-  password: string;
   timingProfileId: TimingProfileId;
 }): Promise<RawSigaaPayloadMessage["payload"]> {
   const syncSessionId = globalThis.crypto.randomUUID();
@@ -45,20 +43,6 @@ export async function runAutomaticSigaaSync(input: {
   };
 
   try {
-    await postBridgeMessage(
-      {
-        kind: "ProvideEphemeralCredentials",
-        protocolVersion: BRIDGE_PROTOCOL_VERSION,
-        payload: {
-          syncSessionId,
-          usernameOrCpf: input.usernameOrCpf,
-          password: input.password,
-          keepOnlyInMemory: true,
-        },
-      },
-      10_000,
-    );
-
     const requestMessage: RequestSyncMessage = {
       kind: "RequestSync",
       protocolVersion: BRIDGE_PROTOCOL_VERSION,
@@ -109,7 +93,7 @@ async function postBridgeMessage(
       window.removeEventListener("message", onMessage);
       reject(
         new Error(
-          "Timed out waiting for the Formaê extension. Make sure the MV3 scaffold is loaded in this browser.",
+          "Timed out waiting for the Formaê extension. Load the MV3 extension in this browser, fill the ephemeral SIGAA credentials in the extension popup, and try again.",
         ),
       );
     });

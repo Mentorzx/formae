@@ -10,7 +10,7 @@ import {
 test("ephemeral sessions stay in memory and expire deterministically", () => {
   const session = createEphemeralSigaaSession({
     syncSessionId: "sync-1",
-    usernameOrCpf: "08800261540",
+    usernameOrCpf: "00011122233",
     password: "secret",
     createdAt: "2026-03-23T21:00:00.000Z",
     ttlMs: 60 * 1000,
@@ -31,7 +31,7 @@ test("ephemeral sessions stay in memory and expire deterministically", () => {
 test("sanitizing a session strips the password", () => {
   const session = createEphemeralSigaaSession({
     syncSessionId: "sync-1",
-    usernameOrCpf: "08800261540",
+    usernameOrCpf: "00011122233",
     password: "secret",
   });
   const sanitized = sanitizeSigaaSession(session);
@@ -42,7 +42,7 @@ test("sanitizing a session strips the password", () => {
     createEphemeralCredentialsPayload(session),
     {
       syncSessionId: "sync-1",
-      usernameOrCpf: "08800261540",
+      usernameOrCpf: "00011122233",
       password: "secret",
       keepOnlyInMemory: true,
     },

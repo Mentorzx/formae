@@ -70,6 +70,15 @@ describe("buildAutomaticSigaaSyncBundle", () => {
     });
 
     expect(result.bundle.manualImport.source).toBe("sigaa-html");
+    expect(result.bundle.manualImport.retentionMode).toBe(
+      "structured-minimized",
+    );
+    expect(result.bundle.manualImport.rawInput).toContain(
+      "[Resumo minimizado]",
+    );
+    expect(result.bundle.manualImport.rawInput).not.toContain(
+      "Alex de Lira Neto",
+    );
     expect(result.bundle.source).toBe("automatic-sigaa-sync");
     expect(result.bundle.manualImport.detectedComponentCodes).toContain(
       "ENGC63",

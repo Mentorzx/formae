@@ -54,10 +54,12 @@ pnpm build
 - Rust crates for the canonical domain model, UFBA 2025 timing profile and schedule parsing.
 - Contract fixtures and CI workflows for Node, Rust and GitHub Pages deployment.
 - Seeded public catalog data and an initial manual-import preview that works from pasted text.
+- Public catalog builder with provenance metadata, drift validation and a live UFBA public seed for Engenharia Civil.
 - WASM-backed schedule normalization inside the manual-import flow, loaded from the shared Rust core.
-- Automatic local SIGAA sync through the MV3 extension, reusing the same browser-local snapshot and vault pipeline.
+- Automatic local SIGAA sync through the MV3 extension popup, with ephemeral credentials kept out of the web shell and reused by the same browser-local snapshot and vault pipeline.
 - Browser-local snapshot persistence for manual imports, stored in IndexedDB and restorable without backend state.
 - Versioned local vault baseline with AES-GCM sealing, device-local key material and migration from the earlier cleartext snapshot store.
+- Automatic sync persistence minimized to a structured local summary instead of full raw SIGAA page text.
 - Minimal `StudentSnapshot` projection derived locally from manual imports, including schedule blocks, in-progress components and explicit pending-review items.
 - Overview page wired to the latest local projection, surfacing initial progress, catalog coverage and open pending items directly from browser storage.
 - Private Playwright harness for authenticated SIGAA captures and end-to-end validation of `web -> extension -> SIGAA -> local vault`.
@@ -77,6 +79,7 @@ pnpm sync:web
 ```
 
 That command expects the PWA to be running locally at `http://localhost:4173/#/importacao` and the MV3 extension to be loaded unpacked from `apps/extension`.
+The harness seeds the extension popup with ephemeral credentials for the test session and then triggers the sync from the web shell without filling any credential field in the page itself.
 
 ## License and brand
 

@@ -474,6 +474,13 @@ export function OverviewPage() {
                         overviewState.summary.derivedAt,
                     )}
                   </li>
+                  <li>
+                    Retencao local:{" "}
+                    {formatRetentionMode(
+                      overviewState.bundle?.manualImport.retentionMode ??
+                        "full-raw-text",
+                    )}
+                  </li>
                 </ul>
               </div>
 
@@ -842,4 +849,12 @@ function formatCurriculumSelectionMode(
   }
 
   return "automatica";
+}
+
+function formatRetentionMode(
+  retentionMode: "full-raw-text" | "structured-minimized",
+): string {
+  return retentionMode === "structured-minimized"
+    ? "resumo estruturado minimizado"
+    : "texto bruto completo";
 }

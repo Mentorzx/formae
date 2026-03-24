@@ -71,6 +71,10 @@ export function installPageBridgeRelay(onMessage) {
   }
 
   const listener = (event) => {
+    if (event.source !== window || event.origin !== window.location.origin) {
+      return;
+    }
+
     if (!isPageBridgeRequest(event.data)) {
       return;
     }

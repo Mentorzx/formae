@@ -3,6 +3,9 @@ export const BRIDGE_PROTOCOL_VERSION = 1;
 export const bridgeMessageKinds = [
   "RequestSync",
   "ProvideEphemeralCredentials",
+  "SetEphemeralCredentials",
+  "GetCredentialState",
+  "ClearEphemeralCredentials",
   "RawSigaaPayload",
   "NormalizedSnapshot",
   "StoreEncryptedSnapshot",
@@ -12,9 +15,16 @@ export const bridgeMessageKinds = [
 export type BridgeMessageKind = (typeof bridgeMessageKinds)[number];
 
 export type TimingProfileId = "Ufba2025";
-export type SyncReason = "manual" | "rehydrate" | "background-refresh";
+export type SyncReason =
+  | "manual"
+  | "popup"
+  | "rehydrate"
+  | "background-refresh";
 export type WipeMode = "memory-only" | "full-device-purge";
 export type ManualImportSource = "sigaa-history" | "sigaa-html" | "plain-text";
+export type ManualImportRetentionMode =
+  | "full-raw-text"
+  | "structured-minimized";
 export type ManualImportStatus = "idle" | "ready";
 export type Weekday =
   | "monday"
@@ -53,6 +63,27 @@ export interface ProvideEphemeralCredentialsPayload {
   usernameOrCpf: string;
   password: string;
   keepOnlyInMemory: true;
+}
+
+export interface SetEphemeralCredentialsPayload {
+  syncSessionId: string;
+  usernameOrCpf: string;
+  password: string;
+}
+
+export interface ExtensionCredentialState {
+  hasSession: boolean;
+  syncSessionId: string | null;
+  usernameOrCpfMasked: string | null;
+  expiresAt: string | null;
+}
+
+export interface GetCredentialStatePayload {
+  requestedAt: string;
+}
+
+export interface ClearEphemeralCredentialsPayload {
+  requestedAt: string;
 }
 
 export interface RawSigaaPayloadPayload {
@@ -299,6 +330,7 @@ export interface ManualImportStoredSnapshot {
   snapshotId: string;
   savedAt: string;
   source: ManualImportSource;
+  retentionMode: ManualImportRetentionMode;
   timingProfileId: TimingProfileId;
   rawInput: string;
   detectedScheduleCodes: string[];
@@ -326,6 +358,18 @@ export type ProvideEphemeralCredentialsMessage = BridgeEnvelope<
   "ProvideEphemeralCredentials",
   ProvideEphemeralCredentialsPayload
 >;
+export type SetEphemeralCredentialsMessage = BridgeEnvelope<
+  "SetEphemeralCredentials",
+  SetEphemeralCredentialsPayload
+>;
+export type GetCredentialStateMessage = BridgeEnvelope<
+  "GetCredentialState",
+  GetCredentialStatePayload
+>;
+export type ClearEphemeralCredentialsMessage = BridgeEnvelope<
+  "ClearEphemeralCredentials",
+  ClearEphemeralCredentialsPayload
+>;
 export type RawSigaaPayloadMessage = BridgeEnvelope<
   "RawSigaaPayload",
   RawSigaaPayloadPayload
@@ -346,6 +390,9 @@ export type WipeLocalVaultMessage = BridgeEnvelope<
 export type BridgeMessage =
   | RequestSyncMessage
   | ProvideEphemeralCredentialsMessage
+  | SetEphemeralCredentialsMessage
+  | GetCredentialStateMessage
+  | ClearEphemeralCredentialsMessage
   | RawSigaaPayloadMessage
   | NormalizedSnapshotMessage
   | StoreEncryptedSnapshotMessage

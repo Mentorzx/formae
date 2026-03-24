@@ -9,6 +9,7 @@ describe("buildLocalStudentSnapshotBundle", () => {
         snapshotId: "manual-1",
         savedAt: "2026-03-23T22:58:00.000Z",
         source: "plain-text",
+        retentionMode: "full-raw-text",
         timingProfileId: "Ufba2025",
         rawInput: [
           "MATA37 - Introducao a Logica de Programacao - APROVADO",
@@ -187,6 +188,7 @@ describe("buildLocalStudentSnapshotBundle", () => {
         snapshotId: "manual-weak",
         savedAt: "2026-03-24T00:59:00.000Z",
         source: "plain-text",
+        retentionMode: "full-raw-text",
         timingProfileId: "Ufba2025",
         rawInput: "FIS123 - Fisica I - CURSANDO",
         detectedScheduleCodes: [],
@@ -222,6 +224,7 @@ describe("buildLocalStudentSnapshotBundle", () => {
         snapshotId: "manual-override",
         savedAt: "2026-03-24T01:09:00.000Z",
         source: "plain-text",
+        retentionMode: "full-raw-text",
         timingProfileId: "Ufba2025",
         rawInput: [
           "MATA37 - Introducao a Logica de Programacao - APROVADO",
@@ -275,6 +278,7 @@ describe("buildLocalStudentSnapshotBundle", () => {
         snapshotId: "manual-structured",
         savedAt: "2026-03-24T02:09:00.000Z",
         source: "sigaa-html",
+        retentionMode: "structured-minimized",
         timingProfileId: "Ufba2025",
         rawInput: [
           "SIGAA Sync Local",

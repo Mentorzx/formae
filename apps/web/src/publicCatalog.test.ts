@@ -68,12 +68,12 @@ describe("publicCatalog", () => {
   });
 
   it("surfaces catalog snapshot provenance and source coverage", () => {
-    expect(publicCatalogSnapshot.builderVersion).toBe("0.1.0");
+    expect(publicCatalogSnapshot.builderVersion).toMatch(/^\d+\.\d+\.\d+$/);
     expect(publicCatalogProvenance.sourceCount).toBe(
       publicCatalogSnapshot.sources.length,
     );
     expect(publicCatalogProvenance.pageCount).toBeGreaterThan(0);
-    expect(publicCatalogProvenance.fixtureBackedPageCount).toBe(
+    expect(publicCatalogProvenance.fixtureBackedPageCount).toBeLessThanOrEqual(
       publicCatalogProvenance.pageCount,
     );
     expect(publicCatalogSourceCoverage).toHaveLength(

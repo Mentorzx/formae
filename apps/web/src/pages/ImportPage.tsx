@@ -97,8 +97,6 @@ export function ImportPage() {
   const [localSnapshotMessage, setLocalSnapshotMessage] = useState<
     string | null
   >(null);
-  const [sigaaUsername, setSigaaUsername] = useState("");
-  const [sigaaPassword, setSigaaPassword] = useState("");
   const [automaticSyncStatus, setAutomaticSyncStatus] =
     useState<AutomaticSyncStatus>("idle");
   const [automaticSyncMessage, setAutomaticSyncMessage] = useState<
@@ -402,23 +400,12 @@ export function ImportPage() {
   }
 
   async function handleAutomaticSync() {
-    const usernameOrCpf = sigaaUsername.trim();
-    if (!usernameOrCpf || sigaaPassword.trim().length === 0) {
-      setAutomaticSyncStatus("error");
-      setAutomaticSyncMessage(
-        "Informe usuario ou CPF e a senha do SIGAA para esta sessao local.",
-      );
-      return;
-    }
-
     setAutomaticSyncStatus("syncing");
     setAutomaticSyncMessage(null);
     setLocalSnapshotMessage(null);
 
     try {
       const rawPayload = await runAutomaticSigaaSync({
-        usernameOrCpf,
-        password: sigaaPassword,
         timingProfileId: "Ufba2025",
       });
       const { bundle } = await buildAutomaticSigaaSyncBundle({
@@ -453,8 +440,6 @@ export function ImportPage() {
       setAutomaticSyncMessage(
         "Minhas Turmas e Minhas Notas foram lidas localmente do SIGAA pela extensao.",
       );
-      setSigaaUsername("");
-      setSigaaPassword("");
     } catch (error: unknown) {
       setAutomaticSyncStatus("error");
       setAutomaticSyncMessage(
@@ -605,36 +590,15 @@ export function ImportPage() {
           <div className="soft-card">
             <h3>Conectar com o SIGAA</h3>
             <p>
-              As credenciais ficam apenas em memoria na extensao durante a
-              sessao atual. Nada disso e salvo no servidor.
+              As credenciais ficam apenas em memoria na popup da extensao
+              durante a sessao atual. O shell web nao recebe nem persiste CPF,
+              usuario ou senha.
             </p>
-            <div className="field-grid">
-              <label className="input-panel" htmlFor="sigaa-username">
-                <span className="micro-label">Usuario ou CPF</span>
-                <input
-                  id="sigaa-username"
-                  className="text-input"
-                  type="text"
-                  autoComplete="username"
-                  value={sigaaUsername}
-                  onChange={(event) => setSigaaUsername(event.target.value)}
-                  placeholder="CPF ou login do SIGAA"
-                />
-              </label>
-
-              <label className="input-panel" htmlFor="sigaa-password">
-                <span className="micro-label">Senha do SIGAA</span>
-                <input
-                  id="sigaa-password"
-                  className="text-input"
-                  type="password"
-                  autoComplete="current-password"
-                  value={sigaaPassword}
-                  onChange={(event) => setSigaaPassword(event.target.value)}
-                  placeholder="Usada so nesta sessao local"
-                />
-              </label>
-            </div>
+            <ol className="list">
+              <li>Abra a popup da extensao Formaê neste navegador.</li>
+              <li>Digite CPF/usuario e senha apenas nessa sessao efemera.</li>
+              <li>Volte para esta tela e dispare a importacao automatica.</li>
+            </ol>
 
             <div className="action-row subsection">
               <button
@@ -658,6 +622,9 @@ export function ImportPage() {
             <h3>Contrato desta fase</h3>
             <ul className="list">
               <li>Carregue `apps/extension` como extensao MV3 unpacked.</li>
+              <li>
+                Preencha as credenciais na popup da extensao antes do sync.
+              </li>
               <li>
                 A extensao autentica localmente e captura `Minhas Turmas` e
                 `Minhas Notas`.
@@ -1231,6 +1198,12 @@ function LocalSnapshotBanner({
           {latestBundle?.studentSnapshot.pendingRequirements.length ?? 0}{" "}
           pendencias locais
         </p>
+        <p>
+          Retencao: {formatRetentionMode(latestSnapshot.retentionMode)}
+          {latestSnapshot.source === "sigaa-html"
+            ? " · o sync automatico persiste apenas um resumo estruturado minimizado."
+            : ""}
+        </p>
       </div>
       {facts}
     </>
@@ -1343,7 +1316,8 @@ function AutomaticSyncBanner({
 
   return (
     <p className="status-banner">
-      O sync automatico depende da extensao local carregada neste navegador.
+      O sync automatico depende da extensao local carregada neste navegador e de
+      uma sessao efemera preenchida na popup da extensao.
     </p>
   );
 }
@@ -1353,6 +1327,14 @@ function formatLocalDateTime(value: string): string {
     dateStyle: "short",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function formatRetentionMode(
+  retentionMode: ManualImportStoredSnapshot["retentionMode"],
+): string {
+  return retentionMode === "structured-minimized"
+    ? "resumo estruturado minimizado"
+    : "texto bruto completo";
 }
 
 function isLocalSnapshotBusy(status: LocalSnapshotStatus): boolean {

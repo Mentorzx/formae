@@ -1,24 +1,40 @@
-import {
-  EXTENSION_BRIDGE_SOURCE,
-  PAGE_BRIDGE_SOURCE,
-  isAllowedPageBridgeMessage,
-} from "./page-bridge.js";
-import { sendRuntimeMessage } from "./runtime.js";
+const PAGE_BRIDGE_SOURCE = "formae-web-page";
+const EXTENSION_BRIDGE_SOURCE = "formae-extension";
+const BRIDGE_PROTOCOL_VERSION = 1;
+const ALLOWED_PAGE_BRIDGE_MESSAGE_KINDS = [
+  "RequestSync",
+  "RawSigaaPayload",
+  "NormalizedSnapshot",
+  "StoreEncryptedSnapshot",
+  "WipeLocalVault",
+];
 
 bootstrapContentScript();
 
 function bootstrapContentScript() {
-  const cleanup = installPageBridgeRelay((request) => {
-    sendRuntimeMessage(request.envelope)
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.addEventListener("message", (event) => {
+    if (
+      event.source !== window ||
+      event.origin !== window.location.origin ||
+      !isPageBridgeRequest(event.data)
+    ) {
+      return;
+    }
+
+    sendRuntimeMessage(event.data.envelope)
       .then((response) => {
         window.postMessage(
-          createExtensionBridgeResponse(request.requestId, response),
+          createExtensionBridgeResponse(event.data.requestId, response),
           window.location.origin,
         );
       })
       .catch((error) => {
         window.postMessage(
-          createExtensionBridgeResponse(request.requestId, {
+          createExtensionBridgeResponse(event.data.requestId, {
             ok: false,
             error: error instanceof Error ? error.message : String(error),
           }),
@@ -26,26 +42,14 @@ function bootstrapContentScript() {
         );
       });
   });
-
-  return cleanup;
 }
 
-function installPageBridgeRelay(onMessage) {
-  if (typeof window === "undefined") {
-    return () => {};
-  }
-
-  const listener = (event) => {
-    if (!isPageBridgeRequest(event.data)) {
-      return;
-    }
-
-    onMessage(event.data, event);
+function createExtensionBridgeResponse(requestId, response) {
+  return {
+    source: EXTENSION_BRIDGE_SOURCE,
+    requestId,
+    response,
   };
-
-  window.addEventListener("message", listener);
-
-  return () => window.removeEventListener("message", listener);
 }
 
 function isPageBridgeRequest(value) {
@@ -60,10 +64,40 @@ function isPageBridgeRequest(value) {
   );
 }
 
-function createExtensionBridgeResponse(requestId, response) {
-  return {
-    source: EXTENSION_BRIDGE_SOURCE,
-    requestId,
-    response,
-  };
+function isAllowedPageBridgeMessage(value) {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  return (
+    typeof value.kind === "string" &&
+    ALLOWED_PAGE_BRIDGE_MESSAGE_KINDS.includes(value.kind) &&
+    value.protocolVersion === BRIDGE_PROTOCOL_VERSION &&
+    "payload" in value
+  );
+}
+
+function sendRuntimeMessage(message) {
+  const browserApi = globalThis.browser ?? null;
+  const chromeApi = globalThis.chrome ?? null;
+
+  if (browserApi?.runtime?.sendMessage) {
+    return browserApi.runtime.sendMessage(message);
+  }
+
+  if (chromeApi?.runtime?.sendMessage) {
+    return new Promise((resolve, reject) => {
+      chromeApi.runtime.sendMessage(message, (response) => {
+        const lastError = chromeApi.runtime.lastError;
+        if (lastError) {
+          reject(new Error(lastError.message));
+          return;
+        }
+
+        resolve(response);
+      });
+    });
+  }
+
+  return Promise.reject(new Error("Extension runtime is unavailable."));
 }

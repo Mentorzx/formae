@@ -14,10 +14,10 @@ interface VaultPasskeySessionMarker {
   unlockedAt: string;
 }
 
-const PASSKEY_SESSION_STORAGE_KEY = "formae:vault-passkey-session";
 const WEBAUTHN_TIMEOUT_MS = 60_000;
 const CHALLENGE_BYTE_LENGTH = 32;
 const USER_ID_BYTE_LENGTH = 16;
+let currentVaultPasskeySession: VaultPasskeySessionMarker | null = null;
 
 export function isVaultPasskeySupported(): boolean {
   return (
@@ -211,11 +211,7 @@ export function isVaultPasskeySessionUnlocked(
 }
 
 export function clearVaultPasskeySession(): void {
-  if (!("sessionStorage" in globalThis)) {
-    return;
-  }
-
-  globalThis.sessionStorage.removeItem(PASSKEY_SESSION_STORAGE_KEY);
+  currentVaultPasskeySession = null;
 }
 
 export function defaultVaultPasskeyLabel(): string {
@@ -278,23 +274,7 @@ function assertPublicKeyCredential(
 }
 
 function readVaultPasskeySession(): VaultPasskeySessionMarker | null {
-  if (!("sessionStorage" in globalThis)) {
-    return null;
-  }
-
-  const rawMarker = globalThis.sessionStorage.getItem(
-    PASSKEY_SESSION_STORAGE_KEY,
-  );
-
-  if (!rawMarker) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(rawMarker) as VaultPasskeySessionMarker;
-  } catch {
-    return null;
-  }
+  return currentVaultPasskeySession;
 }
 
 function asBinaryBuffer(value: unknown): ArrayBuffer | null {
@@ -313,14 +293,7 @@ function asBinaryBuffer(value: unknown): ArrayBuffer | null {
 }
 
 function writeVaultPasskeySession(marker: VaultPasskeySessionMarker): void {
-  if (!("sessionStorage" in globalThis)) {
-    return;
-  }
-
-  globalThis.sessionStorage.setItem(
-    PASSKEY_SESSION_STORAGE_KEY,
-    JSON.stringify(marker),
-  );
+  currentVaultPasskeySession = marker;
 }
 
 function bytesToBase64Url(bytes: Uint8Array): string {

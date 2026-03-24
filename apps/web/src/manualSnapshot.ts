@@ -1,6 +1,7 @@
 import type {
   ManualImportNormalizedSchedule,
   ManualImportPreview,
+  ManualImportRetentionMode,
   ManualImportSource,
   ManualImportStoredSnapshot,
   ManualImportStructuredContext,
@@ -10,6 +11,7 @@ import type {
 interface BuildManualImportSnapshotInput {
   rawInput: string;
   source: ManualImportSource;
+  retentionMode?: ManualImportRetentionMode;
   timingProfileId: TimingProfileId;
   preview: ManualImportPreview;
   normalizedSchedules: ManualImportNormalizedSchedule[];
@@ -28,6 +30,7 @@ export function buildManualImportStoredSnapshot(
     snapshotId: input.snapshotId ?? generateSnapshotId(),
     savedAt: input.savedAt ?? new Date().toISOString(),
     source: input.source,
+    retentionMode: input.retentionMode ?? "full-raw-text",
     timingProfileId: input.timingProfileId,
     rawInput: input.rawInput,
     detectedScheduleCodes: input.preview.detectedScheduleCodes,

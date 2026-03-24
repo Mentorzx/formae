@@ -21,7 +21,7 @@ export interface PublicCatalogSnapshotSource {
   title: string;
   kind: "html";
   url: string;
-  fixture: string;
+  fixture: string | null;
   notes: string[];
 }
 
@@ -31,7 +31,7 @@ export interface PublicCatalogSnapshotPage {
   sourceUrl: string;
   finalUrl: string;
   fetchedAt: string;
-  origin: "fixture";
+  origin: "fixture" | "live";
   title: string;
   headingCount: number;
   linkCount: number;
@@ -39,6 +39,12 @@ export interface PublicCatalogSnapshotPage {
   componentCodes: string[];
   scheduleCodes: string[];
   timeSlotCodes: string[];
+  contentDigest?: string;
+  contentLength?: number;
+  contentType?: string | null;
+  httpStatus?: number;
+  responseEtag?: string | null;
+  responseLastModified?: string | null;
 }
 
 export interface PublicCatalogSnapshotComponent {

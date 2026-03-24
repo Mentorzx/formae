@@ -39,14 +39,21 @@ export async function runWebSync(
   });
 
   try {
+    const extensionBaseUrl = await resolveExtensionBaseUrl(context);
+    await seedExtensionPopupCredentials(
+      context,
+      extensionBaseUrl,
+      config.username,
+      config.password,
+      config.timeoutMs,
+    );
+
     const page = await context.newPage();
     await page.goto(config.webUrl, {
       waitUntil: "domcontentloaded",
       timeout: config.timeoutMs,
     });
 
-    await page.locator("#sigaa-username").fill(config.username);
-    await page.locator("#sigaa-password").fill(config.password);
     await page
       .getByRole("button", { name: "Importar automaticamente" })
       .click();
@@ -88,4 +95,46 @@ export async function runWebSync(
 
 function countDistinctMatches(input: string, pattern: RegExp): number {
   return new Set(input.match(pattern) ?? []).size;
+}
+
+async function resolveExtensionBaseUrl(
+  context: import("playwright").BrowserContext,
+): Promise<string> {
+  let [serviceWorker] = context.serviceWorkers();
+
+  if (!serviceWorker) {
+    serviceWorker = await context.waitForEvent("serviceworker");
+  }
+
+  const serviceWorkerUrl = new URL(serviceWorker.url());
+  return `${serviceWorkerUrl.protocol}//${serviceWorkerUrl.host}`;
+}
+
+async function seedExtensionPopupCredentials(
+  context: import("playwright").BrowserContext,
+  extensionBaseUrl: string,
+  username: string,
+  password: string,
+  timeoutMs: number,
+): Promise<void> {
+  const popupPage = await context.newPage();
+
+  try {
+    await popupPage.goto(`${extensionBaseUrl}/src/popup.html`, {
+      waitUntil: "domcontentloaded",
+      timeout: timeoutMs,
+    });
+    await popupPage.locator("#usernameOrCpf").fill(username);
+    await popupPage.locator("#password").fill(password);
+    await popupPage
+      .locator("#credentialForm button[type='submit']")
+      .click();
+    await popupPage
+      .getByText("Credenciais guardadas apenas em memória.", {
+        exact: false,
+      })
+      .waitFor({ timeout: timeoutMs });
+  } finally {
+    await popupPage.close().catch(() => {});
+  }
 }

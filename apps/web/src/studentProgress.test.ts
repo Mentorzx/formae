@@ -11,6 +11,7 @@ describe("summarizeStudentProgress", () => {
         snapshotId: "manual-1",
         savedAt: "2026-03-23T23:55:00.000Z",
         source: "plain-text",
+        retentionMode: "full-raw-text",
         timingProfileId: "Ufba2025",
         rawInput: "MATA37 FIS123 35N12",
         detectedScheduleCodes: ["35N12"],

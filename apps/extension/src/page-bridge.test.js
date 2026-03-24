@@ -31,7 +31,7 @@ test("page bridge rejects credential-bearing messages", () => {
     "req-2",
     createSetEphemeralCredentialsMessage({
       syncSessionId: "sync-2",
-      usernameOrCpf: "08800261540",
+      usernameOrCpf: "00011122233",
       password: "secret",
     }),
   );

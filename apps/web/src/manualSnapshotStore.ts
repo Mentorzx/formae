@@ -416,6 +416,7 @@ function normalizeManualImportStoredSnapshot(
 ): ManualImportStoredSnapshot {
   return {
     ...snapshot,
+    retentionMode: snapshot.retentionMode ?? "full-raw-text",
     preferredCurriculumSeedId: snapshot.preferredCurriculumSeedId ?? null,
     structuredContext: snapshot.structuredContext ?? null,
   };
