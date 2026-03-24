@@ -18,6 +18,8 @@ import {
 import {
   type ComponentAcademicStatus,
   type ComponentProgressStatus,
+  type CurriculumFocusPriority,
+  type CurriculumLaneStatus,
   type StudentProgressSummary,
   summarizeStudentProgress,
 } from "../studentProgress";
@@ -93,23 +95,23 @@ export function OverviewPage() {
         </h2>
         <p>
           {overviewState.summary
-            ? "Esta leitura mostra o que o bundle local ja resolve sem backend: componentes mapeados, horarios vinculados e pendencias que ainda exigem revisao."
+            ? "Esta leitura agora mostra trilha de integralizacao local: o que ja foi concluido, o que segue ativo e quais componentes ainda pedem revisao antes de virar progresso confiavel."
             : "A v0 existe para reduzir risco tecnico cedo: PWA de leitura local, contratos explicitos, fixtures publicas e o parser de horarios preparado para codigos como 35N12, isto e, terca e quinta de 18:30 a 20:20."}
         </p>
         <div className="metric-strip">
           {overviewState.summary ? (
             <>
               <Metric
-                label="Classificacao inicial"
-                value={`${overviewState.summary.classifiedComponentPercent}%`}
+                label="Integralizacao concluida"
+                value={`${overviewState.summary.completedComponentPercent}%`}
               />
               <Metric
-                label="Concluidos"
-                value={String(overviewState.summary.completedCount)}
+                label="Cobertura ativa"
+                value={`${overviewState.summary.activeComponentPercent}%`}
               />
               <Metric
-                label="Em andamento"
-                value={String(overviewState.summary.inProgressCount)}
+                label="Restantes"
+                value={String(overviewState.summary.remainingComponentCount)}
               />
               <Metric
                 label="Revisao manual"
@@ -137,6 +139,44 @@ export function OverviewPage() {
 
       {overviewState.summary ? (
         <>
+          <section className="panel">
+            <p className="section-label">Trilha de integralizacao</p>
+            <div className="card-grid">
+              {overviewState.summary.curriculumLanes.map((lane) => (
+                <article key={lane.id} className="soft-card">
+                  <div className="card-topline">
+                    <p className="micro-label">{lane.title}</p>
+                    <span
+                      className={`status-pill ${formatLaneStatusClassName(lane.status)}`}
+                    >
+                      {formatLaneStatus(lane.status)}
+                    </span>
+                  </div>
+                  <h3>
+                    {lane.count} componente{lane.count === 1 ? "" : "s"}
+                  </h3>
+                  <p>{lane.description}</p>
+                  <div aria-hidden="true" className="progress-meter">
+                    <span
+                      className={`progress-meter-fill progress-meter-fill-${lane.status}`}
+                      style={{ width: `${lane.percent}%` }}
+                    />
+                  </div>
+                  <div className="fact-row">
+                    <span className="vault-fact">
+                      {lane.percent}% da trilha
+                    </span>
+                    <span className="vault-fact">
+                      {lane.componentCodes.length > 0
+                        ? lane.componentCodes.join(", ")
+                        : "Nenhum componente"}
+                    </span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+
           <section className="panel">
             <p className="section-label">Componentes do snapshot</p>
             <div className="card-grid">
@@ -227,6 +267,17 @@ export function OverviewPage() {
                     {overviewState.summary.componentCount}
                   </li>
                   <li>
+                    Integralizacao concluida:{" "}
+                    {overviewState.summary.completedCount}/
+                    {overviewState.summary.componentCount}
+                  </li>
+                  <li>
+                    Cobertura ativa:{" "}
+                    {overviewState.summary.completedCount +
+                      overviewState.summary.inProgressCount}
+                    /{overviewState.summary.componentCount}
+                  </li>
+                  <li>
                     Blocos sem vinculo:{" "}
                     {overviewState.summary.unboundScheduleBlockCount}
                   </li>
@@ -239,6 +290,36 @@ export function OverviewPage() {
                   </li>
                 </ul>
               </div>
+            </div>
+          </section>
+
+          <section className="panel accent-panel">
+            <p className="section-label">Proximo foco</p>
+            <div className="card-grid">
+              {overviewState.summary.focusItems.length > 0 ? (
+                overviewState.summary.focusItems.map((item) => (
+                  <article key={item.code} className="soft-card">
+                    <div className="card-topline">
+                      <p className="micro-label">{item.code}</p>
+                      <span
+                        className={`status-pill ${formatFocusPriorityClassName(item.priority)}`}
+                      >
+                        {formatFocusPriority(item.priority)}
+                      </span>
+                    </div>
+                    <h3>{item.title}</h3>
+                    <p>{item.reason}</p>
+                  </article>
+                ))
+              ) : (
+                <article className="soft-card">
+                  <h3>Sem focos imediatos</h3>
+                  <p>
+                    O snapshot atual nao deixou componentes abertos para revisao
+                    ou retomada.
+                  </p>
+                </article>
+              )}
             </div>
           </section>
         </>
@@ -382,6 +463,56 @@ function formatAcademicStatus(status: ComponentAcademicStatus): string {
   }
 
   return "nao classificado";
+}
+
+function formatLaneStatus(status: CurriculumLaneStatus): string {
+  if (status === "completed") {
+    return "Fechado";
+  }
+
+  if (status === "inProgress") {
+    return "Ativo";
+  }
+
+  return "Aberto";
+}
+
+function formatLaneStatusClassName(status: CurriculumLaneStatus): string {
+  if (status === "completed") {
+    return "status-pill-ready";
+  }
+
+  if (status === "inProgress") {
+    return "status-pill-partial";
+  }
+
+  return "status-pill-review";
+}
+
+function formatFocusPriority(priority: CurriculumFocusPriority): string {
+  if (priority === "high") {
+    return "Alta";
+  }
+
+  if (priority === "medium") {
+    return "Media";
+  }
+
+  return "Baixa";
+}
+
+function formatFocusPriorityClassName(
+  priority: CurriculumFocusPriority,
+): string {
+  if (priority === "high") {
+    return "status-pill-review";
+  }
+
+  if (priority === "medium") {
+    return "status-pill-partial";
+  }
+
+  return "status-pill-ready";
 }
 
 function formatPendingRequirementStatus(

@@ -395,6 +395,33 @@ a {
   color: var(--ink-soft);
 }
 
+.progress-meter {
+  width: 100%;
+  height: 0.7rem;
+  margin: 1rem 0;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(23, 50, 74, 0.08);
+}
+
+.progress-meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.progress-meter-fill-completed {
+  background: linear-gradient(90deg, #2e7d52, #57b37e);
+}
+
+.progress-meter-fill-inProgress {
+  background: linear-gradient(90deg, #d76b30, #ef9c64);
+}
+
+.progress-meter-fill-pending {
+  background: linear-gradient(90deg, #b04f4f, #d97b7b);
+}
+
 .status-pill {
   display: inline-flex;
   align-items: center;

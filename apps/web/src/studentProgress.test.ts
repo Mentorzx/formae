@@ -100,7 +100,10 @@ describe("summarizeStudentProgress", () => {
     expect(summary.componentCount).toBe(2);
     expect(summary.completedCount).toBe(1);
     expect(summary.inProgressCount).toBe(0);
+    expect(summary.remainingComponentCount).toBe(1);
     expect(summary.matchedCatalogCount).toBe(1);
+    expect(summary.completedComponentPercent).toBe(50);
+    expect(summary.activeComponentPercent).toBe(50);
     expect(summary.classifiedComponentCount).toBe(1);
     expect(summary.classifiedComponentPercent).toBe(50);
     expect(summary.reviewCount).toBe(1);
@@ -141,6 +144,47 @@ describe("summarizeStudentProgress", () => {
         scheduleBlockCount: 1,
         pendingRequirements: [],
         status: "ready",
+      },
+    ]);
+    expect(summary.curriculumLanes).toEqual([
+      {
+        id: "completed",
+        title: "Concluidos",
+        description:
+          "Componentes que o snapshot manual ja reconhece como vencidos.",
+        componentCodes: ["MATA37"],
+        count: 1,
+        percent: 50,
+        status: "completed",
+      },
+      {
+        id: "in-progress",
+        title: "Em andamento",
+        description:
+          "Componentes ainda ativos no periodo atual ou em andamento local.",
+        componentCodes: [],
+        count: 0,
+        percent: 0,
+        status: "inProgress",
+      },
+      {
+        id: "remaining",
+        title: "Restantes",
+        description:
+          "Componentes que seguem pendentes ou ainda exigem revisao manual.",
+        componentCodes: ["FIS123"],
+        count: 1,
+        percent: 50,
+        status: "pending",
+      },
+    ]);
+    expect(summary.focusItems).toEqual([
+      {
+        code: "FIS123",
+        title: "Componente detectado manualmente (FIS123)",
+        priority: "high",
+        reason:
+          "O componente apareceu na importacao, mas ainda nao bate com o catalogo seed local.",
       },
     ]);
   });
