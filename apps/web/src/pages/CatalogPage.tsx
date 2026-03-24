@@ -1,41 +1,121 @@
 import { Metric } from "../components/Metric";
-import { publicCatalog, publicCatalogSummary } from "../publicCatalog";
+import {
+  publicCatalog,
+  publicCatalogProvenance,
+  publicCatalogSnapshot,
+  publicCatalogSourceCoverage,
+  publicCatalogSummary,
+} from "../publicCatalog";
 
 export function CatalogPage() {
   return (
     <div className="page-grid">
-      <section className="hero-card">
-        <p className="section-label">Catalogo publico inicial</p>
-        <h2>Seed estatico para fontes, componentes e atalhos oficiais</h2>
+      <section className="hero-card accent-panel">
+        <p className="section-label">Catalogo publico e proveniencia</p>
+        <h2>Snapshot publico versionado para mostrar origem, cobertura e seed</h2>
         <p>
-          O v0 ja consome um indice publico versionado dentro do repositorio.
-          Ele existe para validar contratos, navegar fontes oficiais e sustentar
-          a fase inicial sem tocar em dados privados.
+          O app consome dois contratos complementares: o snapshot publico
+          gerado em <code>infra/static-data/public-catalog.snapshot.json</code>
+          para provar cobertura e origem, e o indice seed em
+          <code>infra/static-data/catalog-index.json</code> para manter a
+          selecao de curriculos local e estavel.
         </p>
         <div className="metric-strip">
           <Metric
-            label="Fontes oficiais"
-            value={String(publicCatalogSummary.sourceCount)}
+            label="Fontes no snapshot"
+            value={`${publicCatalogProvenance.sourceCount}/${publicCatalogSummary.sourceCount}`}
           />
           <Metric
-            label="Componentes seed"
-            value={String(publicCatalogSummary.componentCount)}
+            label="Paginas publicas"
+            value={String(publicCatalogProvenance.pageCount)}
           />
           <Metric
-            label="Atalhos uteis"
-            value={String(publicCatalogSummary.shortcutCount)}
+            label="Fixtures validas"
+            value={String(publicCatalogProvenance.fixtureBackedPageCount)}
+          />
+          <Metric
+            label="Curriculos seed"
+            value={String(publicCatalogSummary.curriculumCount)}
           />
         </div>
       </section>
 
       <section className="panel">
-        <p className="section-label">Fontes publicas</p>
+        <p className="section-label">Proveniencia do snapshot</p>
+        <div className="provenance-grid">
+          <div className="soft-card">
+            <h3>Build e rastreabilidade</h3>
+            <div className="detail-stack">
+              <p>
+                <span className="detail-label">Builder</span>
+                <strong>{publicCatalogProvenance.builderVersion}</strong>
+              </p>
+              <p>
+                <span className="detail-label">Gerado em</span>
+                <strong>{publicCatalogProvenance.generatedAt}</strong>
+              </p>
+              <p>
+                <span className="detail-label">Schema</span>
+                <strong>v{publicCatalogProvenance.schemaVersion}</strong>
+              </p>
+            </div>
+          </div>
+          <div className="soft-card">
+            <h3>Cobertura de extracao</h3>
+            <div className="detail-stack">
+              <p>
+                <span className="detail-label">Paginas com componentes</span>
+                <strong>{publicCatalogProvenance.pagesWithComponentEvidence}</strong>
+              </p>
+              <p>
+                <span className="detail-label">Paginas com horarios</span>
+                <strong>{publicCatalogProvenance.pagesWithScheduleEvidence}</strong>
+              </p>
+              <p>
+                <span className="detail-label">Atalhos e notas</span>
+                <strong>
+                  {publicCatalogProvenance.scheduleGuideCount} guias,{" "}
+                  {publicCatalogProvenance.timeSlotCount} faixas,{" "}
+                  {publicCatalogProvenance.noteCount} notas
+                </strong>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="panel">
+        <p className="section-label">Cobertura por fonte</p>
         <div className="card-grid">
-          {publicCatalog.sources.map((source) => (
-            <article key={source.id} className="soft-card">
-              <h3>{source.title}</h3>
-              <p>{source.url}</p>
-              <p>Nivel de PII: {source.pii}</p>
+          {publicCatalogSourceCoverage.map((coverage) => (
+            <article key={coverage.source.id} className="soft-card">
+              <p className="micro-label">{coverage.source.id}</p>
+              <h3>{coverage.source.title}</h3>
+              <p>{coverage.source.url}</p>
+              <div className="tag-grid compact-grid">
+                <span className="tag">{coverage.pageCount} paginas</span>
+                <span className="tag">{coverage.fixtureBackedPageCount} fixtures</span>
+                <span className="tag">{coverage.componentCodeCount} componentes</span>
+                <span className="tag">{coverage.scheduleCodeCount} codigos</span>
+              </div>
+              <div className="detail-stack">
+                <p>
+                  <span className="detail-label">PII</span>
+                  <strong>{coverage.source.pii}</strong>
+                </p>
+                <p>
+                  <span className="detail-label">Origem</span>
+                  <strong>{coverage.source.kind}</strong>
+                </p>
+                <p>
+                  <span className="detail-label">Cobertura relativa</span>
+                  <strong>{Math.round(coverage.pageCoverageRatio * 100)}%</strong>
+                </p>
+                <p>
+                  <span className="detail-label">Fixture</span>
+                  <strong>{coverage.source.fixture}</strong>
+                </p>
+              </div>
             </article>
           ))}
         </div>
@@ -52,6 +132,38 @@ export function CatalogPage() {
               <div className="tag-grid compact-grid">
                 <span className="tag">{component.scheduleCode}</span>
                 <span className="tag">{component.canonicalScheduleCode}</span>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="panel">
+        <p className="section-label">Curriculos seed preservados</p>
+        <div className="card-grid">
+          {publicCatalog.curricula.map((curriculum) => (
+            <article key={curriculum.id} className="soft-card">
+              <p className="micro-label">{curriculum.course.code}</p>
+              <h3>{curriculum.name}</h3>
+              <p>{curriculum.course.name}</p>
+              <div className="tag-grid compact-grid">
+                <span className="tag">
+                  {curriculum.components.length} componentes
+                </span>
+                <span className="tag">
+                  {curriculum.prerequisiteRules.length} regras
+                </span>
+                <span className="tag">{curriculum.equivalences.length} equivalencias</span>
+              </div>
+              <div className="detail-stack">
+                <p>
+                  <span className="detail-label">Versao</span>
+                  <strong>{curriculum.versionTag}</strong>
+                </p>
+                <p>
+                  <span className="detail-label">Notas</span>
+                  <strong>{curriculum.notes.length} entradas</strong>
+                </p>
               </div>
             </article>
           ))}
@@ -81,6 +193,24 @@ export function CatalogPage() {
               ))}
             </ul>
           </div>
+        </div>
+      </section>
+
+      <section className="panel">
+        <p className="section-label">Snapshot bruto</p>
+        <div className="soft-card">
+          <p>
+            <span className="detail-label">Paginas</span>
+            <strong>{publicCatalogSnapshot.pages.length}</strong>
+          </p>
+          <p>
+            <span className="detail-label">Componentes</span>
+            <strong>{publicCatalogSnapshot.components.length}</strong>
+          </p>
+          <p>
+            <span className="detail-label">Faixas de horario</span>
+            <strong>{publicCatalogSnapshot.timeSlots.length}</strong>
+          </p>
         </div>
       </section>
     </div>

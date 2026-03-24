@@ -190,7 +190,8 @@ a {
 .metric-strip,
 .card-grid,
 .tag-grid,
-.timeline {
+.timeline,
+.provenance-grid {
   display: grid;
   gap: 0.9rem;
 }
@@ -238,6 +239,10 @@ a {
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
+.provenance-grid {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
 .tag-grid {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   margin-bottom: 1rem;
@@ -253,6 +258,29 @@ a {
   background: rgba(179, 217, 230, 0.28);
   border: 1px solid rgba(11, 79, 108, 0.16);
   font-size: 0.95rem;
+}
+
+.detail-stack {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 1rem;
+}
+
+.detail-stack p {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0;
+}
+
+.detail-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.soft-card strong {
+  color: var(--ink);
 }
 
 .code-block {

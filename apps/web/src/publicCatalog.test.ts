@@ -1,6 +1,9 @@
 import {
   findBestCurriculumSeed,
+  publicCatalogProvenance,
   publicCatalogSummary,
+  publicCatalogSnapshot,
+  publicCatalogSourceCoverage,
   rankCurriculumSeeds,
   resolveCurriculumSeed,
 } from "./publicCatalog";
@@ -62,5 +65,26 @@ describe("publicCatalog", () => {
 
   it("exposes curriculum counts in the public summary", () => {
     expect(publicCatalogSummary.curriculumCount).toBe(2);
+  });
+
+  it("surfaces catalog snapshot provenance and source coverage", () => {
+    expect(publicCatalogSnapshot.builderVersion).toBe("0.1.0");
+    expect(publicCatalogProvenance.sourceCount).toBe(
+      publicCatalogSnapshot.sources.length,
+    );
+    expect(publicCatalogProvenance.pageCount).toBeGreaterThan(0);
+    expect(publicCatalogProvenance.fixtureBackedPageCount).toBe(
+      publicCatalogProvenance.pageCount,
+    );
+    expect(publicCatalogSourceCoverage).toHaveLength(
+      publicCatalogSnapshot.sources.length,
+    );
+
+    const sigaaCoverage = publicCatalogSourceCoverage.find(
+      (coverage) => coverage.source.id === "sigaa-public-turmas",
+    );
+
+    expect(sigaaCoverage?.componentCodeCount).toBeGreaterThan(0);
+    expect(sigaaCoverage?.scheduleCodeCount).toBeGreaterThan(0);
   });
 });

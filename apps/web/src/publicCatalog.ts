@@ -6,6 +6,7 @@ import type {
   TimingProfileId,
 } from "@formae/protocol";
 import catalogIndex from "../../../infra/static-data/catalog-index.json";
+import publicCatalogSnapshotIndex from "../../../infra/static-data/public-catalog.snapshot.json";
 
 export interface PublicCatalogSource {
   id: string;
@@ -13,6 +14,88 @@ export interface PublicCatalogSource {
   kind: "html";
   url: string;
   pii: "none";
+}
+
+export interface PublicCatalogSnapshotSource {
+  id: string;
+  title: string;
+  kind: "html";
+  url: string;
+  fixture: string;
+  notes: string[];
+}
+
+export interface PublicCatalogSnapshotPage {
+  sourceId: string;
+  sourceTitle: string;
+  sourceUrl: string;
+  finalUrl: string;
+  fetchedAt: string;
+  origin: "fixture";
+  title: string;
+  headingCount: number;
+  linkCount: number;
+  textExcerpt: string;
+  componentCodes: string[];
+  scheduleCodes: string[];
+  timeSlotCodes: string[];
+}
+
+export interface PublicCatalogSnapshotComponent {
+  code: string;
+  title: string;
+  sourceId: string;
+  sourceTitle: string;
+  sourceUrl: string;
+  scheduleCode: string;
+  canonicalScheduleCode: string;
+  evidence: string[];
+}
+
+export interface PublicCatalogSnapshotScheduleGuideEntry {
+  code: string;
+  description: string;
+  sourceId: string;
+  sourceTitle: string;
+  sourceUrl: string;
+  evidence: string[];
+}
+
+export interface PublicCatalogSnapshotTimeSlot {
+  slot: string;
+  turn: string;
+  label: string;
+  startTime: string;
+  endTime: string;
+  sourceId: string;
+  sourceTitle: string;
+  sourceUrl: string;
+}
+
+export interface PublicCatalogSnapshot {
+  schemaVersion: number;
+  builderVersion: string;
+  generatedAt: string;
+  institution: "UFBA";
+  timingProfileId: TimingProfileId;
+  sources: PublicCatalogSnapshotSource[];
+  pages: PublicCatalogSnapshotPage[];
+  components: PublicCatalogSnapshotComponent[];
+  scheduleGuide: PublicCatalogSnapshotScheduleGuideEntry[];
+  timeSlots: PublicCatalogSnapshotTimeSlot[];
+  notes: string[];
+}
+
+export interface PublicCatalogSourceCoverage {
+  source: PublicCatalogSnapshotSource & {
+    pii: PublicCatalogSource["pii"];
+  };
+  pageCount: number;
+  fixtureBackedPageCount: number;
+  componentCodeCount: number;
+  scheduleCodeCount: number;
+  timeSlotCodeCount: number;
+  pageCoverageRatio: number;
 }
 
 export interface PublicCatalogComponent {
@@ -76,6 +159,7 @@ export interface PublicCatalogIndex {
 }
 
 const catalog = catalogIndex as PublicCatalogIndex;
+const snapshot = publicCatalogSnapshotIndex as unknown as PublicCatalogSnapshot;
 
 export const publicCatalog: PublicCatalogIndex = {
   ...catalog,
@@ -84,11 +168,41 @@ export const publicCatalog: PublicCatalogIndex = {
   ),
 };
 
+export const publicCatalogSnapshot: PublicCatalogSnapshot = snapshot;
+
+export const publicCatalogSourceCoverage = publicCatalogSnapshot.sources.map(
+  (source) => buildSourceCoverage(source),
+);
+
+export const publicCatalogProvenance = {
+  schemaVersion: publicCatalogSnapshot.schemaVersion,
+  builderVersion: publicCatalogSnapshot.builderVersion,
+  generatedAt: publicCatalogSnapshot.generatedAt,
+  sourceCount: publicCatalogSnapshot.sources.length,
+  pageCount: publicCatalogSnapshot.pages.length,
+  fixtureBackedPageCount: publicCatalogSnapshot.pages.filter(
+    (page) => page.origin === "fixture",
+  ).length,
+  componentCount: publicCatalogSnapshot.components.length,
+  scheduleGuideCount: publicCatalogSnapshot.scheduleGuide.length,
+  timeSlotCount: publicCatalogSnapshot.timeSlots.length,
+  noteCount: publicCatalogSnapshot.notes.length,
+  pagesWithComponentEvidence: publicCatalogSnapshot.pages.filter(
+    (page) => page.componentCodes.length > 0,
+  ).length,
+  pagesWithScheduleEvidence: publicCatalogSnapshot.pages.filter(
+    (page) => page.scheduleCodes.length > 0,
+  ).length,
+};
+
 export const publicCatalogSummary = {
   sourceCount: publicCatalog.sources.length,
   componentCount: publicCatalog.components.length,
   curriculumCount: publicCatalog.curricula.length,
   shortcutCount: publicCatalog.documentShortcuts.length,
+  snapshotSourceCount: publicCatalogSnapshot.sources.length,
+  snapshotPageCount: publicCatalogSnapshot.pages.length,
+  snapshotFixtureBackedPageCount: publicCatalogProvenance.fixtureBackedPageCount,
 };
 
 export function findCatalogMatches(
@@ -306,6 +420,10 @@ function buildCurriculumResolutionReason({
   if (isAmbiguous) {
     const nextMatch = alternativeMatches[0];
 
+    if (!nextMatch) {
+      return `Empate tecnico envolvendo ${selectedId}, mas sem segunda opcao materializada na lista local.`;
+    }
+
     return `Empate tecnico entre ${selectedId} e ${nextMatch.curriculum.id} com ${selectedMatch.matchedCount} componentes em comum.`;
   }
 
@@ -332,4 +450,40 @@ function buildManualCurriculumOverrideReason(
   }
 
   return `Grade seed fixada manualmente: ${selectedMatch.curriculum.id} com ${selectedMatch.matchedCount} componente(s) em comum.`;
+}
+
+function buildSourceCoverage(source: PublicCatalogSnapshotSource) {
+  const catalogSource = publicCatalog.sources.find(
+    (candidate) => candidate.id === source.id,
+  );
+  const pages = publicCatalogSnapshot.pages.filter(
+    (page) => page.sourceId === source.id,
+  );
+  const uniqueComponentCodes = new Set(
+    pages.flatMap((page) => page.componentCodes),
+  );
+  const uniqueScheduleCodes = new Set(
+    pages.flatMap((page) => page.scheduleCodes),
+  );
+  const uniqueTimeSlotCodes = new Set(
+    pages.flatMap((page) => page.timeSlotCodes),
+  );
+
+  return {
+    source: {
+      ...source,
+      pii: catalogSource?.pii ?? "none",
+    },
+    pageCount: pages.length,
+    fixtureBackedPageCount: pages.filter(
+      (page) => page.origin === "fixture",
+    ).length,
+    componentCodeCount: uniqueComponentCodes.size,
+    scheduleCodeCount: uniqueScheduleCodes.size,
+    timeSlotCodeCount: uniqueTimeSlotCodes.size,
+    pageCoverageRatio:
+      publicCatalogSnapshot.pages.length === 0
+        ? 0
+        : pages.length / publicCatalogSnapshot.pages.length,
+  };
 }
