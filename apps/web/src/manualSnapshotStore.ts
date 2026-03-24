@@ -6,6 +6,8 @@ import {
   clearVaultPasskeySession,
   createVaultPasskeyCredential,
   defaultVaultPasskeyLabel,
+  getVaultPasskeySessionKeyMaterialMode,
+  getVaultPasskeySessionWrappingKey,
   getVaultPasskeySupportReason,
   isVaultPasskeySessionUnlocked,
   type VaultPasskeyCredentialConfig,
@@ -93,6 +95,7 @@ interface VaultWrapSecretRecord {
   secretId: string;
   contentKeyId: string;
   wrappedContentKeyB64: string;
+  prfWrappedContentKeyB64: string | null;
   keyDerivation: VaultKeyDerivationMode;
   updatedAt: string;
 }
@@ -221,12 +224,11 @@ export async function loadManualImportVaultState(): Promise<ManualImportVaultSta
 
 export async function loadManualImportVaultPasskeyState(): Promise<ManualImportVaultPasskeyState> {
   const database = await openManualSnapshotDatabase();
-  const vaultState = await readVaultState(database);
   const config = await readVaultPasskeyConfig(database);
 
   return buildManualImportVaultPasskeyState(
     config,
-    vaultState?.keyDerivation ?? null,
+    await resolveReportedVaultPasskeyKeyMaterialMode(database, config),
   );
 }
 
@@ -239,19 +241,18 @@ export async function enableManualImportVaultPasskey(
   await writeVaultPasskeyConfig(database, config);
   await ensureVaultMaterial(database);
 
-  return buildManualImportVaultPasskeyState(config, "browser-local-wrap");
+  return buildManualImportVaultPasskeyState(
+    config,
+    await resolveReportedVaultPasskeyKeyMaterialMode(database, config),
+  );
 }
 
 export async function unlockManualImportVaultPasskey(): Promise<ManualImportVaultPasskeyState> {
   const database = await openManualSnapshotDatabase();
-  const vaultState = await readVaultState(database);
   const config = await readVaultPasskeyConfig(database);
 
   if (!config) {
-    return buildManualImportVaultPasskeyState(
-      null,
-      vaultState?.keyDerivation ?? null,
-    );
+    return buildManualImportVaultPasskeyState(null, null);
   }
 
   const verifiedConfig = await verifyVaultPasskeyCredential(config);
@@ -260,35 +261,30 @@ export async function unlockManualImportVaultPasskey(): Promise<ManualImportVaul
 
   return buildManualImportVaultPasskeyState(
     verifiedConfig,
-    vaultState?.keyDerivation ?? "browser-local-wrap",
+    await resolveReportedVaultPasskeyKeyMaterialMode(database, verifiedConfig),
   );
 }
 
 export async function lockManualImportVaultSession(): Promise<ManualImportVaultPasskeyState> {
   const database = await openManualSnapshotDatabase();
-  const vaultState = await readVaultState(database);
   const config = await readVaultPasskeyConfig(database);
 
   clearVaultPasskeySession();
 
   return buildManualImportVaultPasskeyState(
     config,
-    vaultState?.keyDerivation ?? null,
+    await resolveReportedVaultPasskeyKeyMaterialMode(database, config),
   );
 }
 
 export async function disableManualImportVaultPasskey(): Promise<ManualImportVaultPasskeyState> {
   const database = await openManualSnapshotDatabase();
   await assertVaultUnlockedIfRequired(database);
-  const vaultState = await readVaultState(database);
 
   clearVaultPasskeySession();
   await deleteVaultPasskeyConfig(database);
 
-  return buildManualImportVaultPasskeyState(
-    null,
-    vaultState?.keyDerivation ?? null,
-  );
+  return buildManualImportVaultPasskeyState(null, null);
 }
 
 export async function sealManualImportSnapshotForVault(
@@ -496,91 +492,134 @@ async function migrateLegacySnapshotIfNeeded(
 async function ensureVaultMaterial(
   database: IDBDatabase,
 ): Promise<VaultWrapSecretRecord | null> {
-  const existingRecord = await readVaultWrapSecretRecord(database);
-
-  if (existingRecord) {
-    return existingRecord;
-  }
-
-  const currentVaultRecord = await readVaultRecord(database);
-
-  if (currentVaultRecord?.keyDerivation === "device-local") {
-    return null;
-  }
-
   const browserWrapKey = await ensureBrowserWrapKey(database);
-  const contentKeyBytes = randomBytes(32);
-  const keyDerivation: VaultKeyDerivationMode = "browser-local-wrap";
-  const wrappedContentKey = await wrapContentKeyBytes(
-    browserWrapKey.key,
-    contentKeyBytes,
-    buildVaultWrapAadContext(CONTENT_KEY_RECORD_KEY, keyDerivation),
-  );
-  const record: VaultWrapSecretRecord = {
-    schemaVersion: 1,
-    secretId: WRAP_SECRET_RECORD_KEY,
-    contentKeyId: CONTENT_KEY_RECORD_KEY,
-    wrappedContentKeyB64: bytesToBase64(wrappedContentKey),
-    keyDerivation,
-    updatedAt: new Date().toISOString(),
-  };
+  const existingRecord = await readVaultWrapSecretRecord(database);
+  const prfWrappingKey = getVaultPasskeySessionWrappingKey();
 
-  await writeVaultWrapSecretRecord(database, record);
+  if (!existingRecord) {
+    const contentKeyBytes = randomBytes(32);
+    const browserWrappedContentKeyB64 = await wrapContentKeyBytes(
+      browserWrapKey.key,
+      contentKeyBytes,
+      buildVaultWrapAadContext(CONTENT_KEY_RECORD_KEY, "browser-local-wrap"),
+    );
+    const prfWrappedContentKeyB64 = prfWrappingKey
+      ? await wrapContentKeyBytes(
+          prfWrappingKey,
+          contentKeyBytes,
+          buildVaultWrapAadContext(CONTENT_KEY_RECORD_KEY, "webauthn-prf"),
+        )
+      : null;
+    const record: VaultWrapSecretRecord = {
+      schemaVersion: 1,
+      secretId: WRAP_SECRET_RECORD_KEY,
+      contentKeyId: CONTENT_KEY_RECORD_KEY,
+      wrappedContentKeyB64: browserWrappedContentKeyB64,
+      prfWrappedContentKeyB64,
+      keyDerivation: prfWrappedContentKeyB64
+        ? "webauthn-prf"
+        : "browser-local-wrap",
+      updatedAt: new Date().toISOString(),
+    };
 
-  return record;
+    await writeVaultWrapSecretRecord(database, record);
+
+    return record;
+  }
+
+  if (prfWrappingKey && !existingRecord.prfWrappedContentKeyB64) {
+    const contentKeyBytes = await unwrapWrappedContentKeyBytes(
+      browserWrapKey.key,
+      existingRecord.wrappedContentKeyB64,
+      buildVaultWrapAadContext(
+        existingRecord.contentKeyId,
+        "browser-local-wrap",
+      ),
+    );
+    const prfWrappedContentKeyB64 = await wrapContentKeyBytes(
+      prfWrappingKey,
+      contentKeyBytes,
+      buildVaultWrapAadContext(existingRecord.contentKeyId, "webauthn-prf"),
+    );
+    const updatedRecord: VaultWrapSecretRecord = {
+      ...existingRecord,
+      prfWrappedContentKeyB64,
+      keyDerivation: "webauthn-prf",
+      updatedAt: new Date().toISOString(),
+    };
+
+    await writeVaultWrapSecretRecord(database, updatedRecord);
+
+    return updatedRecord;
+  }
+
+  return existingRecord;
 }
 
 async function resolveVaultContentKeyMaterial(
   database: IDBDatabase,
-  mode: "read" | "write" = "read",
+  _mode: "read" | "write" = "read",
 ): Promise<{
   contentKey: CryptoKey;
   contentKeyId: string;
   keyDerivation: VaultKeyDerivationMode;
 }> {
-  const wrapSecretRecord = await readVaultWrapSecretRecord(database);
+  const wrapSecretRecord = await ensureVaultMaterial(database);
 
   if (wrapSecretRecord) {
+    const prfWrappingKey = getVaultPasskeySessionWrappingKey();
+
+    if (prfWrappingKey && wrapSecretRecord.prfWrappedContentKeyB64) {
+      const rawContentKey = await unwrapWrappedContentKeyBytes(
+        prfWrappingKey,
+        wrapSecretRecord.prfWrappedContentKeyB64,
+        buildVaultWrapAadContext(wrapSecretRecord.contentKeyId, "webauthn-prf"),
+      );
+      const contentKey = await importContentKey(rawContentKey);
+
+      return {
+        contentKey,
+        contentKeyId: wrapSecretRecord.contentKeyId,
+        keyDerivation: "webauthn-prf",
+      };
+    }
+
     const browserWrapKey = await ensureBrowserWrapKey(database);
-    const rawContentKey = await unwrapContentKeyBytes(
+    const rawContentKey = await unwrapWrappedContentKeyBytes(
       browserWrapKey.key,
-      wrapSecretRecord,
+      wrapSecretRecord.wrappedContentKeyB64,
+      buildVaultWrapAadContext(
+        wrapSecretRecord.contentKeyId,
+        "browser-local-wrap",
+      ),
     );
     const contentKey = await importContentKey(rawContentKey);
 
     return {
       contentKey,
       contentKeyId: wrapSecretRecord.contentKeyId,
-      keyDerivation: wrapSecretRecord.keyDerivation,
+      keyDerivation: "browser-local-wrap",
     };
   }
 
-  if (mode === "read") {
-    const currentVaultRecord = await readVaultRecord(database);
+  const currentVaultRecord = await readVaultRecord(database);
 
-    if (currentVaultRecord) {
-      const legacyContentKey = await readVaultKey(
-        database,
-        currentVaultRecord.contentKeyId,
-      );
+  if (currentVaultRecord) {
+    const legacyContentKey = await readVaultKey(
+      database,
+      currentVaultRecord.contentKeyId,
+    );
 
-      if (legacyContentKey) {
-        return {
-          contentKey: legacyContentKey,
-          contentKeyId: currentVaultRecord.contentKeyId,
-          keyDerivation: currentVaultRecord.keyDerivation,
-        };
-      }
+    if (legacyContentKey) {
+      return {
+        contentKey: legacyContentKey,
+        contentKeyId: currentVaultRecord.contentKeyId,
+        keyDerivation: currentVaultRecord.keyDerivation,
+      };
     }
   }
 
-  const createdRecord = await ensureVaultMaterial(database);
-
-  if (!createdRecord) {
-    throw new Error("Failed to resolve the wrapped local vault key material.");
-  }
-
-  return resolveVaultContentKeyMaterial(database, "read");
+  throw new Error("Failed to resolve the wrapped local vault key material.");
 }
 
 async function ensureBrowserWrapKey(
@@ -1129,11 +1168,36 @@ function buildManualImportVaultPasskeyState(
   };
 }
 
+async function resolveReportedVaultPasskeyKeyMaterialMode(
+  database: IDBDatabase,
+  config: VaultPasskeyCredentialConfig | null,
+): Promise<VaultKeyDerivationMode | null> {
+  if (!config) {
+    return null;
+  }
+
+  const sessionKeyMaterialMode = getVaultPasskeySessionKeyMaterialMode();
+
+  if (sessionKeyMaterialMode) {
+    return sessionKeyMaterialMode;
+  }
+
+  const wrapSecretRecord = await readVaultWrapSecretRecord(database);
+
+  if (wrapSecretRecord) {
+    return wrapSecretRecord.keyDerivation;
+  }
+
+  return (
+    (await readVaultState(database))?.keyDerivation ?? "browser-local-wrap"
+  );
+}
+
 async function wrapContentKeyBytes(
   wrappingKey: CryptoKey,
   contentKeyBytes: Uint8Array,
   aadContext: string,
-): Promise<Uint8Array> {
+): Promise<string> {
   assertSubtleCrypto();
 
   const iv = globalThis.crypto.getRandomValues(new Uint8Array(12));
@@ -1147,27 +1211,24 @@ async function wrapContentKeyBytes(
     asArrayBuffer(contentKeyBytes),
   );
 
-  return new Uint8Array([...iv, ...new Uint8Array(ciphertext)]);
+  return bytesToBase64(new Uint8Array([...iv, ...new Uint8Array(ciphertext)]));
 }
 
-async function unwrapContentKeyBytes(
+async function unwrapWrappedContentKeyBytes(
   wrappingKey: CryptoKey,
-  record: VaultWrapSecretRecord,
+  wrappedContentKeyB64: string,
+  aadContext: string,
 ): Promise<Uint8Array> {
   assertSubtleCrypto();
 
-  const wrappedBytes = base64ToBytes(record.wrappedContentKeyB64);
+  const wrappedBytes = base64ToBytes(wrappedContentKeyB64);
   const iv = wrappedBytes.slice(0, 12);
   const ciphertext = wrappedBytes.slice(12);
   const plaintext = await globalThis.crypto.subtle.decrypt(
     {
       name: "AES-GCM",
       iv: asArrayBuffer(iv),
-      additionalData: asArrayBuffer(
-        textEncoder.encode(
-          buildVaultWrapAadContext(record.contentKeyId, record.keyDerivation),
-        ),
-      ),
+      additionalData: asArrayBuffer(textEncoder.encode(aadContext)),
     },
     wrappingKey,
     asArrayBuffer(ciphertext),

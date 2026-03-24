@@ -275,7 +275,8 @@ export function OverviewPage() {
             <h3>{overviewResolutionLabel}</h3>
             <div className="shell-chip-row">
               <span className="vault-fact">
-                Origem: {overviewState.summary ? overviewSourceLabel : "nenhuma"}
+                Origem:{" "}
+                {overviewState.summary ? overviewSourceLabel : "nenhuma"}
               </span>
               <span className="vault-fact">
                 {overviewState.summary

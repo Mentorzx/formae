@@ -13,6 +13,7 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const repoRoot = dirname(dirname(fileURLToPath(import.meta.url)));
+const RUNTIME_TARGETS = ["chrome", "firefox"];
 
 if (isMain(import.meta.url, process.argv[1])) {
   packageExtension({ repoRoot }).catch((error) => {
@@ -30,25 +31,125 @@ export async function packageExtension({
 } = {}) {
   const extensionRoot = join(providedRepoRoot, "apps", "extension");
   const manifestPath = join(extensionRoot, "manifest.json");
-  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
-  const version = String(manifest.version ?? "0.0.0");
-  const packageRoot = join(outputRoot, "extension", `formae-extension-${version}`);
+  const sourceManifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  const version = String(sourceManifest.version ?? "0.0.0");
   const releasesRoot = join(outputRoot, "releases");
-  const archivePath = join(releasesRoot, `formae-extension-${version}.zip`);
-  const firefoxArchivePath = join(releasesRoot, `formae-extension-${version}.xpi`);
-  const checksumPath = `${archivePath}.sha256`;
-  const firefoxChecksumPath = `${firefoxArchivePath}.sha256`;
-  const releaseManifestPath = join(
-    releasesRoot,
-    `formae-extension-${version}.release-manifest.json`,
-  );
-  validateManifestReleaseReadiness(manifest);
+
+  validateManifestReleaseReadiness(sourceManifest);
 
   await rm(join(outputRoot, "extension"), { force: true, recursive: true });
   await rm(releasesRoot, { force: true, recursive: true });
 
+  await mkdir(releasesRoot, { recursive: true });
+
+  const targetBuilds = {};
+
+  for (const runtimeTarget of RUNTIME_TARGETS) {
+    const packageRoot = join(
+      outputRoot,
+      "extension",
+      packageDirectoryName({ runtimeTarget, version }),
+    );
+    const manifest = buildTargetManifest(sourceManifest, runtimeTarget);
+
+    await stageTargetPackage({
+      extensionRoot,
+      packageRoot,
+      manifest,
+    });
+
+    const packageFiles = await listFiles(packageRoot);
+    const distribution = buildTargetDistribution({
+      runtimeTarget,
+      version,
+    });
+
+    await writeMetadata({
+      manifest,
+      repoRoot: providedRepoRoot,
+      sourceDateEpoch,
+      files: packageFiles,
+      packageRoot,
+      runtimeTarget,
+      distribution,
+    });
+    await normalizeFileTimestamps(packageRoot, sourceDateEpoch);
+
+    const fileList = await listFiles(packageRoot);
+    await createZipArchive({
+      archivePath: join(releasesRoot, distribution.archive),
+      cwd: packageRoot,
+      fileList,
+    });
+
+    const checksumPath = join(releasesRoot, distribution.checksum);
+    const sha256 = await writeChecksumFile({
+      archivePath: join(releasesRoot, distribution.archive),
+      checksumPath,
+    });
+    const packageFileDigests = await collectFileDigests(packageRoot);
+
+    targetBuilds[runtimeTarget] = {
+      runtimeTarget,
+      manifest,
+      packageRoot,
+      archivePath: join(releasesRoot, distribution.archive),
+      checksumPath,
+      sha256,
+      distribution,
+      packageFiles,
+      packageFileDigests,
+    };
+  }
+
+  const releaseManifestPath = join(
+    releasesRoot,
+    `formae-extension-${version}.release-manifest.json`,
+  );
+  await writeReleaseManifest({
+    releaseManifestPath,
+    manifest: sourceManifest,
+    sourceDateEpoch,
+    targetBuilds,
+  });
+
+  return {
+    version,
+    sourceDateEpoch,
+    releaseManifestPath,
+    packageRoots: {
+      chrome: targetBuilds.chrome.packageRoot,
+      firefox: targetBuilds.firefox.packageRoot,
+    },
+    archives: {
+      chrome: targetBuilds.chrome.archivePath,
+      firefox: targetBuilds.firefox.archivePath,
+    },
+    checksums: {
+      chrome: targetBuilds.chrome.checksumPath,
+      firefox: targetBuilds.firefox.checksumPath,
+    },
+    archivePath: targetBuilds.chrome.archivePath,
+    firefoxArchivePath: targetBuilds.firefox.archivePath,
+    checksumPath: targetBuilds.chrome.checksumPath,
+    firefoxChecksumPath: targetBuilds.firefox.checksumPath,
+    packageRoot: targetBuilds.chrome.packageRoot,
+    chromePackageRoot: targetBuilds.chrome.packageRoot,
+    firefoxPackageRoot: targetBuilds.firefox.packageRoot,
+  };
+}
+
+async function stageTargetPackage({
+  extensionRoot,
+  packageRoot,
+  manifest,
+}) {
   await mkdir(packageRoot, { recursive: true });
-  await copyFile(manifestPath, join(packageRoot, "manifest.json"));
+  await writeFile(
+    join(packageRoot, "manifest.json"),
+    `${JSON.stringify(manifest, null, 2)}\n`,
+    "utf8",
+  );
   await copyOptionalFile(join(extensionRoot, "README.md"), join(packageRoot, "README.md"));
   await copyOptionalFile(join(extensionRoot, "package.json"), join(packageRoot, "package.json"));
   await copyTree(join(extensionRoot, "src"), join(packageRoot, "src"));
@@ -56,67 +157,53 @@ export async function packageExtension({
     packageRoot,
     manifest,
   });
-  const packageFiles = await listFiles(packageRoot);
-  await writeMetadata({
-    manifest,
-    repoRoot: providedRepoRoot,
-    sourceDateEpoch,
-    files: packageFiles,
-    packageRoot,
-  });
-  await normalizeFileTimestamps(packageRoot, sourceDateEpoch);
+}
 
-  const fileList = await listFiles(packageRoot);
-  await mkdir(releasesRoot, { recursive: true });
-  await createZipArchive({
-    archivePath,
-    cwd: packageRoot,
-    fileList,
-  });
-  await copyFile(archivePath, firefoxArchivePath);
-  const chromeSha256 = await writeChecksumFile({ archivePath, checksumPath });
-  const firefoxSha256 = await writeChecksumFile({
-    archivePath: firefoxArchivePath,
-    checksumPath: firefoxChecksumPath,
-  });
-  const packageFileDigests = await collectFileDigests(packageRoot);
-  await writeReleaseManifest({
-    releaseManifestPath,
-    manifest,
-    sourceDateEpoch,
-    packageFiles: packageFileDigests,
-    artifacts: [
-      {
-        target: "chrome",
-        file: basename(archivePath),
-        sha256: chromeSha256,
-      },
-      {
-        target: "firefox",
-        file: basename(firefoxArchivePath),
-        sha256: firefoxSha256,
-      },
-      {
-        target: "chrome-checksum",
-        file: basename(checksumPath),
-      },
-      {
-        target: "firefox-checksum",
-        file: basename(firefoxChecksumPath),
-      },
-    ],
-  });
+function buildTargetManifest(sourceManifest, runtimeTarget) {
+  const manifest = structuredClone(sourceManifest);
+  const backgroundScriptPath =
+    manifest.background?.service_worker ??
+    manifest.background?.scripts?.[0] ??
+    null;
+
+  if (!backgroundScriptPath) {
+    throw new Error(
+      `Cannot build ${runtimeTarget} manifest without a background entrypoint.`,
+    );
+  }
+
+  if (runtimeTarget === "chrome") {
+    manifest.background = {
+      service_worker: backgroundScriptPath,
+      type: manifest.background?.type ?? "module",
+    };
+    return manifest;
+  }
+
+  manifest.background = {
+    scripts: uniqueStrings([
+      ...(manifest.background?.scripts ?? []),
+      backgroundScriptPath,
+    ]),
+    type: manifest.background?.type ?? "module",
+  };
+  delete manifest.externally_connectable;
+
+  return manifest;
+}
+
+function buildTargetDistribution({ runtimeTarget, version }) {
+  const archive = `formae-extension-${version}.${runtimeTarget === "chrome" ? "zip" : "xpi"}`;
 
   return {
-    version,
-    packageRoot,
-    archivePath,
-    firefoxArchivePath,
-    checksumPath,
-    firefoxChecksumPath,
-    releaseManifestPath,
-    sourceDateEpoch,
+    archive,
+    checksum: `${archive}.sha256`,
+    target: runtimeTarget,
   };
+}
+
+function packageDirectoryName({ runtimeTarget, version }) {
+  return `formae-extension-${runtimeTarget}-${version}`;
 }
 
 async function copyTree(sourceDir, destinationDir) {
@@ -212,10 +299,13 @@ async function writeMetadata({
   sourceDateEpoch,
   files,
   packageRoot,
+  runtimeTarget,
+  distribution,
 }) {
   const metadata = {
     name: manifest.name,
     version: String(manifest.version ?? "0.0.0"),
+    runtimeTarget,
     generatedAt: new Date(sourceDateEpoch * 1000).toISOString(),
     sourceDateEpoch,
     sourceRoot: relative(
@@ -224,13 +314,17 @@ async function writeMetadata({
     ).split(sep).join("/"),
     packageRoot: basename(packageRoot),
     distribution: {
-      chromeArchive: `formae-extension-${manifest.version}.zip`,
-      chromeChecksum: `formae-extension-${manifest.version}.zip.sha256`,
-      firefoxArchive: `formae-extension-${manifest.version}.xpi`,
-      firefoxChecksum: `formae-extension-${manifest.version}.xpi.sha256`,
+      archive: distribution.archive,
+      checksum: distribution.checksum,
+      requiresMozillaSignature: runtimeTarget === "firefox",
+      signatureStatus:
+        runtimeTarget === "firefox" ? "unsigned-artifact" : "not-required",
     },
+    runtimeProof: buildRuntimeProof({
+      runtimeTarget,
+      manifest,
+    }),
     files,
-    runtimeTargets: ["chrome", "firefox"],
     permissions: manifest.permissions ?? [],
     hostPermissions: manifest.host_permissions ?? [],
     browserSpecificSettings: manifest.browser_specific_settings ?? null,
@@ -247,18 +341,35 @@ async function writeReleaseManifest({
   releaseManifestPath,
   manifest,
   sourceDateEpoch,
-  packageFiles,
-  artifacts,
+  targetBuilds,
 }) {
   const releaseManifest = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     name: manifest.name,
     version: String(manifest.version ?? "0.0.0"),
     generatedAt: new Date(sourceDateEpoch * 1000).toISOString(),
     sourceDateEpoch,
-    runtimeTargets: ["chrome", "firefox"],
-    packageFiles,
-    artifacts,
+    runtimeTargets: RUNTIME_TARGETS,
+    targets: Object.fromEntries(
+      RUNTIME_TARGETS.map((runtimeTarget) => {
+        const build = targetBuilds[runtimeTarget];
+
+        return [
+          runtimeTarget,
+          {
+            archive: basename(build.archivePath),
+            checksum: basename(build.checksumPath),
+            sha256: build.sha256,
+            packageRoot: basename(build.packageRoot),
+            packageFiles: build.packageFileDigests,
+            runtimeProof: buildRuntimeProof({
+              runtimeTarget,
+              manifest: build.manifest,
+            }),
+          },
+        ];
+      }),
+    ),
   };
 
   await writeFile(
@@ -266,6 +377,19 @@ async function writeReleaseManifest({
     `${JSON.stringify(releaseManifest, null, 2)}\n`,
     "utf8",
   );
+}
+
+function buildRuntimeProof({ runtimeTarget, manifest }) {
+  return {
+    backgroundMode:
+      runtimeTarget === "firefox" ? "background-scripts" : "service-worker",
+    directRuntimeBridge:
+      runtimeTarget === "chrome" && manifest.externally_connectable != null,
+    contentScriptBridge: Array.isArray(manifest.content_scripts) &&
+      manifest.content_scripts.length > 0,
+    externallyConnectable: manifest.externally_connectable ?? null,
+    requiresMozillaSignature: runtimeTarget === "firefox",
+  };
 }
 
 async function collectFileDigests(rootDir) {
@@ -310,6 +434,15 @@ function validateManifestReleaseReadiness(manifest) {
     throw new Error("Extension packaging requires background.service_worker.");
   }
 
+  if (
+    !Array.isArray(manifest.background?.scripts) ||
+    manifest.background.scripts.length === 0
+  ) {
+    throw new Error(
+      "Extension packaging requires background.scripts as a Firefox fallback.",
+    );
+  }
+
   if (!manifest.browser_specific_settings?.gecko?.id) {
     throw new Error("Firefox packaging requires browser_specific_settings.gecko.id.");
   }
@@ -350,6 +483,12 @@ function collectManifestAssetPaths(manifest) {
     paths.add(manifest.background.service_worker);
   }
 
+  for (const entry of manifest.background?.scripts ?? []) {
+    if (typeof entry === "string") {
+      paths.add(entry);
+    }
+  }
+
   for (const contentScript of manifest.content_scripts ?? []) {
     for (const entry of contentScript.js ?? []) {
       if (typeof entry === "string") {
@@ -379,6 +518,10 @@ function collectManifestAssetPaths(manifest) {
   }
 
   return [...paths].sort((left, right) => left.localeCompare(right));
+}
+
+function uniqueStrings(values) {
+  return [...new Set(values.filter((value) => typeof value === "string" && value.length > 0))];
 }
 
 function resolveSourceDateEpoch(providedRepoRoot) {

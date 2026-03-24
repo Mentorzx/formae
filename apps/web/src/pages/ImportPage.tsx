@@ -580,9 +580,9 @@ export function ImportPage() {
               senha
             </h2>
             <p>
-              O sync automatico roda no dispositivo do usuario com uma
-              extensao local, sem backend com PII. Quando a extensao nao
-              estiver carregada, a importacao manual continua disponivel.
+              O sync automatico roda no dispositivo do usuario com uma extensao
+              local, sem backend com PII. Quando a extensao nao estiver
+              carregada, a importacao manual continua disponivel.
             </p>
 
             <div className="hero-cta-row">

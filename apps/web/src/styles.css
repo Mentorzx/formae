@@ -381,11 +381,6 @@ a {
   gap: 1rem;
 }
 
-.overview-hero .metric-strip,
-.import-hero .metric-strip {
-  margin-top: 0.2rem;
-}
-
 .hero-card h2,
 .panel h3 {
   margin: 0 0 0.75rem;
@@ -421,6 +416,11 @@ a {
 .metric-strip {
   margin-top: 1.4rem;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.overview-hero .metric-strip,
+.import-hero .metric-strip {
+  margin-top: 0.2rem;
 }
 
 .metric,

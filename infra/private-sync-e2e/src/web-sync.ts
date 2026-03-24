@@ -54,9 +54,15 @@ export async function runWebSync(
       timeout: config.timeoutMs,
     });
 
-    await page
-      .getByRole("button", { name: "Importar automaticamente" })
-      .click();
+    const automaticSyncButton = page
+      .locator("section.import-split-panel")
+      .getByRole("button", { name: "Importar automaticamente" });
+
+    await automaticSyncButton.waitFor({
+      state: "visible",
+      timeout: config.timeoutMs,
+    });
+    await automaticSyncButton.click();
 
     await page
       .getByText(AUTOMATIC_SYNC_SUCCESS_TEXT, {

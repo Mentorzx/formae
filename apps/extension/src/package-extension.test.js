@@ -7,7 +7,7 @@ import test from "node:test";
 
 import { packageExtension } from "../../../scripts/package-extension.mjs";
 
-test("packageExtension stages files and produces zip plus sha256", async () => {
+test("packageExtension stages browser-specific artifacts and manifests", async () => {
   const tempOutputRoot = await mkdtemp(join(tmpdir(), "formae-extension-package-"));
   const repoRoot = fileURLToPath(new URL("../../../", import.meta.url));
 
@@ -16,14 +16,38 @@ test("packageExtension stages files and produces zip plus sha256", async () => {
     outputRoot: tempOutputRoot,
   });
 
-  const archiveStats = await stat(result.archivePath);
-  const checksumStats = await stat(result.checksumPath);
-  const metadata = JSON.parse(await readFile(join(result.packageRoot, "package-metadata.json"), "utf8"));
-  const archiveChecksum = await readFile(result.checksumPath, "utf8");
+  const chromeArchiveStats = await stat(result.archives.chrome);
+  const firefoxArchiveStats = await stat(result.archives.firefox);
+  const chromeChecksumStats = await stat(result.checksums.chrome);
+  const firefoxChecksumStats = await stat(result.checksums.firefox);
+  const chromeMetadata = JSON.parse(
+    await readFile(join(result.packageRoots.chrome, "package-metadata.json"), "utf8"),
+  );
+  const firefoxMetadata = JSON.parse(
+    await readFile(join(result.packageRoots.firefox, "package-metadata.json"), "utf8"),
+  );
+  const chromeManifest = JSON.parse(
+    await readFile(join(result.packageRoots.chrome, "manifest.json"), "utf8"),
+  );
+  const firefoxManifest = JSON.parse(
+    await readFile(join(result.packageRoots.firefox, "manifest.json"), "utf8"),
+  );
+  const chromeArchiveChecksum = await readFile(result.checksums.chrome, "utf8");
+  const firefoxArchiveChecksum = await readFile(result.checksums.firefox, "utf8");
 
-  assert.ok(archiveStats.size > 0);
-  assert.ok(checksumStats.size > 0);
-  assert.equal(metadata.runtimeTargets.includes("firefox"), true);
-  assert.ok(metadata.files.includes("src/popup.html"));
-  assert.match(archiveChecksum, /formae-extension-0\.1\.0\.zip/);
+  assert.ok(chromeArchiveStats.size > 0);
+  assert.ok(firefoxArchiveStats.size > 0);
+  assert.ok(chromeChecksumStats.size > 0);
+  assert.ok(firefoxChecksumStats.size > 0);
+  assert.equal(chromeMetadata.runtimeTarget, "chrome");
+  assert.equal(firefoxMetadata.runtimeTarget, "firefox");
+  assert.ok(chromeMetadata.files.includes("src/popup.html"));
+  assert.ok(firefoxMetadata.files.includes("src/popup.html"));
+  assert.equal(chromeManifest.background.service_worker, "src/background.js");
+  assert.equal("scripts" in chromeManifest.background, false);
+  assert.deepEqual(firefoxManifest.background.scripts, ["src/background.js"]);
+  assert.equal("service_worker" in firefoxManifest.background, false);
+  assert.equal("externally_connectable" in firefoxManifest, false);
+  assert.match(chromeArchiveChecksum, /formae-extension-0\.1\.0\.zip/);
+  assert.match(firefoxArchiveChecksum, /formae-extension-0\.1\.0\.xpi/);
 });

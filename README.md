@@ -11,6 +11,7 @@ Hoje o repositório já entrega:
 - importação manual de texto do SIGAA
 - sincronização automática local com o SIGAA via extensão MV3
 - vault local cifrado no navegador
+- endurecimento opcional do vault com passkey e cópia embrulhada via WebAuthn PRF quando disponível
 - parser de horários UFBA 2025 em Rust/WASM
 - catálogo público seed versionado
 
@@ -145,6 +146,18 @@ No Chrome ou Chromium:
 4. Selecione a pasta:
    `apps/extension`
 
+Se você quiser gerar artefatos de distribuição locais:
+
+```bash
+pnpm package:extension
+```
+
+Isso gera:
+
+- um `.zip` para Chrome em `dist/releases`
+- um `.xpi` para Firefox em `dist/releases`
+- checksums e manifesto de release determinístico
+
 ### 3. Abra a tela de importação
 
 Use:
@@ -195,9 +208,10 @@ Na prática atual:
 - os dados do snapshot ficam no navegador
 - o vault é cifrado localmente
 - a passkey ajuda a bloquear/desbloquear a sessão local
-- a chave ainda está em modo `device-local`
+- quando o navegador e o autenticador suportam PRF, o vault passa a manter uma cópia embrulhada com material derivado da passkey
+- quando PRF não estiver disponível, o fallback continua sendo `browser-local-wrap`
 
-Isso significa que a segurança local já melhorou bastante, mas ainda não é o estado final mais forte possível.
+Isso significa que a segurança local já melhorou bastante, mas ainda não é o estado final mais forte possível: ainda falta derivação realmente ancorada de ponta a ponta em WebAuthn para todo o ciclo do vault.
 
 ## Segredos locais e `.env`
 
@@ -242,6 +256,8 @@ pnpm build
 pnpm test
 pnpm lint
 pnpm package:extension
+node scripts/verify-extension-release.mjs
+node scripts/audit-extension-package.mjs
 ```
 
 Validação só do app web:

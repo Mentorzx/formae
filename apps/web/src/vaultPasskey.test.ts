@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   clearVaultPasskeySession,
   createVaultPasskeyCredential,
+  getVaultPasskeySessionKeyMaterialMode,
   isVaultPasskeySessionUnlocked,
   readAuthenticatorFlags,
   type VaultPasskeyCredentialConfig,
@@ -51,6 +52,7 @@ describe("vaultPasskey", () => {
     expect(credential.rpId).toBe(globalThis.location.hostname);
     expect(credential.origin).toBe(globalThis.location.origin);
     expect(isVaultPasskeySessionUnlocked(credential)).toBe(true);
+    expect(getVaultPasskeySessionKeyMaterialMode()).toBe("browser-local-wrap");
     expect(challengeAwareCreate).toHaveBeenCalledTimes(1);
   });
 
@@ -130,6 +132,7 @@ describe("vaultPasskey", () => {
 
     expect(verifiedConfig.lastVerifiedAt).not.toBeNull();
     expect(isVaultPasskeySessionUnlocked(config)).toBe(true);
+    expect(getVaultPasskeySessionKeyMaterialMode()).toBe("webauthn-prf");
     expect(challengeAwareGet).toHaveBeenCalledTimes(1);
   });
 

@@ -11,11 +11,14 @@ export interface VaultPasskeyCredentialConfig {
   userVerification: "required";
 }
 
+export type VaultPasskeyKeyMaterialMode = "webauthn-prf" | "browser-local-wrap";
+
 interface VaultPasskeySessionMarker {
   credentialId: string;
   unlockedAt: string;
   expiresAt: string;
-  keyMaterialMode: "webauthn-prf" | "browser-local-wrap";
+  keyMaterialMode: VaultPasskeyKeyMaterialMode;
+  wrappingKey: CryptoKey | null;
 }
 
 const WEBAUTHN_TIMEOUT_MS = 60_000;
@@ -113,14 +116,13 @@ export async function createVaultPasskeyCredential(
     prf?: { enabled?: boolean };
   };
   const prfReady = extensionResults.prf?.enabled === true;
-  const keyMaterialMode: VaultPasskeySessionMarker["keyMaterialMode"] = prfReady
-    ? "webauthn-prf"
-    : "browser-local-wrap";
+  const keyMaterialMode: VaultPasskeyKeyMaterialMode = "browser-local-wrap";
 
   writeVaultPasskeySession(
     credentialId,
     createdAt,
     keyMaterialMode,
+    null,
     VAULT_PASSKEY_SESSION_TTL_MS,
   );
 
@@ -233,11 +235,17 @@ export async function verifyVaultPasskeyCredential(
   const extensionResults = credential.getClientExtensionResults() as {
     prf?: { results?: { first?: ArrayBuffer } };
   };
-  const keyMaterialMode =
-    config.prfReady && extensionResults.prf?.results?.first
-      ? "webauthn-prf"
-      : "browser-local-wrap";
-  writeVaultPasskeySession(config.credentialId, verifiedAt, keyMaterialMode);
+  const prfResult = extensionResults.prf?.results?.first;
+  const prfWrappingKey = await importPrfWrappingKey(prfResult);
+  const keyMaterialMode: VaultPasskeyKeyMaterialMode = prfWrappingKey
+    ? "webauthn-prf"
+    : "browser-local-wrap";
+  writeVaultPasskeySession(
+    config.credentialId,
+    verifiedAt,
+    keyMaterialMode,
+    prfWrappingKey,
+  );
 
   return {
     ...config,
@@ -255,6 +263,14 @@ export function isVaultPasskeySessionUnlocked(
 
 export function clearVaultPasskeySession(): void {
   currentVaultPasskeySession = null;
+}
+
+export function getVaultPasskeySessionKeyMaterialMode(): VaultPasskeyKeyMaterialMode | null {
+  return readVaultPasskeySession()?.keyMaterialMode ?? null;
+}
+
+export function getVaultPasskeySessionWrappingKey(): CryptoKey | null {
+  return readVaultPasskeySession()?.wrappingKey ?? null;
 }
 
 export function defaultVaultPasskeyLabel(): string {
@@ -354,7 +370,8 @@ function toArrayBuffer(value: Uint8Array): ArrayBuffer {
 function writeVaultPasskeySession(
   credentialId: string,
   unlockedAt: string,
-  keyMaterialMode: VaultPasskeySessionMarker["keyMaterialMode"],
+  keyMaterialMode: VaultPasskeyKeyMaterialMode,
+  wrappingKey: CryptoKey | null,
   ttlMs = VAULT_PASSKEY_SESSION_TTL_MS,
 ): void {
   currentVaultPasskeySession = {
@@ -362,7 +379,26 @@ function writeVaultPasskeySession(
     unlockedAt,
     expiresAt: new Date(new Date(unlockedAt).getTime() + ttlMs).toISOString(),
     keyMaterialMode,
+    wrappingKey,
   };
+}
+
+async function importPrfWrappingKey(
+  prfResult: ArrayBuffer | undefined,
+): Promise<CryptoKey | null> {
+  if (!prfResult || prfResult.byteLength === 0) {
+    return null;
+  }
+
+  const digest = await globalThis.crypto.subtle.digest("SHA-256", prfResult);
+
+  return globalThis.crypto.subtle.importKey(
+    "raw",
+    digest,
+    { name: "AES-GCM" },
+    false,
+    ["encrypt", "decrypt"],
+  );
 }
 
 function bytesToBase64Url(bytes: Uint8Array): string {

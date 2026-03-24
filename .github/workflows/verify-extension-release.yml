@@ -48,6 +48,12 @@ jobs:
       - name: Build releasable extension artifacts
         run: node scripts/package-extension.mjs
 
+      - name: Lint packaged Firefox extension
+        run: |
+          firefox_dir="$(find dist/extension -maxdepth 1 -type d -name 'formae-extension-firefox-*' | head -n 1)"
+          test -n "$firefox_dir"
+          npx --yes web-ext lint --source-dir "$firefox_dir"
+
       - name: Upload verified extension artifacts
         uses: actions/upload-artifact@v4
         with:

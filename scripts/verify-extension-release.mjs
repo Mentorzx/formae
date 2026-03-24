@@ -35,56 +35,81 @@ export async function verifyExtensionRelease({
     });
 
     const [
-      firstZipChecksum,
-      secondZipChecksum,
-      firstZipArchive,
-      secondZipArchive,
+      firstChromeChecksum,
+      secondChromeChecksum,
       firstFirefoxChecksum,
       secondFirefoxChecksum,
+      firstChromeArchive,
+      secondChromeArchive,
       firstFirefoxArchive,
       secondFirefoxArchive,
       firstReleaseManifest,
       secondReleaseManifest,
-      firstPackageMetadata,
-      secondPackageMetadata,
-      firstPackagedManifest,
-      secondPackagedManifest,
+      firstChromeMetadata,
+      secondChromeMetadata,
+      firstFirefoxMetadata,
+      secondFirefoxMetadata,
+      firstChromeManifest,
+      secondChromeManifest,
+      firstFirefoxManifest,
+      secondFirefoxManifest,
     ] = await Promise.all([
-      readFile(firstBuild.checksumPath, "utf8"),
-      readFile(secondBuild.checksumPath, "utf8"),
-      readFile(firstBuild.archivePath),
-      readFile(secondBuild.archivePath),
-      readFile(firstBuild.firefoxChecksumPath, "utf8"),
-      readFile(secondBuild.firefoxChecksumPath, "utf8"),
-      readFile(firstBuild.firefoxArchivePath),
-      readFile(secondBuild.firefoxArchivePath),
+      readFile(firstBuild.checksums.chrome, "utf8"),
+      readFile(secondBuild.checksums.chrome, "utf8"),
+      readFile(firstBuild.checksums.firefox, "utf8"),
+      readFile(secondBuild.checksums.firefox, "utf8"),
+      readFile(firstBuild.archives.chrome),
+      readFile(secondBuild.archives.chrome),
+      readFile(firstBuild.archives.firefox),
+      readFile(secondBuild.archives.firefox),
       readFile(firstBuild.releaseManifestPath, "utf8"),
       readFile(secondBuild.releaseManifestPath, "utf8"),
-      readFile(join(firstBuild.packageRoot, "package-metadata.json"), "utf8"),
-      readFile(join(secondBuild.packageRoot, "package-metadata.json"), "utf8"),
-      readFile(join(firstBuild.packageRoot, "manifest.json"), "utf8"),
-      readFile(join(secondBuild.packageRoot, "manifest.json"), "utf8"),
+      readFile(
+        join(firstBuild.packageRoots.chrome, "package-metadata.json"),
+        "utf8",
+      ),
+      readFile(
+        join(secondBuild.packageRoots.chrome, "package-metadata.json"),
+        "utf8",
+      ),
+      readFile(
+        join(firstBuild.packageRoots.firefox, "package-metadata.json"),
+        "utf8",
+      ),
+      readFile(
+        join(secondBuild.packageRoots.firefox, "package-metadata.json"),
+        "utf8",
+      ),
+      readFile(join(firstBuild.packageRoots.chrome, "manifest.json"), "utf8"),
+      readFile(join(secondBuild.packageRoots.chrome, "manifest.json"), "utf8"),
+      readFile(join(firstBuild.packageRoots.firefox, "manifest.json"), "utf8"),
+      readFile(join(secondBuild.packageRoots.firefox, "manifest.json"), "utf8"),
     ]);
 
     assert.equal(
-      firstZipChecksum,
-      secondZipChecksum,
-      "Chrome extension zip checksum drifted across deterministic rebuilds.",
+      firstChromeChecksum,
+      secondChromeChecksum,
+      "Chrome extension checksum drifted across deterministic rebuilds.",
     );
     assert.equal(
       firstFirefoxChecksum,
       secondFirefoxChecksum,
-      "Firefox extension xpi checksum drifted across deterministic rebuilds.",
+      "Firefox extension checksum drifted across deterministic rebuilds.",
     );
     assert.equal(
-      Buffer.compare(firstZipArchive, firstFirefoxArchive),
+      Buffer.compare(firstChromeArchive, secondChromeArchive),
       0,
-      "Firefox archive should be byte-identical to the packaged Chrome archive in the current release baseline.",
+      "Chrome extension archive drifted across deterministic rebuilds.",
     );
     assert.equal(
-      Buffer.compare(secondZipArchive, secondFirefoxArchive),
+      Buffer.compare(firstFirefoxArchive, secondFirefoxArchive),
       0,
-      "Firefox archive should be byte-identical to the packaged Chrome archive in the current release baseline.",
+      "Firefox extension archive drifted across deterministic rebuilds.",
+    );
+    assert.notEqual(
+      Buffer.compare(firstChromeArchive, firstFirefoxArchive),
+      0,
+      "Chrome and Firefox archives should differ once target-specific packaging is enabled.",
     );
     assert.equal(
       firstReleaseManifest,
@@ -92,42 +117,111 @@ export async function verifyExtensionRelease({
       "Release manifest drifted across deterministic rebuilds.",
     );
     assert.equal(
-      firstPackageMetadata,
-      secondPackageMetadata,
-      "Packaged metadata drifted across deterministic rebuilds.",
+      firstChromeMetadata,
+      secondChromeMetadata,
+      "Chrome package metadata drifted across deterministic rebuilds.",
     );
     assert.equal(
-      firstPackagedManifest,
-      secondPackagedManifest,
-      "Packaged manifest drifted across deterministic rebuilds.",
+      firstFirefoxMetadata,
+      secondFirefoxMetadata,
+      "Firefox package metadata drifted across deterministic rebuilds.",
+    );
+    assert.equal(
+      firstChromeManifest,
+      secondChromeManifest,
+      "Chrome packaged manifest drifted across deterministic rebuilds.",
+    );
+    assert.equal(
+      firstFirefoxManifest,
+      secondFirefoxManifest,
+      "Firefox packaged manifest drifted across deterministic rebuilds.",
     );
 
     const releaseManifest = JSON.parse(firstReleaseManifest);
-    const packageMetadata = JSON.parse(firstPackageMetadata);
+    const chromeMetadata = JSON.parse(firstChromeMetadata);
+    const firefoxMetadata = JSON.parse(firstFirefoxMetadata);
+    const chromeManifest = JSON.parse(firstChromeManifest);
+    const firefoxManifest = JSON.parse(firstFirefoxManifest);
 
-    assert.equal(releaseManifest.runtimeTargets.includes("chrome"), true);
-    assert.equal(releaseManifest.runtimeTargets.includes("firefox"), true);
     assert.deepEqual(releaseManifest.runtimeTargets, ["chrome", "firefox"]);
-    assert.equal(packageMetadata.browserSpecificSettings?.gecko?.id != null, true);
-    assert.equal(packageMetadata.distribution.chromeArchive.endsWith(".zip"), true);
-    assert.equal(packageMetadata.distribution.firefoxArchive.endsWith(".xpi"), true);
-    assert.deepEqual(
-      JSON.parse(firstPackagedManifest).permissions,
-      ["scripting", "tabs"],
-    );
-    assert.equal(packageMetadata.permissions.includes("<all_urls>"), false);
-    assert.equal(packageMetadata.hostPermissions.includes("<all_urls>"), false);
+    assert.equal(releaseManifest.targets.chrome.archive.endsWith(".zip"), true);
+    assert.equal(releaseManifest.targets.firefox.archive.endsWith(".xpi"), true);
     assert.equal(
-      packageMetadata.hostPermissions.includes("http://127.0.0.1:*/*"),
+      releaseManifest.targets.firefox.runtimeProof.requiresMozillaSignature,
+      true,
+    );
+    assert.equal(
+      releaseManifest.targets.chrome.runtimeProof.backgroundMode,
+      "service-worker",
+    );
+    assert.equal(
+      releaseManifest.targets.firefox.runtimeProof.backgroundMode,
+      "background-scripts",
+    );
+
+    assert.equal(chromeMetadata.runtimeTarget, "chrome");
+    assert.equal(
+      chromeMetadata.distribution.requiresMozillaSignature,
       false,
+    );
+    assert.equal(
+      chromeMetadata.runtimeProof.directRuntimeBridge,
+      true,
+    );
+    assert.equal(
+      chromeMetadata.runtimeProof.contentScriptBridge,
+      true,
+    );
+
+    assert.equal(firefoxMetadata.runtimeTarget, "firefox");
+    assert.equal(
+      firefoxMetadata.distribution.requiresMozillaSignature,
+      true,
+    );
+    assert.equal(
+      firefoxMetadata.distribution.signatureStatus,
+      "unsigned-artifact",
+    );
+    assert.equal(
+      firefoxMetadata.runtimeProof.directRuntimeBridge,
+      false,
+    );
+    assert.equal(
+      firefoxMetadata.runtimeProof.contentScriptBridge,
+      true,
+    );
+
+    assert.deepEqual(chromeManifest.permissions, ["scripting", "tabs"]);
+    assert.equal(chromeManifest.background.service_worker, "src/background.js");
+    assert.equal(Array.isArray(chromeManifest.background.scripts), false);
+    assert.equal(chromeManifest.externally_connectable != null, true);
+
+    assert.deepEqual(firefoxManifest.permissions, ["scripting", "tabs"]);
+    assert.equal(Array.isArray(firefoxManifest.background.scripts), true);
+    assert.deepEqual(firefoxManifest.background.scripts, ["src/background.js"]);
+    assert.equal("service_worker" in firefoxManifest.background, false);
+    assert.equal("externally_connectable" in firefoxManifest, false);
+    assert.equal(
+      firefoxManifest.browser_specific_settings?.gecko?.id != null,
+      true,
+    );
+    assert.deepEqual(
+      firefoxManifest.browser_specific_settings?.gecko?.data_collection_permissions,
+      {
+        required: ["none"],
+      },
+    );
+    assert.equal(
+      firefoxManifest.browser_specific_settings?.gecko_android?.strict_min_version,
+      "142.0",
     );
 
     process.stdout.write(
       [
         `verified version: ${firstBuild.version}`,
         `source date epoch: ${firstBuild.sourceDateEpoch}`,
-        `chrome archive: ${firstBuild.archivePath}`,
-        `firefox archive: ${firstBuild.firefoxArchivePath}`,
+        `chrome archive: ${firstBuild.archives.chrome}`,
+        `firefox archive: ${firstBuild.archives.firefox}`,
         `release manifest: ${firstBuild.releaseManifestPath}`,
       ].join("\n") + "\n",
     );
@@ -135,8 +229,7 @@ export async function verifyExtensionRelease({
     return {
       version: firstBuild.version,
       sourceDateEpoch: firstBuild.sourceDateEpoch,
-      archivePath: firstBuild.archivePath,
-      firefoxArchivePath: firstBuild.firefoxArchivePath,
+      archives: firstBuild.archives,
       releaseManifestPath: firstBuild.releaseManifestPath,
     };
   } finally {

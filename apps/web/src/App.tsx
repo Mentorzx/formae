@@ -40,11 +40,13 @@ function App() {
 
           <div className="site-header-main">
             <div className="site-header-copy">
-              <h1>Assistente academico leve, local e explicito nas fronteiras</h1>
+              <h1>
+                Assistente academico leve, local e explicito nas fronteiras
+              </h1>
               <p className="lede">
-                Novo projeto inspirado no MeForma original e no trabalho de
-                Joao Pedro Rodrigues Cerqueira, mas com arquitetura nova, sem
-                backend para dados sensiveis e com Rust no centro das regras.
+                Novo projeto inspirado no MeForma original e no trabalho de Joao
+                Pedro Rodrigues Cerqueira, mas com arquitetura nova, sem backend
+                para dados sensiveis e com Rust no centro das regras.
               </p>
 
               <div className="site-header-cta-row">
@@ -60,7 +62,10 @@ function App() {
               </div>
             </div>
 
-            <aside className="shell-hero-panel" aria-label="Resumo da plataforma">
+            <aside
+              className="shell-hero-panel"
+              aria-label="Resumo da plataforma"
+            >
               <p className="section-label">Resumo da plataforma</p>
               <h2>Shell estatico + extensao local + vault cifrado</h2>
               <p>
@@ -86,14 +91,17 @@ function App() {
             </nav>
           </div>
 
-          <div className="shell-highlight-row" aria-label="Diretrizes principais">
+          <section
+            className="shell-highlight-row"
+            aria-label="Diretrizes principais"
+          >
             {shellHighlights.map((item) => (
               <article key={item.label} className="shell-highlight-card">
                 <p className="micro-label">{item.label}</p>
                 <p>{item.value}</p>
               </article>
             ))}
-          </div>
+          </section>
         </header>
 
         <main className="page-main">

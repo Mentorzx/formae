@@ -82,72 +82,118 @@ export async function auditExtensionPackage({
       outputRoot,
       sourceDateEpoch,
     });
-    const packageMetadata = JSON.parse(
-      await readFile(join(build.packageRoot, "package-metadata.json"), "utf8"),
-    );
-    const releaseManifest = JSON.parse(
-      await readFile(build.releaseManifestPath, "utf8"),
-    );
-    const packagedManifest = JSON.parse(
-      await readFile(join(build.packageRoot, "manifest.json"), "utf8"),
-    );
-    const packagedFiles = packageMetadata.files;
 
-    assert.ok(Array.isArray(packagedFiles) && packagedFiles.length > 0);
-    assert.equal(releaseManifest.version, build.version);
-    assert.equal(packagedManifest.manifest_version, 3);
-    assert.deepEqual(packagedManifest.permissions, ["scripting", "tabs"]);
-    assert.deepEqual(
-      [...packagedManifest.host_permissions].sort(),
-      [
-        "http://localhost:*/*",
-        "https://mentorzx.github.io/*",
-        "https://sigaa.ufba.br/*",
-      ].sort(),
-    );
-    assert.equal(
-      packagedManifest.browser_specific_settings?.gecko?.id,
-      "formae-extension@formae.local",
-    );
-    assert.equal(
-      packagedManifest.browser_specific_settings?.gecko?.strict_min_version,
-      "128.0",
-    );
-    assert.equal(packagedManifest.permissions.includes("<all_urls>"), false);
-    assert.equal(packagedManifest.host_permissions.includes("<all_urls>"), false);
-
-    let inspectedTextFileCount = 0;
-
-    for (const relativePath of packagedFiles) {
-      assertAllowedPackagePath(relativePath);
-
-      if (!shouldInspectTextFile(relativePath)) {
-        continue;
-      }
-
-      inspectedTextFileCount += 1;
-      const contents = await readFile(join(build.packageRoot, relativePath), "utf8");
-      assertAllowedPackageContents(relativePath, contents);
-    }
+    const chromeAudit = await auditTargetPackage({
+      packageRoot: build.packageRoots.chrome,
+      runtimeTarget: "chrome",
+      version: build.version,
+    });
+    const firefoxAudit = await auditTargetPackage({
+      packageRoot: build.packageRoots.firefox,
+      runtimeTarget: "firefox",
+      version: build.version,
+    });
 
     process.stdout.write(
       [
         `audited version: ${build.version}`,
-        `packaged files checked: ${packagedFiles.length}`,
-        `text files inspected: ${inspectedTextFileCount}`,
+        `chrome packaged files checked: ${chromeAudit.packagedFileCount}`,
+        `firefox packaged files checked: ${firefoxAudit.packagedFileCount}`,
         `release manifest: ${build.releaseManifestPath}`,
       ].join("\n") + "\n",
     );
 
     return {
       version: build.version,
-      packagedFileCount: packagedFiles.length,
-      inspectedTextFileCount,
       releaseManifestPath: build.releaseManifestPath,
+      chromeAudit,
+      firefoxAudit,
     };
   } finally {
     await rm(outputRoot, { force: true, recursive: true });
   }
+}
+
+async function auditTargetPackage({ packageRoot, runtimeTarget, version }) {
+  const packageMetadata = JSON.parse(
+    await readFile(join(packageRoot, "package-metadata.json"), "utf8"),
+  );
+  const packagedManifest = JSON.parse(
+    await readFile(join(packageRoot, "manifest.json"), "utf8"),
+  );
+  const packagedFiles = packageMetadata.files;
+
+  assert.ok(Array.isArray(packagedFiles) && packagedFiles.length > 0);
+  assert.equal(packageMetadata.version, version);
+  assert.equal(packageMetadata.runtimeTarget, runtimeTarget);
+  assert.equal(packagedManifest.manifest_version, 3);
+  assert.deepEqual(packagedManifest.permissions, ["scripting", "tabs"]);
+  assert.equal(packagedManifest.permissions.includes("<all_urls>"), false);
+  assert.equal(packagedManifest.host_permissions.includes("<all_urls>"), false);
+  assert.equal(
+    packagedManifest.browser_specific_settings?.gecko?.id,
+    "formae-extension@formae.local",
+  );
+  assert.equal(
+    packagedManifest.browser_specific_settings?.gecko?.strict_min_version,
+    "140.0",
+  );
+  assert.deepEqual(
+    packagedManifest.browser_specific_settings?.gecko?.data_collection_permissions,
+    {
+      required: ["none"],
+    },
+  );
+  assert.equal(
+    packagedManifest.browser_specific_settings?.gecko_android?.strict_min_version,
+    "142.0",
+  );
+
+  if (runtimeTarget === "chrome") {
+    assert.equal(packagedManifest.background.service_worker, "src/background.js");
+    assert.equal("scripts" in packagedManifest.background, false);
+    assert.equal(packagedManifest.externally_connectable != null, true);
+    assert.equal(
+      packageMetadata.runtimeProof.requiresMozillaSignature,
+      false,
+    );
+  } else {
+    assert.deepEqual(packagedManifest.background.scripts, ["src/background.js"]);
+    assert.equal("service_worker" in packagedManifest.background, false);
+    assert.equal("externally_connectable" in packagedManifest, false);
+    assert.equal(
+      packageMetadata.distribution.requiresMozillaSignature,
+      true,
+    );
+    assert.equal(
+      packageMetadata.distribution.signatureStatus,
+      "unsigned-artifact",
+    );
+    assert.equal(
+      packageMetadata.runtimeProof.directRuntimeBridge,
+      false,
+    );
+  }
+
+  let inspectedTextFileCount = 0;
+
+  for (const relativePath of packagedFiles) {
+    assertAllowedPackagePath(relativePath);
+
+    if (!shouldInspectTextFile(relativePath)) {
+      continue;
+    }
+
+    inspectedTextFileCount += 1;
+    const contents = await readFile(join(packageRoot, relativePath), "utf8");
+    assertAllowedPackageContents(relativePath, contents);
+  }
+
+  return {
+    runtimeTarget,
+    packagedFileCount: packagedFiles.length,
+    inspectedTextFileCount,
+  };
 }
 
 function assertAllowedPackagePath(relativePath) {
