@@ -8,7 +8,7 @@ Extensao MV3 para sincronizacao local com o SIGAA. O foco continua sendo manter 
 - `browser_specific_settings.gecko` para carga em Firefox compatível com MV3
 - `src/popup.html` como UI de credenciais efêmeras controlada pela extensão
 - `src/background.js` como service worker de coordenacao
-- `src/content-script.js` como relay `window.postMessage -> runtime message`
+- `src/content-script.js` como ponte direta com a extensão e relay legado apenas para depuração local
 - `src/bridge.js` com os kinds de mensagens do protocolo
 - `src/credential-store.js` e `src/login-session.js` com sessao efemera em memoria
 - `src/dom-contract.js` com contrato de seletores e classificacao de pagina
@@ -20,8 +20,8 @@ Extensao MV3 para sincronizacao local com o SIGAA. O foco continua sendo manter 
 
 1. A pessoa abre a popup da extensão e salva CPF/usuário e senha.
 2. O background guarda a sessão apenas em memória e expõe um estado resumido sem senha.
-3. A PWA envia apenas `RequestSync` via `window.postMessage`.
-4. O content script recebe o envelope e o repassa para o service worker.
+3. Em produção, a PWA tenta falar direto com a extensão via `runtime.sendMessage` externo.
+4. O relay legado por `window.postMessage` fica restrito a localhost para depuração, não para GitHub Pages.
 5. O runtime abre abas locais do SIGAA, autentica, captura as views esperadas, incluindo o relatório de histórico quando disponível, segmenta capturas com varios registros em uma unica linha, preserva metadados quando o histórico vem como PDF/anexo e devolve um `RawSigaaPayload`.
 6. Depois do sync a sessão efêmera é consumida e removida da memória.
 

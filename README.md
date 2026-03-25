@@ -243,6 +243,7 @@ Observações:
 - a PWA precisa estar rodando localmente
 - a extensão precisa estar carregada no navegador
 - o harness espera a rota `#/importacao`
+- o relay legado via `window.postMessage` fica restrito a localhost; no domínio publicado a PWA usa a ponte direta da extensão
 - esse fluxo é para validação local privada, não para uso público normal do produto
 
 ## Comandos úteis de desenvolvimento

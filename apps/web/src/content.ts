@@ -74,3 +74,36 @@ export const shellHighlights = [
     value: "PWA estatica em GitHub Pages com HTTPS e dominio customizado.",
   },
 ] as const;
+
+export const shellSignalDeck = [
+  {
+    label: "Conexao",
+    value: "Bridge direto da extensao em producao",
+  },
+  {
+    label: "Vault",
+    value: "Cofre local com Web Crypto e passkey",
+  },
+  {
+    label: "Parser",
+    value: "Rust/WASM para horarios e contratos",
+  },
+] as const;
+
+export const syncRunway = [
+  {
+    step: "01",
+    title: "Conexao local",
+    body: "A extensao negocia a sessao efemera e le o SIGAA no navegador do usuario, sem servidor intermediario.",
+  },
+  {
+    step: "02",
+    title: "Cofre cifrado",
+    body: "O snapshot derivado fica no navegador e pode ser embrulhado com material vindo da passkey quando PRF estiver disponivel.",
+  },
+  {
+    step: "03",
+    title: "Planner explicito",
+    body: "A PWA mostra progresso, pendencias e relacoes curriculares sem esconder os limites da grade seed e da origem dos dados.",
+  },
+] as const;

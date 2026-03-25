@@ -10,6 +10,7 @@ import { BRIDGE_PROTOCOL_VERSION } from "@formae/protocol";
 const PAGE_BRIDGE_SOURCE = "formae-web-page";
 const EXTENSION_BRIDGE_SOURCE = "formae-extension";
 const EXTENSION_READY_EVENT = "formae:extension-ready";
+const LEGACY_BRIDGE_ATTRIBUTE = "formaeLegacyBridge";
 
 interface PageBridgeRequest {
   source: typeof PAGE_BRIDGE_SOURCE;
@@ -76,6 +77,12 @@ async function postBridgeMessage(
 
   if (directResponse) {
     return directResponse;
+  }
+
+  if (!isLegacyWindowBridgeEnabled()) {
+    throw new Error(
+      "The Formaê extension direct runtime bridge is unavailable. Legacy relay is restricted to local development, so open the extension in a supported browser or use localhost for relay debugging.",
+    );
   }
 
   return postLegacyWindowBridgeMessage(envelope, timeoutMs);
@@ -236,6 +243,13 @@ function resolveExternalRuntime(): ExternalRuntimeApi | null {
   }
 
   return runtime;
+}
+
+function isLegacyWindowBridgeEnabled(): boolean {
+  return (
+    document.documentElement.dataset[LEGACY_BRIDGE_ATTRIBUTE] === "enabled" &&
+    /^localhost$|^127(?:\.\d{1,3}){3}$/u.test(window.location.hostname)
+  );
 }
 
 function isExtensionBridgeResponse(

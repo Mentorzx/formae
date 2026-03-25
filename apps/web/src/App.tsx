@@ -1,5 +1,10 @@
 import { HashRouter, NavLink, Route, Routes } from "react-router-dom";
-import { protocolVersion, shellHighlights } from "./content";
+import {
+  protocolVersion,
+  shellHighlights,
+  shellSignalDeck,
+  syncRunway,
+} from "./content";
 import { ArchitecturePage } from "./pages/ArchitecturePage";
 import { CatalogPage } from "./pages/CatalogPage";
 import { ImportPage } from "./pages/ImportPage";
@@ -40,24 +45,38 @@ function App() {
 
           <div className="site-header-main">
             <div className="site-header-copy">
+              <p className="site-header-kicker">
+                PWA estatica, sync local e uma fronteira de confianca legivel
+              </p>
               <h1>
-                Assistente academico leve, local e explicito nas fronteiras
+                Planejamento academico local com sync honesto e progresso que
+                nao vira caixa-preta
               </h1>
               <p className="lede">
-                Novo projeto inspirado no MeForma original e no trabalho de Joao
-                Pedro Rodrigues Cerqueira, mas com arquitetura nova, sem backend
-                para dados sensiveis e com Rust no centro das regras.
+                O Formaê nasce como uma releitura local-first: importacao
+                automatica via extensao, vault cifrado no navegador, catalogo
+                publico versionado e um planner que mostra dependencias,
+                pendencias e limites da leitura sem vender magia falsa.
               </p>
+
+              <div className="shell-chip-row">
+                {shellSignalDeck.map((item) => (
+                  <span key={item.label} className="hero-chip">
+                    <strong>{item.label}</strong>
+                    <span>{item.value}</span>
+                  </span>
+                ))}
+              </div>
 
               <div className="site-header-cta-row">
                 <NavLink to="/importacao" className="action-button">
-                  Importar agora
+                  Abrir importacao
                 </NavLink>
                 <NavLink
                   to="/planejador"
                   className="action-button action-button-secondary"
                 >
-                  Abrir planejador
+                  Explorar planner
                 </NavLink>
               </div>
             </div>
@@ -67,17 +86,31 @@ function App() {
               aria-label="Resumo da plataforma"
             >
               <p className="section-label">Resumo da plataforma</p>
-              <h2>Shell estatico + extensao local + vault cifrado</h2>
+              <h2>Shell publico, ponte local e cofre cifrado</h2>
               <p>
-                O fluxo privado roda no dispositivo do usuario. O shell web
-                publica a experiencia e a camada de leitura, enquanto o sync
-                autenticado e a normalizacao ficam fora do servidor.
+                O fluxo privado roda no dispositivo do usuario. Em producao, a
+                PWA conversa com a extensao pelo bridge direto; o relay legado
+                fica so para depuracao local.
               </p>
-              <ul className="shell-point-list">
-                <li>GitHub Pages como publicação inicial.</li>
-                <li>Extensão MV3 para sessões autenticadas efêmeras.</li>
-                <li>Rust/WASM para regras, parsing e contratos estáveis.</li>
-              </ul>
+              <div className="shell-status-list">
+                <div className="shell-status-row">
+                  <span className="status-pill status-pill-ready">Sync</span>
+                  <p>Extensao MV3 com sessoes efemeras e aprovacao curta.</p>
+                </div>
+                <div className="shell-status-row">
+                  <span className="status-pill status-pill-idle">Vault</span>
+                  <p>
+                    IndexedDB cifrado com modo PRF quando o navegador entrega.
+                  </p>
+                </div>
+                <div className="shell-status-row">
+                  <span className="status-pill status-pill-warning">Grade</span>
+                  <p>
+                    Planner local explica quando a leitura ainda depende de seed
+                    ou revisao manual.
+                  </p>
+                </div>
+              </div>
             </aside>
           </div>
 
@@ -99,6 +132,19 @@ function App() {
               <article key={item.label} className="shell-highlight-card">
                 <p className="micro-label">{item.label}</p>
                 <p>{item.value}</p>
+              </article>
+            ))}
+          </section>
+
+          <section
+            className="shell-runway-grid"
+            aria-label="Fluxo da experiencia"
+          >
+            {syncRunway.map((item) => (
+              <article key={item.step} className="shell-runway-card">
+                <p className="shell-runway-step">{item.step}</p>
+                <strong>{item.title}</strong>
+                <p>{item.body}</p>
               </article>
             ))}
           </section>

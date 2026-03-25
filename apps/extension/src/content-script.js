@@ -3,6 +3,7 @@ const EXTENSION_BRIDGE_SOURCE = "formae-extension";
 const BRIDGE_PROTOCOL_VERSION = 1;
 const ALLOWED_PAGE_BRIDGE_MESSAGE_KINDS = ["RequestSync"];
 const EXTENSION_READY_EVENT = "formae:extension-ready";
+const LEGACY_BRIDGE_ATTRIBUTE = "formaeLegacyBridge";
 
 bootstrapContentScript();
 
@@ -12,6 +13,10 @@ function bootstrapContentScript() {
   }
 
   advertiseExtensionRuntime();
+  if (!isLocalDevelopmentPage()) {
+    return;
+  }
+
   window.addEventListener("message", (event) => {
     if (
       event.source !== window ||
@@ -64,7 +69,14 @@ function advertiseExtensionRuntime() {
   }
 
   document.documentElement.dataset.formaeExtensionId = extensionId;
-  document.documentElement.dataset.formaeBridgeMode = "runtime-external";
+  if (isLocalDevelopmentPage()) {
+    document.documentElement.dataset[LEGACY_BRIDGE_ATTRIBUTE] = "enabled";
+    document.documentElement.dataset.formaeBridgeMode =
+      "runtime-external+legacy-local";
+  } else {
+    delete document.documentElement.dataset[LEGACY_BRIDGE_ATTRIBUTE];
+    document.documentElement.dataset.formaeBridgeMode = "runtime-external";
+  }
   window.dispatchEvent(
     new CustomEvent(EXTENSION_READY_EVENT, {
       detail: {
@@ -72,6 +84,13 @@ function advertiseExtensionRuntime() {
         bridgeMode: "runtime-external",
       },
     }),
+  );
+}
+
+function isLocalDevelopmentPage() {
+  return (
+    window.location.hostname === "localhost" ||
+    /^127(?:\.\d{1,3}){3}$/u.test(window.location.hostname)
   );
 }
 

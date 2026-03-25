@@ -484,6 +484,21 @@ export function PlannerPage() {
       }
     : null;
 
+  function resetPlannerFilters() {
+    setSelectedStatuses(ALL_COMPONENT_STATUSES);
+    setShowAvailableOnly(false);
+    setShowReviewOnly(false);
+    setShowScheduledOnly(false);
+    setQueryDraft("");
+    setSelectedComponentCode(null);
+    setHoveredComponentCode(null);
+    setPlannerState((currentState) =>
+      updatePlannerState(currentState, {
+        filterDraft: null,
+      }),
+    );
+  }
+
   const iraProjection = useMemo(() => {
     if (!board || !loadState.summary) {
       return null;
@@ -911,20 +926,7 @@ export function PlannerPage() {
           <button
             type="button"
             className="planner-chip"
-            onClick={() => {
-              setSelectedStatuses(ALL_COMPONENT_STATUSES);
-              setShowAvailableOnly(false);
-              setShowReviewOnly(false);
-              setShowScheduledOnly(false);
-              setQueryDraft("");
-              setSelectedComponentCode(null);
-              setHoveredComponentCode(null);
-              setPlannerState((currentState) =>
-                updatePlannerState(currentState, {
-                  filterDraft: null,
-                }),
-              );
-            }}
+            onClick={resetPlannerFilters}
           >
             Limpar filtros
           </button>
@@ -955,6 +957,58 @@ export function PlannerPage() {
             {feedback.message}
           </p>
         ) : null}
+      </section>
+
+      <section className="panel planner-summary-bar">
+        <div>
+          <p className="micro-label">Leitura ativa</p>
+          <h3>
+            {plannerFilterSummary.visibleComponentCount}/
+            {plannerFilterSummary.totalComponentCount} componentes visiveis
+          </h3>
+          <p className="muted-note">
+            {plannerFilterSummary.hiddenComponentCount} ocultos,{" "}
+            {plannerFilterSummary.activeFilterCount} filtros ativos e foco{" "}
+            {focusComponentCode ? `preso em ${focusComponentCode}` : "livre"}.
+          </p>
+        </div>
+
+        <div className="planner-chip-group">
+          {focusComponentCode ? (
+            <span className="planner-chip planner-chip-active">
+              Foco: {focusComponentCode}
+            </span>
+          ) : null}
+          {showAvailableOnly ? (
+            <span className="planner-chip planner-chip-active">
+              So liberadas agora
+            </span>
+          ) : null}
+          {showScheduledOnly ? (
+            <span className="planner-chip planner-chip-active">
+              Com horario local
+            </span>
+          ) : null}
+          {showReviewOnly ? (
+            <span className="planner-chip planner-chip-active">Em revisao</span>
+          ) : null}
+          {queryDraft.trim() ? (
+            <span className="planner-chip planner-chip-active">
+              Busca: {queryDraft.trim()}
+            </span>
+          ) : null}
+          {plannerFilterSummary.activeFilterCount > 0 ? (
+            <button
+              type="button"
+              className="planner-toggle"
+              onClick={resetPlannerFilters}
+            >
+              Limpar leitura
+            </button>
+          ) : (
+            <span className="planner-chip">Sem filtros ligados</span>
+          )}
+        </div>
       </section>
 
       <div className="planner-layout">

@@ -18,11 +18,13 @@ function createRawPayloadResponse() {
 describe("sigaaBridge", () => {
   beforeEach(() => {
     document.documentElement.dataset.formaeExtensionId = "";
+    document.documentElement.dataset.formaeLegacyBridge = "";
     vi.restoreAllMocks();
   });
 
   afterEach(() => {
     delete document.documentElement.dataset.formaeExtensionId;
+    delete document.documentElement.dataset.formaeLegacyBridge;
     vi.unstubAllGlobals();
   });
 
@@ -55,6 +57,7 @@ describe("sigaaBridge", () => {
   });
 
   it("falls back to the legacy window bridge when no direct runtime is available", async () => {
+    document.documentElement.dataset.formaeLegacyBridge = "enabled";
     vi.spyOn(window, "postMessage").mockImplementation(
       (message: unknown, targetOrigin?: string | WindowPostMessageOptions) => {
         const request = message as { requestId: string };
@@ -80,5 +83,13 @@ describe("sigaaBridge", () => {
     });
 
     expect(payload.source).toBe("dom");
+  });
+
+  it("rejects the legacy relay when it is not explicitly enabled", async () => {
+    await expect(
+      runAutomaticSigaaSync({
+        timingProfileId: "Ufba2025",
+      }),
+    ).rejects.toThrow(/Legacy relay is restricted to local development/i);
   });
 });

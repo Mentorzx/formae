@@ -11,6 +11,7 @@ import {
   milestones,
   principles,
   requestSyncExample,
+  syncRunway,
 } from "../content";
 import {
   type LocalStudentSnapshotSource,
@@ -148,6 +149,11 @@ export function OverviewPage() {
         ? "Selecao automatica ambigua"
         : "Selecao automatica"
     : "Sem snapshot local";
+  const overviewVaultStatusLabel = formatOverviewVaultStatus(vaultPasskeyState);
+  const overviewVaultModeLabel = formatOverviewVaultMode(vaultPasskeyState);
+  const overviewConfidenceLabel = formatOverviewConfidence(
+    curriculumResolution?.confidence ?? null,
+  );
 
   async function handleUnlockVaultPasskey() {
     setVaultPasskeyActionStatus("working");
@@ -325,6 +331,53 @@ export function OverviewPage() {
               <Metric label="Stack principal" value="React + Rust/WASM" />
             </>
           )}
+        </div>
+
+        <div className="overview-signal-grid">
+          <article className="signal-card">
+            <p className="micro-label">Ponte privada</p>
+            <strong>Bridge direto da extensao</strong>
+            <p>
+              O dominio publicado depende do canal externo da extensao; o relay
+              legado fica preso ao localhost.
+            </p>
+          </article>
+          <article className="signal-card">
+            <p className="micro-label">Vault</p>
+            <strong>{overviewVaultStatusLabel}</strong>
+            <p>Modo atual: {overviewVaultModeLabel}</p>
+          </article>
+          <article className="signal-card">
+            <p className="micro-label">Grade ativa</p>
+            <strong>{overviewResolutionLabel}</strong>
+            <p>Confianca atual: {overviewConfidenceLabel}</p>
+          </article>
+          <article className="signal-card">
+            <p className="micro-label">Ultima derivacao</p>
+            <strong>
+              {overviewState.summary
+                ? formatLocalDateTime(overviewState.summary.derivedAt)
+                : "Aguardando sync"}
+            </strong>
+            <p>
+              {overviewState.summary
+                ? "Snapshot local pronto para planner, progresso e revisao."
+                : "A PWA ainda nao encontrou um bundle salvo no navegador."}
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section className="panel">
+        <p className="section-label">Como a leitura acontece</p>
+        <div className="shell-runway-grid">
+          {syncRunway.map((item) => (
+            <article key={item.step} className="shell-runway-card">
+              <p className="shell-runway-step">{item.step}</p>
+              <strong>{item.title}</strong>
+              <p>{item.body}</p>
+            </article>
+          ))}
         </div>
       </section>
 
@@ -766,6 +819,57 @@ function formatBundleSource(source: LocalStudentSnapshotSource): string {
   }
 
   return "sem dados locais";
+}
+
+function formatOverviewVaultStatus(
+  state: ManualImportVaultPasskeyState | null,
+): string {
+  if (!state) {
+    return "Passkey indisponivel";
+  }
+
+  switch (state.sessionStatus) {
+    case "unlocked":
+      return "Vault desbloqueado";
+    case "locked":
+      return "Vault bloqueado";
+    case "unsupported":
+      return "Passkey sem suporte";
+    case "not-configured":
+      return "Passkey opcional desligada";
+    default:
+      return state.sessionStatus;
+  }
+}
+
+function formatOverviewVaultMode(
+  state: ManualImportVaultPasskeyState | null,
+): string {
+  switch (state?.keyMaterialMode) {
+    case "webauthn-prf":
+      return "WebAuthn PRF";
+    case "browser-local-wrap":
+      return "Wrap browser-local";
+    case "device-local":
+      return "Device-local legado";
+    default:
+      return "Sessao local sem PRF";
+  }
+}
+
+function formatOverviewConfidence(
+  value: CurriculumSeedResolutionConfidence | null,
+): string {
+  switch (value) {
+    case "high":
+      return "Alta";
+    case "medium":
+      return "Media";
+    case "low":
+      return "Baixa";
+    default:
+      return "Nao estimada";
+  }
 }
 
 function formatComponentProgressStatus(

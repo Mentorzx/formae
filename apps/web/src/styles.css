@@ -157,6 +157,14 @@ a {
   line-height: 1.5;
 }
 
+.site-header-kicker {
+  margin: 0;
+  font-size: 0.92rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-warm);
+}
+
 .site-header-actions {
   display: inline-flex;
   gap: 0.75rem;
@@ -188,6 +196,28 @@ a {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
+}
+
+.hero-chip {
+  display: inline-grid;
+  gap: 0.2rem;
+  min-width: 180px;
+  padding: 0.8rem 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.hero-chip strong {
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hero-chip span {
+  color: var(--ink-soft);
+  font-size: 0.93rem;
+  line-height: 1.45;
 }
 
 .hero-split {
@@ -228,6 +258,22 @@ a {
   align-content: start;
 }
 
+.shell-status-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.shell-status-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.8rem;
+  align-items: start;
+}
+
+.shell-status-row p {
+  margin: 0;
+}
+
 .shell-point-list {
   display: grid;
   gap: 0.6rem;
@@ -240,6 +286,42 @@ a {
   display: grid;
   gap: 0.8rem;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.shell-runway-grid {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.shell-runway-card {
+  display: grid;
+  gap: 0.55rem;
+  padding: 1rem 1.05rem;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.54), transparent 42%),
+    var(--paper-strong);
+}
+
+.shell-runway-card strong {
+  font-size: 1.02rem;
+  color: var(--ink);
+}
+
+.shell-runway-card p {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.shell-runway-step {
+  margin: 0;
+  font-family: "IBM Plex Mono", "SFMono-Regular", monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
 }
 
 .shell-highlight-card {
@@ -408,7 +490,8 @@ a {
 .card-grid,
 .tag-grid,
 .timeline,
-.provenance-grid {
+.provenance-grid,
+.overview-signal-grid {
   display: grid;
   gap: 0.9rem;
 }
@@ -449,6 +532,10 @@ a {
 
 .card-grid {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.overview-signal-grid {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
 }
 
 .subsection {
@@ -902,6 +989,17 @@ a {
 .planner-controls {
   display: grid;
   gap: 1rem;
+}
+
+.planner-summary-bar {
+  position: sticky;
+  top: 1rem;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  justify-content: space-between;
 }
 
 .planner-controls-topline,
