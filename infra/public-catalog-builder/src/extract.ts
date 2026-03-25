@@ -2,6 +2,9 @@ import * as cheerio from "cheerio";
 
 import type {
   PublicCatalogComponentCandidate,
+  PublicCatalogCurriculumDetailComponentEntry,
+  PublicCatalogCurriculumDetailEntry,
+  PublicCatalogCurriculumDetailSectionEntry,
   PublicCatalogCurriculumStructureEntry,
   PublicCatalogPageCoreSnapshot,
   PublicCatalogPageSnapshot,
@@ -20,6 +23,13 @@ export interface ExtractedPublicSourceData {
   components: PublicCatalogComponentCandidate[];
   scheduleGuide: PublicCatalogScheduleGuideEntry[];
   timeSlots: PublicCatalogTimeSlotEntry[];
+}
+
+export interface PublicCatalogCurriculumDetailRequest {
+  curriculumId: string;
+  actionControlName: string;
+  actionUrl: string;
+  viewState: string;
 }
 
 export function extractPublicSourceData(
@@ -61,6 +71,211 @@ export function extractPublicSourceData(
     components: componentCandidates,
     scheduleGuide,
     timeSlots,
+  };
+}
+
+export function extractCurriculumDetailRequests(
+  source: PublicCatalogSourceDefinition,
+  html: string,
+): PublicCatalogCurriculumDetailRequest[] {
+  if (!source.url.includes("/curriculo.jsf")) {
+    return [];
+  }
+
+  const $ = cheerio.load(html);
+  const form = $("#formCurriculosCurso").first();
+  const action = form.attr("action");
+  const viewState =
+    form.find('input[name="javax.faces.ViewState"]').first().attr("value") ??
+    null;
+
+  if (!action || !viewState) {
+    return [];
+  }
+
+  const requests: PublicCatalogCurriculumDetailRequest[] = [];
+
+  $("#table_lt tr").each((_index, row) => {
+    const rowElement = $(row);
+    const detailLink = rowElement
+      .find('a[title="Visualizar Estrutura Curricular"]')
+      .first();
+    const onclick = detailLink.attr("onclick") ?? "";
+    const curriculumId = extractCurriculumActionId(onclick);
+    const actionControlName = extractCurriculumActionControlName(onclick);
+
+    if (!curriculumId || !actionControlName) {
+      return;
+    }
+
+    requests.push({
+      curriculumId,
+      actionControlName,
+      actionUrl: action,
+      viewState,
+    });
+  });
+
+  return dedupeCurriculumDetailRequests(requests);
+}
+
+export function extractCurriculumDetailPage(input: {
+  source: PublicCatalogSourceDefinition;
+  html: string;
+  fetchedAt: string;
+  finalUrl: string;
+  origin: "fixture" | "live";
+  detailRequest: PublicCatalogCurriculumDetailRequest;
+}): {
+  detail: PublicCatalogCurriculumDetailEntry;
+  components: PublicCatalogComponentCandidate[];
+} {
+  const $ = cheerio.load(input.html);
+  const curriculumCode =
+    sanitizeToken(readDefinitionValue($, /^C[óo]digo:/i) ?? "") ||
+    sanitizeToken(readDefinitionValue($, /^C[óo]digo/i) ?? "") ||
+    input.detailRequest.curriculumId;
+  const matrixName =
+    readDefinitionValue($, /^Matriz Curricular:/i) ??
+    readDefinitionValue($, /^Matriz Curricular/i);
+  const entryPeriodLabel =
+    readDefinitionValue($, /^Per[ií]odo Letivo de Entrada em Vigor:/i) ??
+    null;
+  const totalMinimumHours = parseHourQuantity(
+    readDefinitionValue($, /^Total M[ií]nima:/i),
+  );
+  const minimumOptionalHours = parseHourQuantity(
+    readDefinitionValue($, /^Carga Hor[aá]ria Optativa M[ií]nima:/i),
+  );
+  const minimumComplementaryHours = parseHourQuantity(
+    readDefinitionValue($, /^Carga Hor[aá]ria Complementar M[ií]nima:/i),
+  );
+  const maximumTermHours = parseHourQuantity(
+    readDefinitionValue($, /^Carga Hor[aá]ria M[aá]xima por Per[ií]odo Letivo:/i),
+  );
+  const sectionLabels = new Map<string, string>();
+
+  $("#tabs-semestres .yui-nav a[href^='#']").each((_index, element) => {
+    const anchor = $(element);
+    const sectionId = (anchor.attr("href") ?? "").replace(/^#/u, "");
+    const label = normalizeWhitespace(anchor.text());
+
+    if (sectionId && label) {
+      sectionLabels.set(sectionId, label);
+    }
+  });
+
+  const sections: PublicCatalogCurriculumDetailSectionEntry[] = [];
+  const componentCandidates: PublicCatalogComponentCandidate[] = [];
+
+  $("#tabs-semestres .yui-content > div[id]").each((_index, element) => {
+    const sectionElement = $(element);
+    const sectionId = normalizeWhitespace(sectionElement.attr("id") ?? "");
+
+    if (!sectionId) {
+      return;
+    }
+
+    const label =
+      normalizeWhitespace(sectionElement.find("caption").first().text()) ||
+      sectionLabels.get(sectionId) ||
+      sectionId;
+    const components: PublicCatalogCurriculumDetailComponentEntry[] = [];
+
+    sectionElement
+      .find("tr.linhaPar, tr.linhaImpar")
+      .each((_rowIndex, row) => {
+        const rowElement = $(row);
+        const cells = rowElement.find("td");
+        const summaryText = normalizeWhitespace(cells.eq(0).text());
+        const categoryLabel = normalizeWhitespace(cells.eq(1).text()) || null;
+        const componentId = extractComponentActionId(
+          rowElement
+            .find('a[title="Visualizar Detalhes do Componente"]')
+            .first()
+            .attr("onclick") ?? "",
+        );
+        const parsedComponent = parseCurriculumComponentText(summaryText);
+
+        if (!parsedComponent) {
+          return;
+        }
+
+        const evidence = compactEvidence([label, summaryText, categoryLabel]);
+        const componentEntry: PublicCatalogCurriculumDetailComponentEntry = {
+          code: parsedComponent.code,
+          title: parsedComponent.title,
+          workloadHours: parsedComponent.workloadHours,
+          categoryLabel,
+          componentId,
+          evidence,
+        };
+
+        components.push(componentEntry);
+        componentCandidates.push({
+          code: componentEntry.code,
+          title: componentEntry.title,
+          sourceId: input.source.id,
+          sourceTitle: input.source.title,
+          sourceUrl: input.source.url,
+          scheduleCode: null,
+          canonicalScheduleCode: null,
+          evidence,
+        });
+      });
+
+    if (components.length === 0) {
+      return;
+    }
+
+    sections.push({
+      sectionId,
+      label,
+      kind: resolveCurriculumSectionKind(sectionId, label),
+      periodOrdinal: resolveCurriculumSectionOrdinal(sectionId, label),
+      components: dedupeCurriculumDetailComponents(components),
+    });
+  });
+
+  const dedupedSections = dedupeCurriculumDetailSections(sections);
+  const componentCount = dedupedSections.reduce(
+    (total, section) => total + section.components.length,
+    0,
+  );
+  const title =
+    normalizeWhitespace($("h2.title").first().text()) ||
+    normalizeWhitespace($("title").first().text()) ||
+    "Detalhes da Estrutura Curricular";
+
+  return {
+    detail: {
+      curriculumId: input.detailRequest.curriculumId,
+      curriculumCode,
+      curriculumLabel: title,
+      matrixName,
+      entryPeriodLabel,
+      totalMinimumHours,
+      minimumOptionalHours,
+      minimumComplementaryHours,
+      maximumTermHours,
+      sourceId: input.source.id,
+      sourceTitle: input.source.title,
+      sourceUrl: input.source.url,
+      detailPageOrigin: input.origin,
+      detailPageFinalUrl: input.finalUrl,
+      detailPageFetchedAt: input.fetchedAt,
+      detailPageContentDigest: "",
+      sectionCount: dedupedSections.length,
+      componentCount,
+      sections: dedupedSections,
+      evidence: compactEvidence([
+        title,
+        curriculumCode,
+        matrixName,
+        entryPeriodLabel,
+      ]),
+    },
+    components: dedupeCandidates(componentCandidates),
   };
 }
 
@@ -322,6 +537,132 @@ function extractCurriculumActionId(onclick: string): string | null {
   return match ? sanitizeToken(match[1] ?? "") || null : null;
 }
 
+function extractCurriculumActionControlName(onclick: string): string | null {
+  const match = onclick.match(/\{'([^']+)':'[^']+'/);
+  return match ? normalizeWhitespace(match[1] ?? "") || null : null;
+}
+
+function extractComponentActionId(onclick: string): string | null {
+  const match = onclick.match(/'id':'([^']+)'/);
+  return match ? normalizeWhitespace(match[1] ?? "") || null : null;
+}
+
+function readDefinitionValue(
+  $: cheerio.CheerioAPI,
+  labelPattern: RegExp,
+): string | null {
+  let value: string | null = null;
+
+  $("table.formulario tr").each((_index, row) => {
+    if (value) {
+      return;
+    }
+
+    const rowElement = $(row);
+    const label = normalizeWhitespace(rowElement.find("th").first().text());
+
+    if (!labelPattern.test(label)) {
+      return;
+    }
+
+    const cellValue = normalizeWhitespace(rowElement.find("td").first().text());
+    value = cellValue || null;
+  });
+
+  return value;
+}
+
+function parseHourQuantity(value: string | null): number | null {
+  if (!value) {
+    return null;
+  }
+
+  const match = value.match(/(\d+)\s*h/i);
+
+  if (!match) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(match[1] ?? "", 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseCurriculumComponentText(
+  value: string,
+): { code: string; title: string; workloadHours: number | null } | null {
+  const normalized = normalizeWhitespace(value);
+  const match = normalized.match(/^([A-Z]{2,5}\d{2,3})\s*-\s*(.+?)(?:\s*-\s*(\d+)\s*h)?$/u);
+
+  if (!match) {
+    return null;
+  }
+
+  const code = sanitizeToken(match[1] ?? "");
+  const title = normalizeWhitespace(match[2] ?? "");
+  const workloadHours = match[3]
+    ? Number.parseInt(match[3], 10)
+    : null;
+
+  if (!code || !title) {
+    return null;
+  }
+
+  return {
+    code,
+    title,
+    workloadHours: Number.isFinite(workloadHours) ? workloadHours : null,
+  };
+}
+
+function resolveCurriculumSectionKind(
+  sectionId: string,
+  label: string,
+): "term" | "elective" | "complementary" | "unknown" {
+  const normalizedLabel = normalizeWhitespace(label).toLowerCase();
+  const normalizedId = normalizeWhitespace(sectionId).toLowerCase();
+
+  if (normalizedId.startsWith("semestre")) {
+    return "term";
+  }
+
+  if (
+    normalizedId.includes("optativa") ||
+    normalizedLabel.includes("optativa")
+  ) {
+    return "elective";
+  }
+
+  if (
+    normalizedId.includes("complement") ||
+    normalizedLabel.includes("complement")
+  ) {
+    return "complementary";
+  }
+
+  return "unknown";
+}
+
+function resolveCurriculumSectionOrdinal(
+  sectionId: string,
+  label: string,
+): number | null {
+  const identifierMatch = sectionId.match(/semestre(\d+)/i);
+
+  if (identifierMatch) {
+    const parsed = Number.parseInt(identifierMatch[1] ?? "", 10);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  const labelMatch = label.match(/(\d+)\s*(?:º|o)?\s*(?:n[ií]vel|semestre)/i);
+
+  if (!labelMatch) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(labelMatch[1] ?? "", 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function dedupeCurriculumStructures(
   entries: PublicCatalogCurriculumStructureEntry[],
 ): PublicCatalogCurriculumStructureEntry[] {
@@ -335,6 +676,59 @@ function dedupeCurriculumStructures(
   }
 
   return Array.from(byKey.values()).sort((left, right) =>
+    left.code.localeCompare(right.code),
+  );
+}
+
+function dedupeCurriculumDetailRequests(
+  requests: PublicCatalogCurriculumDetailRequest[],
+): PublicCatalogCurriculumDetailRequest[] {
+  const byCurriculumId = new Map<string, PublicCatalogCurriculumDetailRequest>();
+
+  for (const request of requests) {
+    if (!byCurriculumId.has(request.curriculumId)) {
+      byCurriculumId.set(request.curriculumId, request);
+    }
+  }
+
+  return Array.from(byCurriculumId.values()).sort((left, right) =>
+    left.curriculumId.localeCompare(right.curriculumId),
+  );
+}
+
+function dedupeCurriculumDetailSections(
+  sections: PublicCatalogCurriculumDetailSectionEntry[],
+): PublicCatalogCurriculumDetailSectionEntry[] {
+  const bySectionId = new Map<string, PublicCatalogCurriculumDetailSectionEntry>();
+
+  for (const section of sections) {
+    if (!bySectionId.has(section.sectionId)) {
+      bySectionId.set(section.sectionId, section);
+    }
+  }
+
+  return Array.from(bySectionId.values()).sort((left, right) => {
+    const leftOrdinal = left.periodOrdinal ?? Number.MAX_SAFE_INTEGER;
+    const rightOrdinal = right.periodOrdinal ?? Number.MAX_SAFE_INTEGER;
+
+    return leftOrdinal !== rightOrdinal
+      ? leftOrdinal - rightOrdinal
+      : left.label.localeCompare(right.label);
+  });
+}
+
+function dedupeCurriculumDetailComponents(
+  components: PublicCatalogCurriculumDetailComponentEntry[],
+): PublicCatalogCurriculumDetailComponentEntry[] {
+  const byCode = new Map<string, PublicCatalogCurriculumDetailComponentEntry>();
+
+  for (const component of components) {
+    if (!byCode.has(component.code)) {
+      byCode.set(component.code, component);
+    }
+  }
+
+  return Array.from(byCode.values()).sort((left, right) =>
     left.code.localeCompare(right.code),
   );
 }

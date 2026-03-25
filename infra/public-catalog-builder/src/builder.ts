@@ -4,6 +4,7 @@ import path from "node:path";
 
 import type {
   PublicCatalogComponentCandidate,
+  PublicCatalogCurriculumDetailEntry,
   PublicCatalogCurriculumStructureEntry,
   PublicCatalogPageSnapshot,
   PublicCatalogScheduleGuideEntry,
@@ -12,7 +13,11 @@ import type {
   PublicCatalogSourceDefinition,
   PublicCatalogTimeSlotEntry,
 } from "./types.js";
-import { extractPublicSourceData } from "./extract.js";
+import {
+  extractCurriculumDetailPage,
+  extractCurriculumDetailRequests,
+  extractPublicSourceData,
+} from "./extract.js";
 import { loadSourcesFile, resolveSourceFixturePath } from "./sources.js";
 import { validateCatalogSnapshot } from "./validation.js";
 
@@ -45,16 +50,22 @@ export async function buildCatalogSnapshot(
 
   const pages: PublicCatalogPageSnapshot[] = [];
   const curriculumStructures: PublicCatalogCurriculumStructureEntry[] = [];
+  const curriculumDetails: PublicCatalogCurriculumDetailEntry[] = [];
   const components: PublicCatalogComponentCandidate[] = [];
   const scheduleGuide: PublicCatalogScheduleGuideEntry[] = [];
   const timeSlots: PublicCatalogTimeSlotEntry[] = [];
   const sourceStatuses: BuildCatalogSnapshotResult["sourceStatuses"] = [];
+  const notes = [
+    "First-pass public catalog snapshot built from official public pages.",
+    "This artifact is intentionally separate from the private student snapshot pipeline.",
+  ];
 
   for (const source of sources) {
     const resolved = await loadSourceHtml({
       source,
       fixturesDir: input.fixturesDir,
       fetchImpl,
+      builderVersion: input.builderVersion,
     });
     const extracted = extractPublicSourceData(
       source,
@@ -88,10 +99,26 @@ export async function buildCatalogSnapshot(
       title: extracted.page.title,
       ...provenance,
     });
+
+    if (source.url.includes("/curriculo.jsf") && resolved.origin === "live") {
+      const detailRequests = extractCurriculumDetailRequests(source, resolved.html);
+      const detailResult = await loadCurriculumDetails({
+        source,
+        fetchedAt,
+        sourceResolution: resolved,
+        detailRequests,
+        fetchImpl,
+        builderVersion: input.builderVersion,
+      });
+
+      curriculumDetails.push(...detailResult.details);
+      components.push(...detailResult.components);
+      notes.push(...detailResult.notes);
+    }
   }
 
   const snapshot = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     builderVersion: input.builderVersion,
     generatedAt: fetchedAt,
     institution: "UFBA",
@@ -99,13 +126,11 @@ export async function buildCatalogSnapshot(
     sources,
     pages,
     curriculumStructures: dedupeCurriculumStructures(curriculumStructures),
+    curriculumDetails: dedupeCurriculumDetails(curriculumDetails),
     components: dedupeComponents(components),
     scheduleGuide: dedupeScheduleGuide(scheduleGuide),
     timeSlots: dedupeTimeSlots(timeSlots),
-    notes: [
-      "First-pass public catalog snapshot built from official public pages.",
-      "This artifact is intentionally separate from the private student snapshot pipeline.",
-    ],
+    notes: Array.from(new Set(notes)),
   } satisfies PublicCatalogSnapshot;
 
   validateCatalogSnapshot(snapshot);
@@ -120,6 +145,7 @@ async function loadSourceHtml(input: {
   source: PublicCatalogSourceDefinition;
   fixturesDir: string | null;
   fetchImpl: typeof fetch;
+  builderVersion: string;
 }): Promise<{
   html: string;
   finalUrl: string;
@@ -128,6 +154,7 @@ async function loadSourceHtml(input: {
   httpStatus: number | null;
   responseEtag: string | null;
   responseLastModified: string | null;
+  responseCookies: string[];
 }> {
   const fixturePath = resolveSourceFixturePath(input.source, input.fixturesDir);
 
@@ -141,6 +168,7 @@ async function loadSourceHtml(input: {
       httpStatus: 200,
       responseEtag: null,
       responseLastModified: null,
+      responseCookies: [],
     };
   }
 
@@ -148,7 +176,7 @@ async function loadSourceHtml(input: {
     () =>
       input.fetchImpl(input.source.url, {
         headers: {
-          "user-agent": "Formae public-catalog-builder/0.2.0",
+          "user-agent": `Formae public-catalog-builder/${input.builderVersion}`,
           accept: "text/html,application/xhtml+xml",
         },
       }),
@@ -169,6 +197,7 @@ async function loadSourceHtml(input: {
     httpStatus: response.status,
     responseEtag: response.headers.get("etag"),
     responseLastModified: response.headers.get("last-modified"),
+    responseCookies: extractResponseCookies(response.headers),
   };
 }
 
@@ -273,6 +302,26 @@ function dedupeCurriculumStructures(
   });
 }
 
+function dedupeCurriculumDetails(
+  entries: PublicCatalogCurriculumDetailEntry[],
+): PublicCatalogCurriculumDetailEntry[] {
+  const byKey = new Map<string, PublicCatalogCurriculumDetailEntry>();
+
+  for (const entry of entries) {
+    const key = `${entry.sourceId}:${entry.curriculumId}:${entry.curriculumCode}`;
+    if (!byKey.has(key)) {
+      byKey.set(key, entry);
+    }
+  }
+
+  return Array.from(byKey.values()).sort((left, right) => {
+    const sourceCompare = left.sourceId.localeCompare(right.sourceId);
+    return sourceCompare !== 0
+      ? sourceCompare
+      : left.curriculumCode.localeCompare(right.curriculumCode);
+  });
+}
+
 function dedupeScheduleGuide(
   entries: PublicCatalogScheduleGuideEntry[],
 ): PublicCatalogScheduleGuideEntry[] {
@@ -307,4 +356,121 @@ function dedupeTimeSlots(
     const sourceCompare = left.sourceId.localeCompare(right.sourceId);
     return sourceCompare !== 0 ? sourceCompare : left.slot.localeCompare(right.slot);
   });
+}
+
+async function loadCurriculumDetails(input: {
+  source: PublicCatalogSourceDefinition;
+  fetchedAt: string;
+  sourceResolution: {
+    finalUrl: string;
+    origin: "fixture" | "live";
+    responseCookies: string[];
+  };
+  detailRequests: Array<{
+    curriculumId: string;
+    actionControlName: string;
+    actionUrl: string;
+    viewState: string;
+  }>;
+  fetchImpl: typeof fetch;
+  builderVersion: string;
+}): Promise<{
+  details: PublicCatalogCurriculumDetailEntry[];
+  components: PublicCatalogComponentCandidate[];
+  notes: string[];
+}> {
+  const details: PublicCatalogCurriculumDetailEntry[] = [];
+  const components: PublicCatalogComponentCandidate[] = [];
+  const notes: string[] = [];
+  const cookieHeader = buildCookieHeader(input.sourceResolution.responseCookies);
+
+  for (const detailRequest of input.detailRequests) {
+    try {
+      const actionUrl = resolveDetailActionUrl(
+        input.sourceResolution.finalUrl,
+        detailRequest.actionUrl,
+      );
+      const payload = new URLSearchParams({
+        formCurriculosCurso: "formCurriculosCurso",
+        [detailRequest.actionControlName]: detailRequest.actionControlName,
+        id: detailRequest.curriculumId,
+        "javax.faces.ViewState": detailRequest.viewState,
+      });
+      const response = await fetchWithRetry(
+        () =>
+          input.fetchImpl(actionUrl, {
+            method: "POST",
+            headers: {
+              "user-agent": `Formae public-catalog-builder/${input.builderVersion}`,
+              accept: "text/html,application/xhtml+xml",
+              "content-type": "application/x-www-form-urlencoded",
+              ...(cookieHeader ? { cookie: cookieHeader } : {}),
+            },
+            body: payload.toString(),
+          }),
+        `${input.source.id}:${detailRequest.curriculumId}`,
+      );
+
+      if (!response.ok) {
+        throw new Error(`${response.status} ${response.statusText}`);
+      }
+
+      const html = await response.text();
+      const provenance = createContentProvenance(html, {
+        contentType: response.headers.get("content-type"),
+        httpStatus: response.status,
+        responseEtag: response.headers.get("etag"),
+        responseLastModified: response.headers.get("last-modified"),
+      });
+      const extracted = extractCurriculumDetailPage({
+        source: input.source,
+        html,
+        fetchedAt: input.fetchedAt,
+        finalUrl: response.url || actionUrl,
+        origin: "live",
+        detailRequest,
+      });
+
+      details.push({
+        ...extracted.detail,
+        detailPageContentDigest: provenance.contentDigest,
+      });
+      components.push(...extracted.components);
+    } catch (error) {
+      notes.push(
+        `Curriculum detail ${detailRequest.curriculumId} from ${input.source.id} could not be fetched: ${formatError(error)}`,
+      );
+    }
+  }
+
+  return {
+    details,
+    components,
+    notes,
+  };
+}
+
+function extractResponseCookies(headers: Headers): string[] {
+  const maybeNodeHeaders = headers as Headers & {
+    getSetCookie?: () => string[];
+  };
+
+  if (typeof maybeNodeHeaders.getSetCookie === "function") {
+    return maybeNodeHeaders.getSetCookie();
+  }
+
+  const setCookie = headers.get("set-cookie");
+  return setCookie ? [setCookie] : [];
+}
+
+function buildCookieHeader(cookies: string[]): string | null {
+  const serialized = cookies
+    .map((cookie) => cookie.split(";", 1)[0]?.trim() ?? "")
+    .filter((cookie) => cookie.length > 0);
+
+  return serialized.length > 0 ? serialized.join("; ") : null;
+}
+
+function resolveDetailActionUrl(baseUrl: string, actionUrl: string): string {
+  return new URL(actionUrl, baseUrl).toString();
 }

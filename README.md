@@ -267,6 +267,19 @@ pnpm --filter @formae/web typecheck
 pnpm --filter @formae/web test
 ```
 
+Atualizar o catálogo público versionado:
+
+```bash
+pnpm --dir infra/public-catalog-builder build
+```
+
+Hoje esse snapshot já inclui:
+
+- páginas públicas oficiais com provenance por captura
+- estruturas curriculares públicas do SIGAA
+- detalhes públicos de matriz curricular por curso/entrada quando a fonte viva expõe essa navegação
+- componentes e faixas de horário públicos normalizados para consumo local pela PWA
+
 ## Estrutura do repositório
 
 ```text
@@ -301,6 +314,7 @@ infra/
 O Formaê ainda não é o ponto final do produto. Hoje ainda faltam, entre outras coisas:
 
 - catálogo público mais autoritativo por curso e entrada
+- cobertura pública ainda concentrada no seed vivo atual de Engenharia Civil
 - vault com derivação criptográfica mais forte, além do modo `device-local`
 - distribuição assinada e publicada da extensão
 - cobertura mais profunda de histórico e documentos do SIGAA

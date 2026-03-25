@@ -1,6 +1,7 @@
 import {
   findBestCurriculumSeed,
   findCurriculumStructureGroup,
+  publicCatalogCurriculumDetails,
   publicCatalogCurriculumProfiles,
   publicCatalogCurriculumStructureIndex,
   publicCatalogProvenance,
@@ -69,6 +70,7 @@ describe("publicCatalog", () => {
   it("exposes curriculum counts in the public summary", () => {
     expect(publicCatalogSummary.curriculumCount).toBe(2);
     expect(publicCatalogSummary.curriculumStructureCount).toBe(17);
+    expect(publicCatalogSummary.curriculumDetailCount).toBeGreaterThan(0);
   });
 
   it("surfaces catalog snapshot provenance and source coverage", () => {
@@ -81,6 +83,7 @@ describe("publicCatalog", () => {
       publicCatalogProvenance.pageCount,
     );
     expect(publicCatalogProvenance.curriculumStructureCount).toBe(17);
+    expect(publicCatalogProvenance.curriculumDetailCount).toBeGreaterThan(0);
     expect(publicCatalogSourceCoverage).toHaveLength(
       publicCatalogSnapshot.sources.length,
     );
@@ -91,10 +94,18 @@ describe("publicCatalog", () => {
 
     expect(sigaaCoverage?.componentCodeCount).toBeGreaterThan(0);
     expect(sigaaCoverage?.scheduleCodeCount).toBeGreaterThan(0);
+    expect(sigaaCoverage?.curriculumDetailCount).toBe(0);
+
+    const curriculumCoverage = publicCatalogSourceCoverage.find(
+      (coverage) => coverage.source.id === "eng-civil-curriculo",
+    );
+
+    expect(curriculumCoverage?.curriculumDetailCount).toBeGreaterThan(0);
   });
 
   it("indexes curriculum structures by intake and exposes rule profiles", () => {
     expect(publicCatalogCurriculumStructureIndex).toHaveLength(17);
+    expect(publicCatalogCurriculumDetails.length).toBeGreaterThan(0);
 
     const activeGroup = findCurriculumStructureGroup("2477782");
     const inactiveGroup = findCurriculumStructureGroup("1880549");

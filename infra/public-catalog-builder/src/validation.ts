@@ -9,7 +9,7 @@ const CURRICULUM_CODE_PATTERN = /^[A-Z0-9]+[A-Z]?$/;
 const CURRICULUM_ID_PATTERN = /^\d+$/;
 
 export function validateCatalogSnapshot(snapshot: PublicCatalogSnapshot): void {
-  assert(snapshot.schemaVersion === 1, "Unexpected public catalog schema version.");
+  assert(snapshot.schemaVersion === 2, "Unexpected public catalog schema version.");
   assert(snapshot.institution === "UFBA", "Unexpected institution identifier.");
   assert(snapshot.timingProfileId === "Ufba2025", "Unexpected timing profile.");
   assert(snapshot.sources.length > 0, "Public catalog needs at least one source.");
@@ -109,6 +109,76 @@ export function validateCatalogSnapshot(snapshot: PublicCatalogSnapshot): void {
         `Invalid curriculum year: ${entry.createdYear}.`,
       );
     }
+  }
+
+  for (const detail of snapshot.curriculumDetails) {
+    assert(
+      sourceIds.has(detail.sourceId),
+      `Unknown curriculum detail source: ${detail.sourceId}.`,
+    );
+    assert(
+      CURRICULUM_ID_PATTERN.test(detail.curriculumId),
+      `Malformed curriculum detail id: ${detail.curriculumId}.`,
+    );
+    assert(
+      CURRICULUM_CODE_PATTERN.test(detail.curriculumCode),
+      `Malformed curriculum detail code: ${detail.curriculumCode}.`,
+    );
+    assert(
+      detail.detailPageOrigin === "fixture" || detail.detailPageOrigin === "live",
+      `Invalid curriculum detail page origin: ${detail.detailPageOrigin}.`,
+    );
+    assert(
+      detail.detailPageFinalUrl.length > 0,
+      "Curriculum detail page final URL cannot be empty.",
+    );
+    assert(
+      DIGEST_PATTERN.test(detail.detailPageContentDigest),
+      `Invalid curriculum detail digest: ${detail.detailPageContentDigest}.`,
+    );
+    assert(detail.sectionCount >= 0, "Curriculum detail section count cannot be negative.");
+    assert(
+      detail.componentCount >= 0,
+      "Curriculum detail component count cannot be negative.",
+    );
+    assert(
+      detail.sections.length === detail.sectionCount,
+      `Curriculum detail section count mismatch for ${detail.curriculumId}.`,
+    );
+
+    let detailComponentCount = 0;
+
+    for (const section of detail.sections) {
+      assert(section.sectionId.length > 0, "Curriculum section id cannot be empty.");
+      assert(section.label.length > 0, "Curriculum section label cannot be empty.");
+      assert(
+        section.kind === "term" ||
+          section.kind === "elective" ||
+          section.kind === "complementary" ||
+          section.kind === "unknown",
+        `Invalid curriculum section kind: ${section.kind}.`,
+      );
+
+      for (const component of section.components) {
+        detailComponentCount += 1;
+        assert(
+          COMPONENT_CODE_PATTERN.test(component.code),
+          `Malformed curriculum detail component: ${component.code}.`,
+        );
+        assert(component.title.length > 0, "Curriculum detail component title cannot be empty.");
+        if (component.workloadHours !== null) {
+          assert(
+            component.workloadHours > 0,
+            `Invalid curriculum detail workload: ${component.workloadHours}.`,
+          );
+        }
+      }
+    }
+
+    assert(
+      detailComponentCount === detail.componentCount,
+      `Curriculum detail component count mismatch for ${detail.curriculumId}.`,
+    );
   }
 
   for (const component of snapshot.components) {

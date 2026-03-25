@@ -87,6 +87,7 @@ export interface PublicCatalogSnapshot {
   sources: PublicCatalogSnapshotSource[];
   pages: PublicCatalogSnapshotPage[];
   curriculumStructures: PublicCatalogSnapshotCurriculumStructure[];
+  curriculumDetails: PublicCatalogSnapshotCurriculumDetail[];
   components: PublicCatalogSnapshotComponent[];
   scheduleGuide: PublicCatalogSnapshotScheduleGuideEntry[];
   timeSlots: PublicCatalogSnapshotTimeSlot[];
@@ -107,6 +108,46 @@ export interface PublicCatalogSnapshotCurriculumStructure {
   sourcePageFinalUrl?: string;
   sourcePageFetchedAt?: string;
   sourcePageContentDigest?: string;
+  evidence: string[];
+}
+
+export interface PublicCatalogSnapshotCurriculumDetailComponent {
+  code: string;
+  title: string;
+  workloadHours: number | null;
+  categoryLabel: string | null;
+  componentId: string | null;
+  evidence: string[];
+}
+
+export interface PublicCatalogSnapshotCurriculumDetailSection {
+  sectionId: string;
+  label: string;
+  kind: "term" | "elective" | "complementary" | "unknown";
+  periodOrdinal: number | null;
+  components: PublicCatalogSnapshotCurriculumDetailComponent[];
+}
+
+export interface PublicCatalogSnapshotCurriculumDetail {
+  curriculumId: string;
+  curriculumCode: string;
+  curriculumLabel: string;
+  matrixName: string | null;
+  entryPeriodLabel: string | null;
+  totalMinimumHours: number | null;
+  minimumOptionalHours: number | null;
+  minimumComplementaryHours: number | null;
+  maximumTermHours: number | null;
+  sourceId: string;
+  sourceTitle: string;
+  sourceUrl: string;
+  detailPageOrigin: "fixture" | "live";
+  detailPageFinalUrl: string;
+  detailPageFetchedAt: string;
+  detailPageContentDigest: string;
+  sectionCount: number;
+  componentCount: number;
+  sections: PublicCatalogSnapshotCurriculumDetailSection[];
   evidence: string[];
 }
 
@@ -144,6 +185,7 @@ export interface PublicCatalogSourceCoverage {
   componentCodeCount: number;
   scheduleCodeCount: number;
   timeSlotCodeCount: number;
+  curriculumDetailCount: number;
   pageCoverageRatio: number;
 }
 
@@ -208,7 +250,9 @@ export interface PublicCatalogIndex {
 }
 
 const catalog = catalogIndex as PublicCatalogIndex;
-const snapshot = publicCatalogSnapshotIndex as unknown as PublicCatalogSnapshot;
+const snapshot = normalizePublicCatalogSnapshot(
+  publicCatalogSnapshotIndex as Partial<PublicCatalogSnapshot>,
+);
 
 export const publicCatalog: PublicCatalogIndex = {
   ...catalog,
@@ -232,6 +276,15 @@ export const publicCatalogCurriculumStructures = [
     : left.code.localeCompare(right.code);
 });
 
+export const publicCatalogCurriculumDetails = [
+  ...publicCatalogSnapshot.curriculumDetails,
+].sort((left, right) => {
+  const sourceCompare = left.sourceId.localeCompare(right.sourceId);
+  return sourceCompare !== 0
+    ? sourceCompare
+    : left.curriculumCode.localeCompare(right.curriculumCode);
+});
+
 export const publicCatalogCurriculumStructureIndex =
   buildCurriculumStructureIndex(publicCatalogCurriculumStructures);
 
@@ -250,6 +303,12 @@ export const publicCatalogProvenance = {
   ).length,
   componentCount: publicCatalogSnapshot.components.length,
   curriculumStructureCount: publicCatalogSnapshot.curriculumStructures.length,
+  curriculumDetailCount: publicCatalogSnapshot.curriculumDetails.length,
+  curriculumDetailComponentCount:
+    publicCatalogSnapshot.curriculumDetails.reduce(
+      (total, detail) => total + detail.componentCount,
+      0,
+    ),
   activeCurriculumStructureCount:
     publicCatalogSnapshot.curriculumStructures.filter(
       (entry) => entry.status === "active",
@@ -270,6 +329,7 @@ export const publicCatalogSummary = {
   componentCount: publicCatalog.components.length,
   curriculumCount: publicCatalog.curricula.length,
   curriculumStructureCount: publicCatalogCurriculumStructures.length,
+  curriculumDetailCount: publicCatalogCurriculumDetails.length,
   shortcutCount: publicCatalog.documentShortcuts.length,
   snapshotSourceCount: publicCatalogSnapshot.sources.length,
   snapshotPageCount: publicCatalogSnapshot.pages.length,
@@ -551,6 +611,9 @@ function buildSourceCoverage(source: PublicCatalogSnapshotSource) {
   const uniqueTimeSlotCodes = new Set(
     pages.flatMap((page) => page.timeSlotCodes),
   );
+  const curriculumDetailCount = publicCatalogSnapshot.curriculumDetails.filter(
+    (detail) => detail.sourceId === source.id,
+  ).length;
 
   return {
     source: {
@@ -563,10 +626,31 @@ function buildSourceCoverage(source: PublicCatalogSnapshotSource) {
     componentCodeCount: uniqueComponentCodes.size,
     scheduleCodeCount: uniqueScheduleCodes.size,
     timeSlotCodeCount: uniqueTimeSlotCodes.size,
+    curriculumDetailCount,
     pageCoverageRatio:
       publicCatalogSnapshot.pages.length === 0
         ? 0
         : pages.length / publicCatalogSnapshot.pages.length,
+  };
+}
+
+function normalizePublicCatalogSnapshot(
+  snapshot: Partial<PublicCatalogSnapshot>,
+): PublicCatalogSnapshot {
+  return {
+    schemaVersion: snapshot.schemaVersion ?? 1,
+    builderVersion: snapshot.builderVersion ?? "0.0.0",
+    generatedAt: snapshot.generatedAt ?? "",
+    institution: snapshot.institution ?? "UFBA",
+    timingProfileId: snapshot.timingProfileId ?? "Ufba2025",
+    sources: snapshot.sources ?? [],
+    pages: snapshot.pages ?? [],
+    curriculumStructures: snapshot.curriculumStructures ?? [],
+    curriculumDetails: snapshot.curriculumDetails ?? [],
+    components: snapshot.components ?? [],
+    scheduleGuide: snapshot.scheduleGuide ?? [],
+    timeSlots: snapshot.timeSlots ?? [],
+    notes: snapshot.notes ?? [],
   };
 }
 

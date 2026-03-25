@@ -65,6 +65,46 @@ export interface PublicCatalogCurriculumStructureEntry {
   evidence: string[];
 }
 
+export interface PublicCatalogCurriculumDetailComponentEntry {
+  code: string;
+  title: string;
+  workloadHours: number | null;
+  categoryLabel: string | null;
+  componentId: string | null;
+  evidence: string[];
+}
+
+export interface PublicCatalogCurriculumDetailSectionEntry {
+  sectionId: string;
+  label: string;
+  kind: "term" | "elective" | "complementary" | "unknown";
+  periodOrdinal: number | null;
+  components: PublicCatalogCurriculumDetailComponentEntry[];
+}
+
+export interface PublicCatalogCurriculumDetailEntry {
+  curriculumId: string;
+  curriculumCode: string;
+  curriculumLabel: string;
+  matrixName: string | null;
+  entryPeriodLabel: string | null;
+  totalMinimumHours: number | null;
+  minimumOptionalHours: number | null;
+  minimumComplementaryHours: number | null;
+  maximumTermHours: number | null;
+  sourceId: string;
+  sourceTitle: string;
+  sourceUrl: string;
+  detailPageOrigin: PublicCatalogSourceOrigin;
+  detailPageFinalUrl: string;
+  detailPageFetchedAt: string;
+  detailPageContentDigest: string;
+  sectionCount: number;
+  componentCount: number;
+  sections: PublicCatalogCurriculumDetailSectionEntry[];
+  evidence: string[];
+}
+
 export interface PublicCatalogComponentCandidate {
   code: string;
   title: string;
@@ -97,7 +137,7 @@ export interface PublicCatalogTimeSlotEntry {
 }
 
 export interface PublicCatalogSnapshot {
-  schemaVersion: 1;
+  schemaVersion: 2;
   builderVersion: string;
   generatedAt: string;
   institution: "UFBA";
@@ -105,6 +145,7 @@ export interface PublicCatalogSnapshot {
   sources: PublicCatalogSourceDefinition[];
   pages: PublicCatalogPageSnapshot[];
   curriculumStructures: PublicCatalogCurriculumStructureEntry[];
+  curriculumDetails: PublicCatalogCurriculumDetailEntry[];
   components: PublicCatalogComponentCandidate[];
   scheduleGuide: PublicCatalogScheduleGuideEntry[];
   timeSlots: PublicCatalogTimeSlotEntry[];

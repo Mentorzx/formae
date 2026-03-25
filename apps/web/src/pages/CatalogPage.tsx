@@ -1,6 +1,7 @@
 import { Metric } from "../components/Metric";
 import {
   publicCatalog,
+  publicCatalogCurriculumDetails,
   publicCatalogProvenance,
   publicCatalogSnapshot,
   publicCatalogSourceCoverage,
@@ -38,6 +39,10 @@ export function CatalogPage() {
           <Metric
             label="Curriculos seed"
             value={String(publicCatalogSummary.curriculumCount)}
+          />
+          <Metric
+            label="Matrizes detalhadas"
+            value={String(publicCatalogSummary.curriculumDetailCount)}
           />
         </div>
       </section>
@@ -85,6 +90,14 @@ export function CatalogPage() {
                   {publicCatalogProvenance.noteCount} notas
                 </strong>
               </p>
+              <p>
+                <span className="detail-label">Matrizes detalhadas</span>
+                <strong>
+                  {publicCatalogProvenance.curriculumDetailCount} matrizes,{" "}
+                  {publicCatalogProvenance.curriculumDetailComponentCount}{" "}
+                  componentes
+                </strong>
+              </p>
             </div>
           </div>
         </div>
@@ -109,6 +122,9 @@ export function CatalogPage() {
                 <span className="tag">
                   {coverage.scheduleCodeCount} codigos
                 </span>
+                <span className="tag">
+                  {coverage.curriculumDetailCount} matrizes
+                </span>
               </div>
               <div className="detail-stack">
                 <p>
@@ -128,6 +144,57 @@ export function CatalogPage() {
                 <p>
                   <span className="detail-label">Fixture</span>
                   <strong>{coverage.source.fixture}</strong>
+                </p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="panel">
+        <p className="section-label">Curriculos publicos detalhados</p>
+        <div className="card-grid">
+          {publicCatalogCurriculumDetails.map((detail) => (
+            <article
+              key={`${detail.sourceId}:${detail.curriculumId}:${detail.curriculumCode}`}
+              className="soft-card"
+            >
+              <p className="micro-label">{detail.curriculumCode}</p>
+              <h3>{detail.matrixName ?? detail.curriculumLabel}</h3>
+              <p>{detail.entryPeriodLabel ?? "Entrada nao identificada"}</p>
+              <div className="tag-grid compact-grid">
+                <span className="tag">{detail.sectionCount} secoes</span>
+                <span className="tag">{detail.componentCount} componentes</span>
+                <span className="tag">{detail.detailPageOrigin}</span>
+              </div>
+              <div className="detail-stack">
+                <p>
+                  <span className="detail-label">Carga minima</span>
+                  <strong>
+                    {detail.totalMinimumHours
+                      ? `${detail.totalMinimumHours}h`
+                      : "n/d"}
+                  </strong>
+                </p>
+                <p>
+                  <span className="detail-label">Optativa minima</span>
+                  <strong>
+                    {detail.minimumOptionalHours
+                      ? `${detail.minimumOptionalHours}h`
+                      : "n/d"}
+                  </strong>
+                </p>
+                <p>
+                  <span className="detail-label">Complementar minima</span>
+                  <strong>
+                    {detail.minimumComplementaryHours
+                      ? `${detail.minimumComplementaryHours}h`
+                      : "n/d"}
+                  </strong>
+                </p>
+                <p>
+                  <span className="detail-label">Primeira secao</span>
+                  <strong>{detail.sections[0]?.label ?? "n/d"}</strong>
                 </p>
               </div>
             </article>
@@ -222,6 +289,10 @@ export function CatalogPage() {
           <p>
             <span className="detail-label">Componentes</span>
             <strong>{publicCatalogSnapshot.components.length}</strong>
+          </p>
+          <p>
+            <span className="detail-label">Matrizes detalhadas</span>
+            <strong>{publicCatalogSnapshot.curriculumDetails.length}</strong>
           </p>
           <p>
             <span className="detail-label">Faixas de horario</span>

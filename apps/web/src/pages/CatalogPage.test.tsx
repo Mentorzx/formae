@@ -12,6 +12,9 @@ describe("CatalogPage", () => {
     expect(screen.getByText(/Proveniencia do snapshot/i)).toBeInTheDocument();
     expect(screen.getByText(/Cobertura por fonte/i)).toBeInTheDocument();
     expect(
+      screen.getByText(/Curriculos publicos detalhados/i),
+    ).toBeInTheDocument();
+    expect(
       screen.getByText(/Curriculos seed preservados/i),
     ).toBeInTheDocument();
     expect(screen.getByText("sigaa-public-turmas.html")).toBeInTheDocument();

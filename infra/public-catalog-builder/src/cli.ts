@@ -4,7 +4,7 @@ import { buildCatalogSnapshot } from "./builder.js";
 import { parseCliOptions } from "./config.js";
 import { writeCatalogSnapshot } from "./output.js";
 
-const BUILDER_VERSION = "0.2.0";
+const BUILDER_VERSION = "0.3.0";
 
 async function main(): Promise<void> {
   const options = parseCliOptions(process.argv.slice(2));
@@ -34,6 +34,7 @@ async function main(): Promise<void> {
       `sources: ${result.snapshot.sources.length}`,
       `pages: ${result.snapshot.pages.length}`,
       `curriculum structures: ${result.snapshot.curriculumStructures.length}`,
+      `curriculum details: ${result.snapshot.curriculumDetails.length}`,
       `components: ${result.snapshot.components.length}`,
       `schedule guide entries: ${result.snapshot.scheduleGuide.length}`,
       `time slots: ${result.snapshot.timeSlots.length}`,
