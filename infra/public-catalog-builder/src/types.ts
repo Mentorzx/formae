@@ -152,6 +152,28 @@ export interface PublicCatalogSnapshot {
   notes: string[];
 }
 
+export interface PublicCatalogDiscoveryEntry {
+  kind: "course-portal" | "course-curriculum";
+  url: string;
+  title: string;
+  sourceId: string;
+  sourceTitle: string;
+  sourceUrl: string;
+  sourcePageOrigin: PublicCatalogSourceOrigin;
+  sourcePageFinalUrl: string;
+  sourcePageFetchedAt: string;
+  evidence: string[];
+}
+
+export interface PublicCatalogDiscoverySnapshot {
+  schemaVersion: 1;
+  builderVersion: string;
+  generatedAt: string;
+  institution: "UFBA";
+  entries: PublicCatalogDiscoveryEntry[];
+  notes: string[];
+}
+
 export interface PublicCatalogSourceStatus {
   sourceId: string;
   origin: PublicCatalogSourceOrigin;

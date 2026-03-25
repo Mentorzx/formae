@@ -636,6 +636,21 @@ export function PlannerPage() {
   }
 
   const currentSummary = loadState.summary;
+  const curriculumReviewRequirement =
+    currentSummary.generalPendingRequirements.find(
+      (requirement) => requirement.id === "curriculum-seed-review",
+    ) ?? null;
+  const plannerProvenanceItems = [
+    loadState.bundleSource === "bundle"
+      ? "Snapshot salvo no vault local"
+      : loadState.bundleSource === "manual-snapshot-fallback"
+        ? "Fallback de importacao manual"
+        : "Sem bundle carregado",
+    `Curriculo: ${currentSummary.studentSnapshot.curriculum.curriculumId}`,
+    curriculumReviewRequirement
+      ? "Confianca: revisar selecao da grade"
+      : "Confianca: grade local resolvida sem alerta global",
+  ];
   const focusSummaryLabel = selectedComponentCode
     ? `Foco travado em ${selectedComponentCode}`
     : hoveredComponentCode
@@ -773,6 +788,20 @@ export function PlannerPage() {
               </div>
             </article>
           </div>
+        </div>
+      </section>
+
+      <section className="panel planner-provenance-strip">
+        <div>
+          <p className="micro-label">Proveniencia ativa</p>
+          <h3>Leitura de origem e confianca da trilha atual</h3>
+        </div>
+        <div className="planner-chip-group">
+          {plannerProvenanceItems.map((item) => (
+            <span key={item} className="planner-chip planner-chip-active">
+              {item}
+            </span>
+          ))}
         </div>
       </section>
 

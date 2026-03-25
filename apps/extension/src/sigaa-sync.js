@@ -172,7 +172,7 @@ export function buildStructuredSigaaCapture({
             id: capturedView.id,
             label: capturedView.label,
             routeHint: capturedView.routeHint,
-            text: capturedView.text,
+            text: buildStructuredViewSummary(capturedView),
             historyDocument: capturedView.historyDocument ?? null,
             extractedTurmas: extractTurmaEntries(capturedView.text),
           }
@@ -181,7 +181,7 @@ export function buildStructuredSigaaCapture({
               id: capturedView.id,
               label: capturedView.label,
               routeHint: capturedView.routeHint,
-              text: capturedView.text,
+              text: buildStructuredViewSummary(capturedView),
               historyDocument: capturedView.historyDocument ?? null,
               extractedHistory:
                 capturedView.extractedHistory ?? extractHistoryEntries(capturedView.text),
@@ -190,7 +190,7 @@ export function buildStructuredSigaaCapture({
             id: capturedView.id,
             label: capturedView.label,
             routeHint: capturedView.routeHint,
-            text: capturedView.text,
+            text: buildStructuredViewSummary(capturedView),
             extractedGrades: extractGradeEntries(capturedView.text),
           },
     ),
@@ -280,6 +280,65 @@ export function buildMinimizedCaptureText({
   }
 
   return `${blocks.filter(Boolean).join("\n")}\n`;
+}
+
+function buildStructuredViewSummary(capturedView) {
+  if (capturedView.id === "classes") {
+    const entries = extractTurmaEntries(capturedView.text);
+    return entries.length === 0
+      ? null
+      : entries
+          .map((entry) =>
+            [
+              entry.componentCode,
+              entry.scheduleCodes.length > 0
+                ? `Horario: ${entry.scheduleCodes.join(" ")}`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" - "),
+          )
+          .join("\n");
+  }
+
+  if (capturedView.id === "grades") {
+    const entries = extractGradeEntries(capturedView.text);
+    return entries.length === 0
+      ? null
+      : entries
+          .map((entry) =>
+            [
+              entry.componentCode,
+              entry.componentName ?? null,
+              entry.statusText ?? null,
+            ]
+              .filter(Boolean)
+              .join(" - "),
+          )
+          .join("\n");
+  }
+
+  const entries =
+    capturedView.extractedHistory ?? extractHistoryEntries(capturedView.text);
+  return entries.length === 0
+    ? null
+    : entries
+        .map((entry) =>
+          [
+            entry.academicPeriod,
+            extractComponentCode(entry.componentName ?? entry.rawLine),
+            entry.statusText ?? null,
+          ]
+            .filter(Boolean)
+            .join(" - "),
+        )
+        .join("\n");
+}
+
+function extractComponentCode(value) {
+  const normalized = value.toUpperCase();
+  const match = normalized.match(COMPONENT_CODE_PATTERN);
+  return match?.[1] ?? null;
 }
 
 async function captureSigaaView({

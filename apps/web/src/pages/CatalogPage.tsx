@@ -2,6 +2,7 @@ import { Metric } from "../components/Metric";
 import {
   publicCatalog,
   publicCatalogCurriculumDetails,
+  publicCatalogDiscoverySnapshot,
   publicCatalogProvenance,
   publicCatalogSnapshot,
   publicCatalogSourceCoverage,
@@ -43,6 +44,10 @@ export function CatalogPage() {
           <Metric
             label="Matrizes detalhadas"
             value={String(publicCatalogSummary.curriculumDetailCount)}
+          />
+          <Metric
+            label="Discovery institucional"
+            value={String(publicCatalogSummary.discoveryEntryCount)}
           />
         </div>
       </section>
@@ -91,6 +96,13 @@ export function CatalogPage() {
                 </strong>
               </p>
               <p>
+                <span className="detail-label">Discovery institucional</span>
+                <strong>
+                  {publicCatalogProvenance.discoveryEntryCount} links,{" "}
+                  {publicCatalogProvenance.liveDiscoveryEntryCount} vivos
+                </strong>
+              </p>
+              <p>
                 <span className="detail-label">Matrizes detalhadas</span>
                 <strong>
                   {publicCatalogProvenance.curriculumDetailCount} matrizes,{" "}
@@ -98,6 +110,46 @@ export function CatalogPage() {
                   componentes
                 </strong>
               </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="panel">
+        <p className="section-label">Discovery institucional</p>
+        <div className="provenance-grid">
+          <div className="soft-card">
+            <h3>Indexacao de paginas oficiais</h3>
+            <div className="detail-stack">
+              <p>
+                <span className="detail-label">Portais de curso</span>
+                <strong>
+                  {publicCatalogProvenance.discoveredCoursePortalCount}
+                </strong>
+              </p>
+              <p>
+                <span className="detail-label">Paginas de curriculo</span>
+                <strong>
+                  {publicCatalogProvenance.discoveredCurriculumPageCount}
+                </strong>
+              </p>
+              <p>
+                <span className="detail-label">Gerado em</span>
+                <strong>{publicCatalogDiscoverySnapshot.generatedAt}</strong>
+              </p>
+            </div>
+          </div>
+          <div className="soft-card">
+            <h3>Primeiros links descobertos</h3>
+            <div className="detail-stack">
+              {publicCatalogDiscoverySnapshot.entries
+                .slice(0, 4)
+                .map((entry) => (
+                  <p key={`${entry.kind}:${entry.url}`}>
+                    <span className="detail-label">{entry.kind}</span>
+                    <strong>{entry.title}</strong>
+                  </p>
+                ))}
             </div>
           </div>
         </div>

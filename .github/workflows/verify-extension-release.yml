@@ -48,6 +48,9 @@ jobs:
       - name: Build releasable extension artifacts
         run: node scripts/package-extension.mjs
 
+      - name: Smoke packaged Chrome and Firefox runtimes
+        run: node scripts/smoke-extension-runtime.mjs
+
       - name: Lint packaged Firefox extension
         run: |
           firefox_dir="$(find dist/extension -maxdepth 1 -type d -name 'formae-extension-firefox-*' | head -n 1)"

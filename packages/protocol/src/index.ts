@@ -150,7 +150,7 @@ export interface SigaaStructuredCaptureViewBase {
   id: "classes" | "grades" | "history";
   label: "Minhas Turmas" | "Minhas Notas" | "Consultar Histórico";
   routeHint: string;
-  text: string;
+  text: string | null;
   historyDocument?: SigaaHistoryDocumentMetadata | null;
 }
 

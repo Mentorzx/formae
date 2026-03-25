@@ -6,6 +6,7 @@ import type {
   TimingProfileId,
 } from "@formae/protocol";
 import catalogIndex from "../../../infra/static-data/catalog-index.json";
+import publicCatalogDiscoveryIndex from "../../../infra/static-data/public-catalog.discovery.json";
 import publicCatalogSnapshotIndex from "../../../infra/static-data/public-catalog.snapshot.json";
 
 export interface PublicCatalogSource {
@@ -76,6 +77,28 @@ export interface PublicCatalogSnapshotTimeSlot {
   sourceId: string;
   sourceTitle: string;
   sourceUrl: string;
+}
+
+export interface PublicCatalogDiscoveryEntry {
+  kind: "course-portal" | "course-curriculum";
+  url: string;
+  title: string;
+  sourceId: string;
+  sourceTitle: string;
+  sourceUrl: string;
+  sourcePageOrigin: "fixture" | "live";
+  sourcePageFinalUrl: string;
+  sourcePageFetchedAt: string;
+  evidence: string[];
+}
+
+export interface PublicCatalogDiscoverySnapshot {
+  schemaVersion: number;
+  builderVersion: string;
+  generatedAt: string;
+  institution: "UFBA";
+  entries: PublicCatalogDiscoveryEntry[];
+  notes: string[];
 }
 
 export interface PublicCatalogSnapshot {
@@ -250,6 +273,9 @@ export interface PublicCatalogIndex {
 }
 
 const catalog = catalogIndex as PublicCatalogIndex;
+const discovery = normalizePublicCatalogDiscoverySnapshot(
+  publicCatalogDiscoveryIndex as Partial<PublicCatalogDiscoverySnapshot>,
+);
 const snapshot = normalizePublicCatalogSnapshot(
   publicCatalogSnapshotIndex as Partial<PublicCatalogSnapshot>,
 );
@@ -262,6 +288,8 @@ export const publicCatalog: PublicCatalogIndex = {
 };
 
 export const publicCatalogSnapshot: PublicCatalogSnapshot = snapshot;
+export const publicCatalogDiscoverySnapshot: PublicCatalogDiscoverySnapshot =
+  discovery;
 
 export const publicCatalogSourceCoverage = publicCatalogSnapshot.sources.map(
   (source) => buildSourceCoverage(source),
@@ -322,6 +350,16 @@ export const publicCatalogProvenance = {
   pagesWithScheduleEvidence: publicCatalogSnapshot.pages.filter(
     (page) => page.scheduleCodes.length > 0,
   ).length,
+  discoveryEntryCount: publicCatalogDiscoverySnapshot.entries.length,
+  liveDiscoveryEntryCount: publicCatalogDiscoverySnapshot.entries.filter(
+    (entry) => entry.sourcePageOrigin === "live",
+  ).length,
+  discoveredCoursePortalCount: publicCatalogDiscoverySnapshot.entries.filter(
+    (entry) => entry.kind === "course-portal",
+  ).length,
+  discoveredCurriculumPageCount: publicCatalogDiscoverySnapshot.entries.filter(
+    (entry) => entry.kind === "course-curriculum",
+  ).length,
 };
 
 export const publicCatalogSummary = {
@@ -331,6 +369,7 @@ export const publicCatalogSummary = {
   curriculumStructureCount: publicCatalogCurriculumStructures.length,
   curriculumDetailCount: publicCatalogCurriculumDetails.length,
   shortcutCount: publicCatalog.documentShortcuts.length,
+  discoveryEntryCount: publicCatalogDiscoverySnapshot.entries.length,
   snapshotSourceCount: publicCatalogSnapshot.sources.length,
   snapshotPageCount: publicCatalogSnapshot.pages.length,
   snapshotFixtureBackedPageCount:
@@ -650,6 +689,19 @@ function normalizePublicCatalogSnapshot(
     components: snapshot.components ?? [],
     scheduleGuide: snapshot.scheduleGuide ?? [],
     timeSlots: snapshot.timeSlots ?? [],
+    notes: snapshot.notes ?? [],
+  };
+}
+
+function normalizePublicCatalogDiscoverySnapshot(
+  snapshot: Partial<PublicCatalogDiscoverySnapshot>,
+): PublicCatalogDiscoverySnapshot {
+  return {
+    schemaVersion: snapshot.schemaVersion ?? 1,
+    builderVersion: snapshot.builderVersion ?? "0.0.0",
+    generatedAt: snapshot.generatedAt ?? "",
+    institution: snapshot.institution ?? "UFBA",
+    entries: snapshot.entries ?? [],
     notes: snapshot.notes ?? [],
   };
 }

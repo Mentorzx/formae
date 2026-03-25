@@ -16,6 +16,7 @@
     "lint": "pnpm -r --if-present lint && cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings",
     "package:extension": "node scripts/package-extension.mjs",
     "prepare:wasm": "pnpm build:wasm && node scripts/sync-wasm.mjs",
+    "smoke:extension": "node scripts/smoke-extension-runtime.mjs",
     "test": "pnpm -r --if-present test && cargo test --workspace"
   },
   "devDependencies": {

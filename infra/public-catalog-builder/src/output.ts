@@ -2,7 +2,10 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import type { BuildCatalogSnapshotResult } from "./builder.js";
-import { validateCatalogSnapshot } from "./validation.js";
+import {
+  validateCatalogDiscoverySnapshot,
+  validateCatalogSnapshot,
+} from "./validation.js";
 
 export async function writeCatalogSnapshot(
   outputPath: string,
@@ -13,6 +16,19 @@ export async function writeCatalogSnapshot(
   await writeFile(
     outputPath,
     `${JSON.stringify(result.snapshot, null, 2)}\n`,
+    "utf8",
+  );
+}
+
+export async function writeCatalogDiscoverySnapshot(
+  outputPath: string,
+  result: BuildCatalogSnapshotResult,
+): Promise<void> {
+  validateCatalogDiscoverySnapshot(result.discoverySnapshot);
+  await mkdir(path.dirname(outputPath), { recursive: true });
+  await writeFile(
+    outputPath,
+    `${JSON.stringify(result.discoverySnapshot, null, 2)}\n`,
     "utf8",
   );
 }

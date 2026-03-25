@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "builderVersion": "0.3.0",
+  "generatedAt": "2026-03-25T23:03:55.543Z",
+  "institution": "UFBA",
+  "entries": [
+    {
+      "kind": "course-curriculum",
+      "url": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR#",
+      "title": "Visualizar Estrutura Curricular",
+      "sourceId": "eng-civil-curriculo",
+      "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI - Curriculos",
+      "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+      "sourcePageOrigin": "live",
+      "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+      "sourcePageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "evidence": [
+        "Visualizar Estrutura Curricular",
+        "#"
+      ]
+    },
+    {
+      "kind": "course-curriculum",
+      "url": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?lc=en_US&id=1876833&nivel=G",
+      "title": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?lc=en_US&id=1876833&nivel=G",
+      "sourceId": "eng-civil-curriculo",
+      "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI - Curriculos",
+      "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+      "sourcePageOrigin": "live",
+      "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+      "sourcePageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "evidence": [
+        "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?lc=en_US&id=1876833&nivel=G",
+        "?lc=en_US&id=1876833&nivel=G"
+      ]
+    },
+    {
+      "kind": "course-curriculum",
+      "url": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?lc=es_ES&id=1876833&nivel=G",
+      "title": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?lc=es_ES&id=1876833&nivel=G",
+      "sourceId": "eng-civil-curriculo",
+      "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI - Curriculos",
+      "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+      "sourcePageOrigin": "live",
+      "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+      "sourcePageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "evidence": [
+        "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?lc=es_ES&id=1876833&nivel=G",
+        "?lc=es_ES&id=1876833&nivel=G"
+      ]
+    },
+    {
+      "kind": "course-curriculum",
+      "url": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?lc=fr_FR&id=1876833&nivel=G",
+      "title": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?lc=fr_FR&id=1876833&nivel=G",
+      "sourceId": "eng-civil-curriculo",
+      "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI - Curriculos",
+      "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+      "sourcePageOrigin": "live",
+      "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
+      "sourcePageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "evidence": [
+        "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?lc=fr_FR&id=1876833&nivel=G",
+        "?lc=fr_FR&id=1876833&nivel=G"
+      ]
+    },
+    {
+      "kind": "course-curriculum",
+      "url": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?lc=pt_BR&id=1876833",
+      "title": "· Currículos",
+      "sourceId": "eng-civil-portal",
+      "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI",
+      "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?id=1876833&lc=pt_BR",
+      "sourcePageOrigin": "live",
+      "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?id=1876833&lc=pt_BR",
+      "sourcePageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "evidence": [
+        "· Currículos",
+        "curriculo.jsf?lc=pt_BR&id=1876833"
+      ]
+    },
+    {
+      "kind": "course-portal",
+      "url": "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?lc=en_US&id=1876833&nivel=G",
+      "title": "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?lc=en_US&id=1876833&nivel=G",
+      "sourceId": "eng-civil-portal",
+      "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI",
+      "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?id=1876833&lc=pt_BR",
+      "sourcePageOrigin": "live",
+      "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?id=1876833&lc=pt_BR",
+      "sourcePageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "evidence": [
+        "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?lc=en_US&id=1876833&nivel=G",
+        "?lc=en_US&id=1876833&nivel=G"
+      ]
+    },
+    {
+      "kind": "course-portal",
+      "url": "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?lc=es_ES&id=1876833&nivel=G",
+      "title": "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?lc=es_ES&id=1876833&nivel=G",
+      "sourceId": "eng-civil-portal",
+      "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI",
+      "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?id=1876833&lc=pt_BR",
+      "sourcePageOrigin": "live",
+      "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?id=1876833&lc=pt_BR",
+      "sourcePageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "evidence": [
+        "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?lc=es_ES&id=1876833&nivel=G",
+        "?lc=es_ES&id=1876833&nivel=G"
+      ]
+    },
+    {
+      "kind": "course-portal",
+      "url": "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?lc=fr_FR&id=1876833&nivel=G",
+      "title": "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?lc=fr_FR&id=1876833&nivel=G",
+      "sourceId": "eng-civil-portal",
+      "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI",
+      "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?id=1876833&lc=pt_BR",
+      "sourcePageOrigin": "live",
+      "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?id=1876833&lc=pt_BR",
+      "sourcePageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "evidence": [
+        "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?lc=fr_FR&id=1876833&nivel=G",
+        "?lc=fr_FR&id=1876833&nivel=G"
+      ]
+    },
+    {
+      "kind": "course-portal",
+      "url": "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?lc=pt_BR&id=1876833",
+      "title": "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?lc=pt_BR&id=1876833",
+      "sourceId": "eng-civil-portal",
+      "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI",
+      "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?id=1876833&lc=pt_BR",
+      "sourcePageOrigin": "live",
+      "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?id=1876833&lc=pt_BR",
+      "sourcePageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "evidence": [
+        "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?lc=pt_BR&id=1876833",
+        "/sigaa/public/curso/portal.jsf?lc=pt_BR&id=1876833"
+      ]
+    }
+  ],
+  "notes": [
+    "Deterministic discovery artifact built from official public roots.",
+    "This index is additive and does not replace the public catalog snapshot."
+  ]
+}

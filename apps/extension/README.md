@@ -23,8 +23,9 @@ Extensao MV3 para sincronizacao local com o SIGAA. O foco continua sendo manter 
 3. Em produção, a PWA tenta falar direto com a extensão via `runtime.sendMessage` externo.
 4. O relay legado por `window.postMessage` fica restrito a localhost para depuração, não para GitHub Pages.
 5. O runtime abre abas locais do SIGAA, autentica, captura as views esperadas, incluindo o relatório de histórico quando disponível, segmenta capturas com varios registros em uma unica linha, preserva metadados quando o histórico vem como PDF/anexo e devolve um `RawSigaaPayload`.
-6. O campo `htmlOrText` enviado para a PWA fica resumido em modo estruturado minimizado; a estrutura detalhada continua no `structuredCapture` para a normalização local.
-7. Depois do sync a sessão efêmera é consumida e removida da memória.
+6. O campo `htmlOrText` enviado para a PWA fica resumido em modo estruturado minimizado.
+7. O `structuredCapture` também não carrega mais o dump bruto completo das views; cada view segue com resumo mínimo e extrações estruturadas.
+8. Depois do sync a sessão efêmera é consumida e removida da memória.
 
 ## Firefox e Chrome
 
@@ -43,11 +44,19 @@ node scripts/package-extension.mjs
 
 O script cria:
 
-- `dist/extension/formae-extension-<versao>/` com o unpacked build
+- `dist/extension/formae-extension-chrome-<versao>/` com o build unpacked de Chrome
+- `dist/extension/formae-extension-firefox-<versao>/` com o build unpacked de Firefox
 - `dist/releases/formae-extension-<versao>.zip`
-- `dist/releases/formae-extension-<versao>.zip.sha256`
+- `dist/releases/formae-extension-<versao>.xpi`
+- checksums e release manifest determinístico
 
-Esses artefatos sao os que o workflow de GitHub Releases publica.
+Smoke runtime local dos pacotes:
+
+```bash
+node scripts/smoke-extension-runtime.mjs
+```
+
+Esse smoke valida que popup, background e content script carregam a partir dos artefatos empacotados para Chrome e Firefox.
 
 ## Convenções
 

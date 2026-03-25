@@ -29,7 +29,7 @@ const LEGACY_DEVICE_LOCAL_KEY_ID = "device-local-v1";
 const BROWSER_WRAP_KEY_ID = "browser-wrap-v1";
 const WRAP_SECRET_RECORD_KEY = "active";
 const CONTENT_KEY_RECORD_KEY = "active";
-const CURRENT_VAULT_STORAGE_VERSION = 4;
+const CURRENT_VAULT_STORAGE_VERSION = 5;
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
 type VaultPayloadKind =
@@ -40,6 +40,7 @@ type VaultKeyDerivationMode =
   | "device-local"
   | "browser-local-wrap"
   | "webauthn-prf";
+type VaultWrapPolicy = "browser-local-wrap" | "prf-first";
 
 export type ManualImportVaultStatus = "empty" | "sealed";
 export type ManualImportVaultWipeReason =
@@ -59,6 +60,7 @@ export interface ManualImportVaultState {
   status: ManualImportVaultStatus;
   payloadKind: VaultPayloadKind | null;
   keyDerivation: VaultKeyDerivationMode;
+  policy: VaultWrapPolicy;
   keyId: string | null;
   updatedAt: string | null;
   lastWipeAt: string | null;
@@ -83,6 +85,7 @@ interface ManualImportVaultRecord {
   payloadKind: VaultPayloadKind;
   algorithm: "AES-GCM";
   keyDerivation: VaultKeyDerivationMode;
+  policy: VaultWrapPolicy;
   contentKeyId: string;
   aadContext: string;
   ivB64: string;
@@ -97,6 +100,7 @@ interface VaultWrapSecretRecord {
   wrappedContentKeyB64: string;
   prfWrappedContentKeyB64: string | null;
   keyDerivation: VaultKeyDerivationMode;
+  policy: VaultWrapPolicy;
   updatedAt: string;
 }
 
@@ -281,6 +285,7 @@ export async function disableManualImportVaultPasskey(): Promise<ManualImportVau
   const database = await openManualSnapshotDatabase();
   await assertVaultUnlockedIfRequired(database);
 
+  await downgradeVaultPolicyToBrowserLocalWrap(database);
   clearVaultPasskeySession();
   await deleteVaultPasskeyConfig(database);
 
@@ -292,6 +297,7 @@ export async function sealManualImportSnapshotForVault(
   encryptionKey: CryptoKey,
   keyId = CONTENT_KEY_RECORD_KEY,
   keyDerivation: VaultKeyDerivationMode = "browser-local-wrap",
+  policy = deriveVaultPolicyFromKeyDerivation(keyDerivation),
 ): Promise<ManualImportVaultRecord> {
   return sealPayloadForVault({
     payload: snapshot,
@@ -301,6 +307,7 @@ export async function sealManualImportSnapshotForVault(
     encryptionKey,
     keyId,
     keyDerivation,
+    policy,
   });
 }
 
@@ -309,6 +316,7 @@ export async function sealLocalStudentSnapshotBundleForVault(
   encryptionKey: CryptoKey,
   keyId = CONTENT_KEY_RECORD_KEY,
   keyDerivation: VaultKeyDerivationMode = "browser-local-wrap",
+  policy = deriveVaultPolicyFromKeyDerivation(keyDerivation),
 ): Promise<ManualImportVaultRecord> {
   return sealPayloadForVault({
     payload: bundle,
@@ -318,6 +326,7 @@ export async function sealLocalStudentSnapshotBundleForVault(
     encryptionKey,
     keyId,
     keyDerivation,
+    policy,
   });
 }
 
@@ -329,6 +338,7 @@ async function sealPayloadForVault({
   encryptionKey,
   keyId,
   keyDerivation,
+  policy,
 }: {
   payload: VaultPayload;
   payloadKind: VaultPayloadKind;
@@ -337,6 +347,7 @@ async function sealPayloadForVault({
   encryptionKey: CryptoKey;
   keyId: string;
   keyDerivation: VaultKeyDerivationMode;
+  policy: VaultWrapPolicy;
 }): Promise<ManualImportVaultRecord> {
   const iv = globalThis.crypto.getRandomValues(new Uint8Array(12));
   const ciphertext = await encryptJsonPayload(
@@ -351,6 +362,7 @@ async function sealPayloadForVault({
     payloadKind,
     algorithm: "AES-GCM",
     keyDerivation,
+    policy,
     contentKeyId: keyId,
     aadContext,
     ivB64: bytesToBase64(iv),
@@ -408,6 +420,7 @@ function buildSealedVaultState(
     status: "sealed",
     payloadKind: vaultRecord.payloadKind,
     keyDerivation: vaultRecord.keyDerivation,
+    policy: vaultRecord.policy,
     keyId: vaultRecord.contentKeyId,
     updatedAt: vaultRecord.updatedAt,
     lastWipeAt: null,
@@ -425,6 +438,7 @@ function buildEmptyVaultState(
     status: "empty",
     payloadKind: null,
     keyDerivation: "browser-local-wrap",
+    policy: "browser-local-wrap",
     keyId: null,
     updatedAt: null,
     lastWipeAt: null,
@@ -473,13 +487,14 @@ async function migrateLegacySnapshotIfNeeded(
   }
 
   await ensureVaultMaterial(database);
-  const { contentKey, keyDerivation, contentKeyId } =
+  const { contentKey, keyDerivation, contentKeyId, policy } =
     await resolveVaultContentKeyMaterial(database);
   const vaultRecord = await sealManualImportSnapshotForVault(
     legacySnapshot,
     contentKey,
     contentKeyId,
     keyDerivation,
+    policy,
   );
   const vaultState = buildSealedVaultState(
     vaultRecord,
@@ -494,10 +509,15 @@ async function ensureVaultMaterial(
 ): Promise<VaultWrapSecretRecord | null> {
   const browserWrapKey = await ensureBrowserWrapKey(database);
   const existingRecord = await readVaultWrapSecretRecord(database);
+  const passkeyConfig = await readVaultPasskeyConfig(database);
   const prfWrappingKey = getVaultPasskeySessionWrappingKey();
-  const prefersPrf = prfWrappingKey !== null;
+  const targetPolicy = resolveVaultWrapPolicy(passkeyConfig);
 
   if (!existingRecord) {
+    if (targetPolicy === "prf-first" && !prfWrappingKey) {
+      throw new VaultLockedError();
+    }
+
     const contentKeyBytes = randomBytes(32);
     const browserWrappedContentKeyB64 = await wrapContentKeyBytes(
       browserWrapKey.key,
@@ -517,9 +537,9 @@ async function ensureVaultMaterial(
       contentKeyId: CONTENT_KEY_RECORD_KEY,
       wrappedContentKeyB64: browserWrappedContentKeyB64,
       prfWrappedContentKeyB64,
-      keyDerivation: prfWrappedContentKeyB64
-        ? "webauthn-prf"
-        : "browser-local-wrap",
+      keyDerivation:
+        targetPolicy === "prf-first" ? "webauthn-prf" : "browser-local-wrap",
+      policy: targetPolicy,
       updatedAt: new Date().toISOString(),
     };
 
@@ -528,11 +548,15 @@ async function ensureVaultMaterial(
     return record;
   }
 
-  if (
-    prfWrappingKey &&
-    (!existingRecord.prfWrappedContentKeyB64 ||
-      existingRecord.keyDerivation !== "webauthn-prf")
-  ) {
+  if (targetPolicy === "prf-first") {
+    if (!prfWrappingKey) {
+      if (existingRecord.policy === "prf-first") {
+        return existingRecord;
+      }
+
+      throw new VaultLockedError();
+    }
+
     const contentKeyBytes = await unwrapWrappedContentKeyBytes(
       browserWrapKey.key,
       existingRecord.wrappedContentKeyB64,
@@ -550,6 +574,7 @@ async function ensureVaultMaterial(
       ...existingRecord,
       prfWrappedContentKeyB64,
       keyDerivation: "webauthn-prf",
+      policy: "prf-first",
       updatedAt: new Date().toISOString(),
     };
 
@@ -559,13 +584,13 @@ async function ensureVaultMaterial(
   }
 
   if (
-    prefersPrf &&
-    existingRecord.prfWrappedContentKeyB64 &&
-    existingRecord.keyDerivation !== "webauthn-prf"
+    existingRecord.policy !== targetPolicy ||
+    existingRecord.keyDerivation !== "browser-local-wrap"
   ) {
     const updatedRecord: VaultWrapSecretRecord = {
       ...existingRecord,
-      keyDerivation: "webauthn-prf",
+      keyDerivation: "browser-local-wrap",
+      policy: targetPolicy,
       updatedAt: new Date().toISOString(),
     };
 
@@ -584,6 +609,7 @@ async function resolveVaultContentKeyMaterial(
   contentKey: CryptoKey;
   contentKeyId: string;
   keyDerivation: VaultKeyDerivationMode;
+  policy: VaultWrapPolicy;
 }> {
   const wrapSecretRecord = await ensureVaultMaterial(database);
 
@@ -606,6 +632,7 @@ async function resolveVaultContentKeyMaterial(
         contentKey,
         contentKeyId: wrapSecretRecord.contentKeyId,
         keyDerivation: "webauthn-prf",
+        policy: wrapSecretRecord.policy,
       };
     }
 
@@ -624,6 +651,7 @@ async function resolveVaultContentKeyMaterial(
       contentKey,
       contentKeyId: wrapSecretRecord.contentKeyId,
       keyDerivation: "browser-local-wrap",
+      policy: wrapSecretRecord.policy,
     };
   }
 
@@ -640,6 +668,7 @@ async function resolveVaultContentKeyMaterial(
         contentKey: legacyContentKey,
         contentKeyId: currentVaultRecord.contentKeyId,
         keyDerivation: currentVaultRecord.keyDerivation,
+        policy: currentVaultRecord.policy,
       };
     }
   }
@@ -762,7 +791,11 @@ async function readVaultState(
     const request = store.get(ACTIVE_VAULT_STATE_KEY);
 
     request.onsuccess = () => {
-      resolve((request.result as ManualImportVaultState | undefined) ?? null);
+      resolve(
+        request.result
+          ? normalizeVaultStateRecord(request.result as ManualImportVaultState)
+          : null,
+      );
     };
     request.onerror = () => {
       reject(
@@ -784,7 +817,11 @@ async function readVaultRecord(
     const request = store.get(LATEST_SNAPSHOT_KEY);
 
     request.onsuccess = () => {
-      resolve((request.result as ManualImportVaultRecord | undefined) ?? null);
+      resolve(
+        request.result
+          ? normalizeVaultRecord(request.result as ManualImportVaultRecord)
+          : null,
+      );
     };
     request.onerror = () => {
       reject(
@@ -878,7 +915,13 @@ async function readVaultWrapSecretRecord(
     const request = store.get(WRAP_SECRET_RECORD_KEY);
 
     request.onsuccess = () => {
-      resolve((request.result as VaultWrapSecretRecord | undefined) ?? null);
+      resolve(
+        request.result
+          ? normalizeVaultWrapSecretRecord(
+              request.result as VaultWrapSecretRecord,
+            )
+          : null,
+      );
     };
     request.onerror = () => {
       reject(
@@ -1279,4 +1322,132 @@ function buildVaultWrapAadContext(
   keyDerivation: VaultKeyDerivationMode,
 ): string {
   return `formae:vault-wrap:${WRAP_SECRET_RECORD_KEY}:${contentKeyId}:${keyDerivation}`;
+}
+
+async function downgradeVaultPolicyToBrowserLocalWrap(
+  database: IDBDatabase,
+): Promise<void> {
+  const wrapSecretRecord = await readVaultWrapSecretRecord(database);
+
+  if (!wrapSecretRecord || wrapSecretRecord.policy !== "prf-first") {
+    return;
+  }
+
+  const currentPrfWrappingKey = getVaultPasskeySessionWrappingKey();
+
+  if (!currentPrfWrappingKey || !wrapSecretRecord.prfWrappedContentKeyB64) {
+    throw new VaultLockedError();
+  }
+
+  const contentKeyBytes = await unwrapWrappedContentKeyBytes(
+    currentPrfWrappingKey,
+    wrapSecretRecord.prfWrappedContentKeyB64,
+    buildVaultWrapAadContext(wrapSecretRecord.contentKeyId, "webauthn-prf"),
+  );
+  const browserWrapKey = await ensureBrowserWrapKey(database);
+  const browserWrappedContentKeyB64 = await wrapContentKeyBytes(
+    browserWrapKey.key,
+    contentKeyBytes,
+    buildVaultWrapAadContext(
+      wrapSecretRecord.contentKeyId,
+      "browser-local-wrap",
+    ),
+  );
+  const downgradedRecord: VaultWrapSecretRecord = {
+    ...wrapSecretRecord,
+    wrappedContentKeyB64: browserWrappedContentKeyB64,
+    keyDerivation: "browser-local-wrap",
+    policy: "browser-local-wrap",
+    updatedAt: new Date().toISOString(),
+  };
+  const currentVaultRecord = await readVaultRecord(database);
+  const currentVaultState = await readVaultState(database);
+
+  await new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction(
+      [
+        VAULT_WRAP_SECRET_STORE_NAME,
+        VAULT_RECORD_STORE_NAME,
+        VAULT_STATE_STORE_NAME,
+      ],
+      "readwrite",
+    );
+
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => {
+      reject(
+        requestError(transaction) ??
+          new Error("Failed to downgrade the local vault policy."),
+      );
+    };
+
+    transaction
+      .objectStore(VAULT_WRAP_SECRET_STORE_NAME)
+      .put(downgradedRecord, WRAP_SECRET_RECORD_KEY);
+
+    if (currentVaultRecord) {
+      transaction.objectStore(VAULT_RECORD_STORE_NAME).put(
+        {
+          ...currentVaultRecord,
+          keyDerivation: "browser-local-wrap",
+          policy: "browser-local-wrap",
+        } satisfies ManualImportVaultRecord,
+        LATEST_SNAPSHOT_KEY,
+      );
+    }
+
+    transaction.objectStore(VAULT_STATE_STORE_NAME).put(
+      currentVaultState
+        ? {
+            ...currentVaultState,
+            keyDerivation: "browser-local-wrap",
+            policy: "browser-local-wrap",
+          }
+        : buildEmptyVaultState(),
+      ACTIVE_VAULT_STATE_KEY,
+    );
+  });
+}
+
+function normalizeVaultStateRecord(
+  value: ManualImportVaultState,
+): ManualImportVaultState {
+  return {
+    ...value,
+    storageVersion: value.storageVersion ?? CURRENT_VAULT_STORAGE_VERSION,
+    policy:
+      value.policy ?? deriveVaultPolicyFromKeyDerivation(value.keyDerivation),
+  };
+}
+
+function normalizeVaultRecord(
+  value: ManualImportVaultRecord,
+): ManualImportVaultRecord {
+  return {
+    ...value,
+    policy:
+      value.policy ?? deriveVaultPolicyFromKeyDerivation(value.keyDerivation),
+  };
+}
+
+function normalizeVaultWrapSecretRecord(
+  value: VaultWrapSecretRecord,
+): VaultWrapSecretRecord {
+  return {
+    ...value,
+    policy:
+      value.policy ?? deriveVaultPolicyFromKeyDerivation(value.keyDerivation),
+  };
+}
+
+function resolveVaultWrapPolicy(
+  config: VaultPasskeyCredentialConfig | null,
+): VaultWrapPolicy {
+  return config?.prfReady ? "prf-first" : "browser-local-wrap";
+}
+
+function deriveVaultPolicyFromKeyDerivation(
+  keyDerivation: VaultKeyDerivationMode,
+): VaultWrapPolicy {
+  return keyDerivation === "webauthn-prf" ? "prf-first" : "browser-local-wrap";
 }

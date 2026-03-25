@@ -178,7 +178,7 @@ function buildStructuredManualImportContext(
     if (view.id === "classes") {
       for (const turmaEntry of mergeTurmaEntries(
         view.extractedTurmas,
-        extractTurmaEntriesFromUnstructuredText(view.text),
+        view.text ? extractTurmaEntriesFromUnstructuredText(view.text) : [],
       )) {
         const title = extractTitleFromRawLine(turmaEntry.rawLine);
         componentStateByCode.set(turmaEntry.componentCode, {
@@ -257,7 +257,7 @@ function buildStructuredManualImportContext(
 
     for (const gradeEntry of mergeGradeEntries(
       view.extractedGrades,
-      extractGradeEntriesFromUnstructuredText(view.text),
+      view.text ? extractGradeEntriesFromUnstructuredText(view.text) : [],
     )) {
       const existingComponentState = componentStateByCode.get(
         gradeEntry.componentCode,

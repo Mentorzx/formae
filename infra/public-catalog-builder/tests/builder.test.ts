@@ -54,6 +54,7 @@ test("buildCatalogSnapshot extracts public component and schedule fixtures", asy
 
   assert.equal(result.snapshot.schemaVersion, 2);
   assert.equal(result.snapshot.institution, "UFBA");
+  assert.equal(result.discoverySnapshot.schemaVersion, 1);
   assert.equal(result.snapshot.pages.length, 4);
   assert.equal(result.snapshot.curriculumDetails.length, 0);
   assert.ok(result.snapshot.components.some((item) => item.code === "MATA37"));
@@ -69,6 +70,11 @@ test("buildCatalogSnapshot extracts public component and schedule fixtures", asy
   assert.ok(
     result.snapshot.pages.find((page) => page.sourceId === "sigaa-public-turmas")
       ?.scheduleCodes.includes("3M23 5T23"),
+  );
+  assert.ok(
+    result.discoverySnapshot.entries.some((entry) =>
+      entry.url.includes("/sigaa/public/curso/portal.jsf"),
+    ),
   );
 });
 
@@ -142,6 +148,13 @@ test("buildCatalogSnapshot records provenance for a live public source", async (
   }
 
   assert.equal(source.id, "eng-civil-portal");
+  assert.ok(
+    result.discoverySnapshot.entries.some(
+      (entry) =>
+        entry.kind === "course-portal" &&
+        entry.url.includes("/sigaa/public/curso/portal.jsf"),
+    ),
+  );
 });
 
 test("buildCatalogSnapshot extracts curriculum structures and detail pages from public course pages", async () => {

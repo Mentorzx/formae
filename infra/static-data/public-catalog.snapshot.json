@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "builderVersion": "0.3.0",
-  "generatedAt": "2026-03-25T22:27:56.540Z",
+  "generatedAt": "2026-03-25T23:03:55.543Z",
   "institution": "UFBA",
   "timingProfileId": "Ufba2025",
   "sources": [
@@ -66,7 +66,7 @@
       "sourceTitle": "SIGAA UFBA",
       "sourceUrl": "https://sigaa.ufba.br/",
       "finalUrl": "https://sigaa.ufba.br/",
-      "fetchedAt": "2026-03-25T22:27:56.540Z",
+      "fetchedAt": "2026-03-25T23:03:55.543Z",
       "origin": "fixture",
       "title": "SIGAA UFBA",
       "headingCount": 1,
@@ -87,7 +87,7 @@
       "sourceTitle": "SIGAA Publico - Turmas",
       "sourceUrl": "https://sigaa.ufba.br/sigaa/public/turmas/listar.jsf",
       "finalUrl": "https://sigaa.ufba.br/sigaa/public/turmas/listar.jsf",
-      "fetchedAt": "2026-03-25T22:27:56.540Z",
+      "fetchedAt": "2026-03-25T23:03:55.543Z",
       "origin": "fixture",
       "title": "SIGAA publico - turmas",
       "headingCount": 3,
@@ -114,7 +114,7 @@
       "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI",
       "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?id=1876833&lc=pt_BR",
       "finalUrl": "https://sigaa.ufba.br/sigaa/public/curso/portal.jsf?id=1876833&lc=pt_BR",
-      "fetchedAt": "2026-03-25T22:27:56.540Z",
+      "fetchedAt": "2026-03-25T23:03:55.543Z",
       "origin": "live",
       "title": "SIGAA - Sistema Integrado de Gestão de Atividades Acadêmicas",
       "headingCount": 0,
@@ -123,7 +123,7 @@
       "componentCodes": [],
       "scheduleCodes": [],
       "timeSlotCodes": [],
-      "contentDigest": "9dac8b7e4f78acc882830c6291496587cbd2733134703afb047b3145bceb8bee",
+      "contentDigest": "c22808dd5ad669a4054c2e5ed665808ee47c54bc19df87dac66bd925fb24ea15",
       "contentLength": 34176,
       "contentType": "text/html;charset=ISO-8859-1",
       "httpStatus": 200,
@@ -135,7 +135,7 @@
       "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI - Curriculos",
       "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
       "finalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
-      "fetchedAt": "2026-03-25T22:27:56.540Z",
+      "fetchedAt": "2026-03-25T23:03:55.543Z",
       "origin": "live",
       "title": "SIGAA - Sistema Integrado de Gestão de Atividades Acadêmicas",
       "headingCount": 0,
@@ -144,7 +144,7 @@
       "componentCodes": [],
       "scheduleCodes": [],
       "timeSlotCodes": [],
-      "contentDigest": "17b511bb02c6ae61ccd59f195991846e4da03e4840f5beeb9518b6fb7ffd9c73",
+      "contentDigest": "fe1d33fa1343d081009178990e79b983eb2633e3a4edfcc38418c9a92ace541a",
       "contentLength": 52260,
       "contentType": "text/html;charset=ISO-8859-1",
       "httpStatus": 200,
@@ -156,7 +156,7 @@
       "sourceTitle": "UFBA SIM - Codigos de horario",
       "sourceUrl": "https://ufbasim.ufba.br/hor%C3%A1rios-de-aula-c%C3%B3digos-na-tabela-de-hor%C3%A1rios-do-sigaa",
       "finalUrl": "https://ufbasim.ufba.br/hor%C3%A1rios-de-aula-c%C3%B3digos-na-tabela-de-hor%C3%A1rios-do-sigaa",
-      "fetchedAt": "2026-03-25T22:27:56.540Z",
+      "fetchedAt": "2026-03-25T23:03:55.543Z",
       "origin": "fixture",
       "title": "UFBA SIM - Codigos de horario no SIGAA",
       "headingCount": 1,
@@ -181,7 +181,7 @@
       "sourceTitle": "IHAC UFBA - Faixas de horario",
       "sourceUrl": "https://ihac.ufba.br/pt/10212/",
       "finalUrl": "https://ihac.ufba.br/pt/10212/",
-      "fetchedAt": "2026-03-25T22:27:56.540Z",
+      "fetchedAt": "2026-03-25T23:03:55.543Z",
       "origin": "fixture",
       "title": "IHAC UFBA - Faixas de horario",
       "headingCount": 1,
@@ -222,8 +222,8 @@
       ],
       "sourcePageOrigin": "live",
       "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
-      "sourcePageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "sourcePageContentDigest": "17b511bb02c6ae61ccd59f195991846e4da03e4840f5beeb9518b6fb7ffd9c73"
+      "sourcePageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "sourcePageContentDigest": "fe1d33fa1343d081009178990e79b983eb2633e3a4edfcc38418c9a92ace541a"
     },
     {
       "curriculumId": "1880461",
@@ -243,8 +243,8 @@
       ],
       "sourcePageOrigin": "live",
       "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
-      "sourcePageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "sourcePageContentDigest": "17b511bb02c6ae61ccd59f195991846e4da03e4840f5beeb9518b6fb7ffd9c73"
+      "sourcePageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "sourcePageContentDigest": "fe1d33fa1343d081009178990e79b983eb2633e3a4edfcc38418c9a92ace541a"
     },
     {
       "curriculumId": "1880374",
@@ -264,8 +264,8 @@
       ],
       "sourcePageOrigin": "live",
       "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
-      "sourcePageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "sourcePageContentDigest": "17b511bb02c6ae61ccd59f195991846e4da03e4840f5beeb9518b6fb7ffd9c73"
+      "sourcePageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "sourcePageContentDigest": "fe1d33fa1343d081009178990e79b983eb2633e3a4edfcc38418c9a92ace541a"
     },
     {
       "curriculumId": "1880288",
@@ -285,8 +285,8 @@
       ],
       "sourcePageOrigin": "live",
       "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
-      "sourcePageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "sourcePageContentDigest": "17b511bb02c6ae61ccd59f195991846e4da03e4840f5beeb9518b6fb7ffd9c73"
+      "sourcePageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "sourcePageContentDigest": "fe1d33fa1343d081009178990e79b983eb2633e3a4edfcc38418c9a92ace541a"
     },
     {
       "curriculumId": "1880202",
@@ -306,8 +306,8 @@
       ],
       "sourcePageOrigin": "live",
       "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
-      "sourcePageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "sourcePageContentDigest": "17b511bb02c6ae61ccd59f195991846e4da03e4840f5beeb9518b6fb7ffd9c73"
+      "sourcePageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "sourcePageContentDigest": "fe1d33fa1343d081009178990e79b983eb2633e3a4edfcc38418c9a92ace541a"
     },
     {
       "curriculumId": "1880116",
@@ -327,8 +327,8 @@
       ],
       "sourcePageOrigin": "live",
       "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
-      "sourcePageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "sourcePageContentDigest": "17b511bb02c6ae61ccd59f195991846e4da03e4840f5beeb9518b6fb7ffd9c73"
+      "sourcePageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "sourcePageContentDigest": "fe1d33fa1343d081009178990e79b983eb2633e3a4edfcc38418c9a92ace541a"
     },
     {
       "curriculumId": "1880035",
@@ -348,8 +348,8 @@
       ],
       "sourcePageOrigin": "live",
       "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
-      "sourcePageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "sourcePageContentDigest": "17b511bb02c6ae61ccd59f195991846e4da03e4840f5beeb9518b6fb7ffd9c73"
+      "sourcePageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "sourcePageContentDigest": "fe1d33fa1343d081009178990e79b983eb2633e3a4edfcc38418c9a92ace541a"
     },
     {
       "curriculumId": "1879953",
@@ -369,8 +369,8 @@
       ],
       "sourcePageOrigin": "live",
       "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
-      "sourcePageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "sourcePageContentDigest": "17b511bb02c6ae61ccd59f195991846e4da03e4840f5beeb9518b6fb7ffd9c73"
+      "sourcePageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "sourcePageContentDigest": "fe1d33fa1343d081009178990e79b983eb2633e3a4edfcc38418c9a92ace541a"
     },
     {
       "curriculumId": "1879873",
@@ -390,8 +390,8 @@
       ],
       "sourcePageOrigin": "live",
       "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
-      "sourcePageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "sourcePageContentDigest": "17b511bb02c6ae61ccd59f195991846e4da03e4840f5beeb9518b6fb7ffd9c73"
+      "sourcePageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "sourcePageContentDigest": "fe1d33fa1343d081009178990e79b983eb2633e3a4edfcc38418c9a92ace541a"
     },
     {
       "curriculumId": "1879794",
@@ -411,8 +411,8 @@
       ],
       "sourcePageOrigin": "live",
       "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
-      "sourcePageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "sourcePageContentDigest": "17b511bb02c6ae61ccd59f195991846e4da03e4840f5beeb9518b6fb7ffd9c73"
+      "sourcePageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "sourcePageContentDigest": "fe1d33fa1343d081009178990e79b983eb2633e3a4edfcc38418c9a92ace541a"
     },
     {
       "curriculumId": "1879716",
@@ -432,8 +432,8 @@
       ],
       "sourcePageOrigin": "live",
       "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
-      "sourcePageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "sourcePageContentDigest": "17b511bb02c6ae61ccd59f195991846e4da03e4840f5beeb9518b6fb7ffd9c73"
+      "sourcePageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "sourcePageContentDigest": "fe1d33fa1343d081009178990e79b983eb2633e3a4edfcc38418c9a92ace541a"
     },
     {
       "curriculumId": "1879639",
@@ -453,8 +453,8 @@
       ],
       "sourcePageOrigin": "live",
       "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
-      "sourcePageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "sourcePageContentDigest": "17b511bb02c6ae61ccd59f195991846e4da03e4840f5beeb9518b6fb7ffd9c73"
+      "sourcePageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "sourcePageContentDigest": "fe1d33fa1343d081009178990e79b983eb2633e3a4edfcc38418c9a92ace541a"
     },
     {
       "curriculumId": "1879563",
@@ -474,8 +474,8 @@
       ],
       "sourcePageOrigin": "live",
       "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
-      "sourcePageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "sourcePageContentDigest": "17b511bb02c6ae61ccd59f195991846e4da03e4840f5beeb9518b6fb7ffd9c73"
+      "sourcePageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "sourcePageContentDigest": "fe1d33fa1343d081009178990e79b983eb2633e3a4edfcc38418c9a92ace541a"
     },
     {
       "curriculumId": "1879489",
@@ -495,8 +495,8 @@
       ],
       "sourcePageOrigin": "live",
       "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
-      "sourcePageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "sourcePageContentDigest": "17b511bb02c6ae61ccd59f195991846e4da03e4840f5beeb9518b6fb7ffd9c73"
+      "sourcePageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "sourcePageContentDigest": "fe1d33fa1343d081009178990e79b983eb2633e3a4edfcc38418c9a92ace541a"
     },
     {
       "curriculumId": "1879416",
@@ -516,8 +516,8 @@
       ],
       "sourcePageOrigin": "live",
       "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
-      "sourcePageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "sourcePageContentDigest": "17b511bb02c6ae61ccd59f195991846e4da03e4840f5beeb9518b6fb7ffd9c73"
+      "sourcePageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "sourcePageContentDigest": "fe1d33fa1343d081009178990e79b983eb2633e3a4edfcc38418c9a92ace541a"
     },
     {
       "curriculumId": "2477782",
@@ -537,8 +537,8 @@
       ],
       "sourcePageOrigin": "live",
       "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
-      "sourcePageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "sourcePageContentDigest": "17b511bb02c6ae61ccd59f195991846e4da03e4840f5beeb9518b6fb7ffd9c73"
+      "sourcePageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "sourcePageContentDigest": "fe1d33fa1343d081009178990e79b983eb2633e3a4edfcc38418c9a92ace541a"
     },
     {
       "curriculumId": "4718371",
@@ -558,8 +558,8 @@
       ],
       "sourcePageOrigin": "live",
       "sourcePageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
-      "sourcePageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "sourcePageContentDigest": "17b511bb02c6ae61ccd59f195991846e4da03e4840f5beeb9518b6fb7ffd9c73"
+      "sourcePageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "sourcePageContentDigest": "fe1d33fa1343d081009178990e79b983eb2633e3a4edfcc38418c9a92ace541a"
     }
   ],
   "curriculumDetails": [
@@ -577,9 +577,9 @@
       "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI - Curriculos",
       "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
       "detailPageOrigin": "live",
-      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=378038D7DDCBDA6D5F2FCF218EDE8665.sigaapl03",
-      "detailPageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "detailPageContentDigest": "d29ca89272314e26679f3ac109a58d1fe35eb4e5bfbf7b1ca8caf37f652f0988",
+      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=2BEDE8F39700BA78B9211E19D37E9FEB.sigaapl08",
+      "detailPageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "detailPageContentDigest": "2f1a6aea56b9a04a51b14c1eba38e47b2dbdd385204d85ac8b8d60d1c2cebacf",
       "sectionCount": 11,
       "componentCount": 95,
       "sections": [
@@ -1833,9 +1833,9 @@
       "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI - Curriculos",
       "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
       "detailPageOrigin": "live",
-      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=378038D7DDCBDA6D5F2FCF218EDE8665.sigaapl03",
-      "detailPageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "detailPageContentDigest": "1c39204d59cd9905490ec14b3995c408ea2c6bc5439b10f7130c956e70ae0a1f",
+      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=2BEDE8F39700BA78B9211E19D37E9FEB.sigaapl08",
+      "detailPageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "detailPageContentDigest": "080c6b0c52e98a5634e7dd6bd5dc7ccfaf6140bf410b5a2474425ed648e5c1fe",
       "sectionCount": 1,
       "componentCount": 1,
       "sections": [
@@ -1881,9 +1881,9 @@
       "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI - Curriculos",
       "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
       "detailPageOrigin": "live",
-      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=378038D7DDCBDA6D5F2FCF218EDE8665.sigaapl03",
-      "detailPageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "detailPageContentDigest": "64c70a6fa179f6d57b10f35116c35fa628f6e80d1837c96fadb7c5ebb8c5dac7",
+      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=2BEDE8F39700BA78B9211E19D37E9FEB.sigaapl08",
+      "detailPageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "detailPageContentDigest": "919e952ad2f43cc3f3837a5afbb6946de8beeac420339e51997715fd6240a333",
       "sectionCount": 1,
       "componentCount": 1,
       "sections": [
@@ -1929,9 +1929,9 @@
       "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI - Curriculos",
       "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
       "detailPageOrigin": "live",
-      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=378038D7DDCBDA6D5F2FCF218EDE8665.sigaapl03",
-      "detailPageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "detailPageContentDigest": "0e702179e60c5baafb0f2c5466e97caa3503b9b46eb13f53bb33f7610b52d68a",
+      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=2BEDE8F39700BA78B9211E19D37E9FEB.sigaapl08",
+      "detailPageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "detailPageContentDigest": "47f970d01b36c1932d01460ec93402af56ffe78124e664ccad7e49b198b26c31",
       "sectionCount": 1,
       "componentCount": 1,
       "sections": [
@@ -1977,9 +1977,9 @@
       "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI - Curriculos",
       "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
       "detailPageOrigin": "live",
-      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=378038D7DDCBDA6D5F2FCF218EDE8665.sigaapl03",
-      "detailPageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "detailPageContentDigest": "f9092ca41eb32ccc01aa933014b2190bc003151e68475e50c96ab39679d8a5cf",
+      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=2BEDE8F39700BA78B9211E19D37E9FEB.sigaapl08",
+      "detailPageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "detailPageContentDigest": "2cceef74676680e371064e996383f03c4f1e2ff1a0d1f14447ba84e479dece42",
       "sectionCount": 1,
       "componentCount": 1,
       "sections": [
@@ -2025,9 +2025,9 @@
       "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI - Curriculos",
       "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
       "detailPageOrigin": "live",
-      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=378038D7DDCBDA6D5F2FCF218EDE8665.sigaapl03",
-      "detailPageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "detailPageContentDigest": "6ea83213ecf6e46ea6b5ac6ccd48ab2002de796a9a25b91109bb0823d8252924",
+      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=2BEDE8F39700BA78B9211E19D37E9FEB.sigaapl08",
+      "detailPageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "detailPageContentDigest": "91c74de1c5c6d4e40f1005b98724e5829cde095d8496adcc2f1d2fa5e7cfd753",
       "sectionCount": 3,
       "componentCount": 3,
       "sections": [
@@ -2113,9 +2113,9 @@
       "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI - Curriculos",
       "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
       "detailPageOrigin": "live",
-      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=378038D7DDCBDA6D5F2FCF218EDE8665.sigaapl03",
-      "detailPageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "detailPageContentDigest": "616d3190802f5ac4206a1614d505a5848586c347f3308f4609ba01c8b061d003",
+      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=2BEDE8F39700BA78B9211E19D37E9FEB.sigaapl08",
+      "detailPageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "detailPageContentDigest": "6397dfe8dac57eb97c173aa8b191b114a609b41d86e03edb19cf30c88ca164ea",
       "sectionCount": 8,
       "componentCount": 9,
       "sections": [
@@ -2313,9 +2313,9 @@
       "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI - Curriculos",
       "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
       "detailPageOrigin": "live",
-      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=378038D7DDCBDA6D5F2FCF218EDE8665.sigaapl03",
-      "detailPageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "detailPageContentDigest": "26dd0922a38c3e1197d88be34364e05fa2ca1ed891b0ef7214dfdab2c66ed13e",
+      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=2BEDE8F39700BA78B9211E19D37E9FEB.sigaapl08",
+      "detailPageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "detailPageContentDigest": "e225eee6fec916ef4beb16c03175823bb3676a8dad99ed9070884f96387f806d",
       "sectionCount": 7,
       "componentCount": 10,
       "sections": [
@@ -2517,9 +2517,9 @@
       "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI - Curriculos",
       "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
       "detailPageOrigin": "live",
-      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=378038D7DDCBDA6D5F2FCF218EDE8665.sigaapl03",
-      "detailPageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "detailPageContentDigest": "6d690deb73793796e6bed9af6f7aa50afcc70dabe6adad83ab10c4008e08f147",
+      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=2BEDE8F39700BA78B9211E19D37E9FEB.sigaapl08",
+      "detailPageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "detailPageContentDigest": "cf43747bb4118ad86f90e99619400c86a2bfb1f37ce404b86c12a1ba02e242ec",
       "sectionCount": 10,
       "componentCount": 18,
       "sections": [
@@ -2841,9 +2841,9 @@
       "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI - Curriculos",
       "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
       "detailPageOrigin": "live",
-      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=378038D7DDCBDA6D5F2FCF218EDE8665.sigaapl03",
-      "detailPageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "detailPageContentDigest": "7fdabd04fd3a3efd0947b9d41a40a5674ab8a59401904736ad0101d18719da7c",
+      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=2BEDE8F39700BA78B9211E19D37E9FEB.sigaapl08",
+      "detailPageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "detailPageContentDigest": "a25a7bce64cd686e9034962f9e131b3a3a70aadda50ec8b286da6b75667cce0a",
       "sectionCount": 10,
       "componentCount": 18,
       "sections": [
@@ -3165,9 +3165,9 @@
       "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI - Curriculos",
       "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
       "detailPageOrigin": "live",
-      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=378038D7DDCBDA6D5F2FCF218EDE8665.sigaapl03",
-      "detailPageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "detailPageContentDigest": "d8e5b198db84aefa57dcbff3f6d8c0336abc88f8bef3a85e5969dc3b2d52cef5",
+      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=2BEDE8F39700BA78B9211E19D37E9FEB.sigaapl08",
+      "detailPageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "detailPageContentDigest": "65e84580073413d984e0cede7ece058fac9b1146ab68b8509ae40a92569b73a5",
       "sectionCount": 10,
       "componentCount": 18,
       "sections": [
@@ -3489,9 +3489,9 @@
       "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI - Curriculos",
       "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
       "detailPageOrigin": "live",
-      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=378038D7DDCBDA6D5F2FCF218EDE8665.sigaapl03",
-      "detailPageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "detailPageContentDigest": "afb0ef1cf67357c4b42b8a6f6fa545b260ae59b4374f363f3a79219ca1a9d319",
+      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=2BEDE8F39700BA78B9211E19D37E9FEB.sigaapl08",
+      "detailPageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "detailPageContentDigest": "22323b2339893054d99e0d21eb5b611c7adc33c6cb86fd1369966a6d552d06ba",
       "sectionCount": 10,
       "componentCount": 17,
       "sections": [
@@ -3801,9 +3801,9 @@
       "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI - Curriculos",
       "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
       "detailPageOrigin": "live",
-      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=378038D7DDCBDA6D5F2FCF218EDE8665.sigaapl03",
-      "detailPageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "detailPageContentDigest": "f99eb642b60e10d86daeb16ebeba79e0e76a13c980bfb738d67c5e0807bf460d",
+      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=2BEDE8F39700BA78B9211E19D37E9FEB.sigaapl08",
+      "detailPageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "detailPageContentDigest": "43cdb240d3f407c489a3afc4a987c6b5eebd5c18f85e117799090229a3cfb916",
       "sectionCount": 10,
       "componentCount": 18,
       "sections": [
@@ -4125,9 +4125,9 @@
       "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI - Curriculos",
       "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
       "detailPageOrigin": "live",
-      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=378038D7DDCBDA6D5F2FCF218EDE8665.sigaapl03",
-      "detailPageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "detailPageContentDigest": "06e471128dfe20de7222ce7b909d2b0cef82bba4a92fbfe1f6b9eb724516800b",
+      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=2BEDE8F39700BA78B9211E19D37E9FEB.sigaapl08",
+      "detailPageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "detailPageContentDigest": "a8ad52d410e9c54375cb1e58f11610b51e89c48d4a724682b72b93318902f724",
       "sectionCount": 10,
       "componentCount": 20,
       "sections": [
@@ -4473,9 +4473,9 @@
       "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI - Curriculos",
       "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
       "detailPageOrigin": "live",
-      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=378038D7DDCBDA6D5F2FCF218EDE8665.sigaapl03",
-      "detailPageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "detailPageContentDigest": "3b35905a6ff0721e38d4a9f7d3c42dc0fb37f5c081aaed6a7bf3b630fd8b5d2d",
+      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=2BEDE8F39700BA78B9211E19D37E9FEB.sigaapl08",
+      "detailPageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "detailPageContentDigest": "7c7739b8d0ba11baa12c40852393c8253c9fde4907fcdf790a1500ec4dbcceeb",
       "sectionCount": 10,
       "componentCount": 19,
       "sections": [
@@ -4809,9 +4809,9 @@
       "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI - Curriculos",
       "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
       "detailPageOrigin": "live",
-      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=378038D7DDCBDA6D5F2FCF218EDE8665.sigaapl03",
-      "detailPageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "detailPageContentDigest": "c8db6537ffc5a63ec554363942b8d9df1edf5d705ea09eadfeec8b5886fbe5eb",
+      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=2BEDE8F39700BA78B9211E19D37E9FEB.sigaapl08",
+      "detailPageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "detailPageContentDigest": "b73786c823e0f395ce7271817bc250a08a8d2d187eab8f3dcde04a2c4969c03a",
       "sectionCount": 10,
       "componentCount": 86,
       "sections": [
@@ -5949,9 +5949,9 @@
       "sourceTitle": "CURSO DE ENGENHARIA CIVIL / EPOLI - Curriculos",
       "sourceUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf?id=1876833&lc=pt_BR",
       "detailPageOrigin": "live",
-      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=378038D7DDCBDA6D5F2FCF218EDE8665.sigaapl03",
-      "detailPageFetchedAt": "2026-03-25T22:27:56.540Z",
-      "detailPageContentDigest": "225c8a24c845adc79133c19ecdc8f8c1ce19dcf1d7121b16bdd93faf80ffd456",
+      "detailPageFinalUrl": "https://sigaa.ufba.br/sigaa/public/curso/curriculo.jsf;jsessionid=2BEDE8F39700BA78B9211E19D37E9FEB.sigaapl08",
+      "detailPageFetchedAt": "2026-03-25T23:03:55.543Z",
+      "detailPageContentDigest": "9609cca4c259200e797568920a8af59469c1dd802fae3bd0a35cdd411c5ed94f",
       "sectionCount": 10,
       "componentCount": 76,
       "sections": [

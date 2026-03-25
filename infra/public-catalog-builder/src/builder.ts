@@ -4,6 +4,8 @@ import path from "node:path";
 
 import type {
   PublicCatalogComponentCandidate,
+  PublicCatalogDiscoveryEntry,
+  PublicCatalogDiscoverySnapshot,
   PublicCatalogCurriculumDetailEntry,
   PublicCatalogCurriculumStructureEntry,
   PublicCatalogPageSnapshot,
@@ -16,6 +18,7 @@ import type {
 import {
   extractCurriculumDetailPage,
   extractCurriculumDetailRequests,
+  extractPublicCatalogDiscovery,
   extractPublicSourceData,
 } from "./extract.js";
 import { loadSourcesFile, resolveSourceFixturePath } from "./sources.js";
@@ -32,6 +35,7 @@ export interface BuildCatalogSnapshotInput {
 
 export interface BuildCatalogSnapshotResult {
   snapshot: PublicCatalogSnapshot;
+  discoverySnapshot: PublicCatalogDiscoverySnapshot;
   sourceStatuses: PublicCatalogSourceStatus[];
 }
 
@@ -52,6 +56,7 @@ export async function buildCatalogSnapshot(
   const curriculumStructures: PublicCatalogCurriculumStructureEntry[] = [];
   const curriculumDetails: PublicCatalogCurriculumDetailEntry[] = [];
   const components: PublicCatalogComponentCandidate[] = [];
+  const discoveryEntries: PublicCatalogDiscoveryEntry[] = [];
   const scheduleGuide: PublicCatalogScheduleGuideEntry[] = [];
   const timeSlots: PublicCatalogTimeSlotEntry[] = [];
   const sourceStatuses: BuildCatalogSnapshotResult["sourceStatuses"] = [];
@@ -75,6 +80,15 @@ export async function buildCatalogSnapshot(
       resolved.origin,
     );
     const provenance = createContentProvenance(resolved.html, resolved);
+    discoveryEntries.push(
+      ...extractPublicCatalogDiscovery(
+        source,
+        resolved.html,
+        fetchedAt,
+        resolved.finalUrl,
+        resolved.origin,
+      ),
+    );
 
     pages.push({
       ...extracted.page,
@@ -134,9 +148,21 @@ export async function buildCatalogSnapshot(
   } satisfies PublicCatalogSnapshot;
 
   validateCatalogSnapshot(snapshot);
+  const discoverySnapshot = {
+    schemaVersion: 1,
+    builderVersion: input.builderVersion,
+    generatedAt: fetchedAt,
+    institution: "UFBA",
+    entries: dedupeDiscoveryEntries(discoveryEntries),
+    notes: [
+      "Deterministic discovery artifact built from official public roots.",
+      "This index is additive and does not replace the public catalog snapshot.",
+    ],
+  } satisfies PublicCatalogDiscoverySnapshot;
 
   return {
     snapshot,
+    discoverySnapshot,
     sourceStatuses,
   };
 }
@@ -356,6 +382,23 @@ function dedupeTimeSlots(
     const sourceCompare = left.sourceId.localeCompare(right.sourceId);
     return sourceCompare !== 0 ? sourceCompare : left.slot.localeCompare(right.slot);
   });
+}
+
+function dedupeDiscoveryEntries(
+  entries: PublicCatalogDiscoveryEntry[],
+): PublicCatalogDiscoveryEntry[] {
+  const byKey = new Map<string, PublicCatalogDiscoveryEntry>();
+
+  for (const entry of entries) {
+    const key = `${entry.kind}:${entry.url}`;
+    if (!byKey.has(key)) {
+      byKey.set(key, entry);
+    }
+  }
+
+  return Array.from(byKey.values()).sort((left, right) =>
+    `${left.kind}:${left.url}`.localeCompare(`${right.kind}:${right.url}`),
+  );
 }
 
 async function loadCurriculumDetails(input: {

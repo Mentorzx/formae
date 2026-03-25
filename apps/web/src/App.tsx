@@ -1,10 +1,5 @@
 import { HashRouter, NavLink, Route, Routes } from "react-router-dom";
-import {
-  protocolVersion,
-  shellHighlights,
-  shellSignalDeck,
-  syncRunway,
-} from "./content";
+import { protocolVersion, shellSignalDeck, syncRunway } from "./content";
 import { ArchitecturePage } from "./pages/ArchitecturePage";
 import { CatalogPage } from "./pages/CatalogPage";
 import { ImportPage } from "./pages/ImportPage";
@@ -122,32 +117,20 @@ function App() {
               <NavLink to="/importacao">Importacao</NavLink>
               <NavLink to="/arquitetura">Arquitetura</NavLink>
             </nav>
+
+            <section
+              className="shell-runway-grid shell-runway-grid-compact"
+              aria-label="Fluxo da experiencia"
+            >
+              {syncRunway.map((item) => (
+                <article key={item.step} className="shell-runway-card">
+                  <p className="shell-runway-step">{item.step}</p>
+                  <strong>{item.title}</strong>
+                  <p>{item.body}</p>
+                </article>
+              ))}
+            </section>
           </div>
-
-          <section
-            className="shell-highlight-row"
-            aria-label="Diretrizes principais"
-          >
-            {shellHighlights.map((item) => (
-              <article key={item.label} className="shell-highlight-card">
-                <p className="micro-label">{item.label}</p>
-                <p>{item.value}</p>
-              </article>
-            ))}
-          </section>
-
-          <section
-            className="shell-runway-grid"
-            aria-label="Fluxo da experiencia"
-          >
-            {syncRunway.map((item) => (
-              <article key={item.step} className="shell-runway-card">
-                <p className="shell-runway-step">{item.step}</p>
-                <strong>{item.title}</strong>
-                <p>{item.body}</p>
-              </article>
-            ))}
-          </section>
         </header>
 
         <main className="page-main">

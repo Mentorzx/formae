@@ -294,6 +294,11 @@ a {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
+.shell-runway-grid-compact {
+  flex: 1 1 360px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
 .shell-runway-card {
   display: grid;
   gap: 0.55rem;
@@ -384,7 +389,7 @@ a {
   display: flex;
   flex-wrap: wrap;
   gap: 0.9rem;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
 }
 
@@ -880,6 +885,7 @@ a {
 
 .planner-hud,
 .planner-controls,
+.planner-provenance-strip,
 .planner-board-panel,
 .planner-side-panel {
   overflow: hidden;
@@ -888,6 +894,13 @@ a {
 .planner-hud {
   display: grid;
   gap: 1.2rem;
+}
+
+.planner-provenance-strip {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1fr);
+  align-items: center;
 }
 
 .planner-hud-copy h2,
@@ -1414,6 +1427,7 @@ a {
   }
 
   .planner-progress-strip,
+  .planner-provenance-strip,
   .planner-layout,
   .planner-relation-grid,
   .planner-ira-metrics {

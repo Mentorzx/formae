@@ -11,9 +11,10 @@ Hoje o repositório já entrega:
 - importação manual de texto do SIGAA
 - sincronização automática local com o SIGAA via extensão MV3
 - vault local cifrado no navegador
-- endurecimento opcional do vault com passkey e cópia embrulhada via WebAuthn PRF quando disponível
+- endurecimento do vault com passkey, política explícita de derivação e preferência por WebAuthn PRF quando disponível
 - parser de horários UFBA 2025 em Rust/WASM
 - catálogo público seed versionado
+- discovery público versionado de portais e páginas de currículo oficiais
 
 Endereço público atual:
 
@@ -157,6 +158,7 @@ Isso gera:
 - um `.zip` para Chrome em `dist/releases`
 - um `.xpi` para Firefox em `dist/releases`
 - checksums e manifesto de release determinístico
+- smoke runtime local para popup, background e content script nos dois targets
 
 ### 3. Abra a tela de importação
 
@@ -209,10 +211,10 @@ Na prática atual:
 - o vault é cifrado localmente
 - a passkey ajuda a bloquear/desbloquear a sessão local
 - quando o navegador e o autenticador suportam PRF, o vault passa a preferir esse material como caminho principal de derivação para novos wraps e migra o cofre local na primeira sessão compatível
+- a política do vault fica persistida explicitamente como `prf-first` ou `browser-local-wrap`, em vez de depender só do estado momentâneo da sessão
+- ao desligar a passkey, o cofre migra de volta para `browser-local-wrap` antes de remover a credencial local
 - quando PRF não estiver disponível, o fallback continua sendo `browser-local-wrap`
 - o resumo bruto preservado após sync automático também foi minimizado; a PWA guarda o texto estruturado necessário sem trafegar o dump combinado completo do SIGAA
-
-Isso significa que a segurança local já melhorou bastante, mas ainda não é o estado final mais forte possível: ainda falta derivação realmente ancorada de ponta a ponta em WebAuthn para todo o ciclo do vault.
 
 ## Segredos locais e `.env`
 
@@ -258,6 +260,7 @@ pnpm build
 pnpm test
 pnpm lint
 pnpm package:extension
+pnpm smoke:extension
 node scripts/verify-extension-release.mjs
 node scripts/audit-extension-package.mjs
 ```
@@ -278,6 +281,7 @@ pnpm --dir infra/public-catalog-builder build
 Hoje esse snapshot já inclui:
 
 - páginas públicas oficiais com provenance por captura
+- um índice de discovery separado em `infra/static-data/public-catalog.discovery.json`
 - estruturas curriculares públicas do SIGAA
 - detalhes públicos de matriz curricular por curso/entrada quando a fonte viva expõe essa navegação
 - componentes e faixas de horário públicos normalizados para consumo local pela PWA
@@ -315,12 +319,10 @@ infra/
 
 O Formaê ainda não é o ponto final do produto. Hoje ainda faltam, entre outras coisas:
 
-- catálogo público mais autoritativo por curso e entrada
-- cobertura pública ainda concentrada no seed vivo atual de Engenharia Civil
-- vault com derivação criptográfica mais forte, além do modo `device-local`
+- catálogo público ainda mais amplo por curso e entrada
 - distribuição assinada e publicada da extensão
 - cobertura mais profunda de histórico e documentos do SIGAA
-- paridade mais forte com Firefox
+- prova operacional em lojas públicas, além do empacotamento e smoke local de Chrome/Firefox
 
 ## Documentação complementar
 

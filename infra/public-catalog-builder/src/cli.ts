@@ -2,7 +2,10 @@ import path from "node:path";
 
 import { buildCatalogSnapshot } from "./builder.js";
 import { parseCliOptions } from "./config.js";
-import { writeCatalogSnapshot } from "./output.js";
+import {
+  writeCatalogDiscoverySnapshot,
+  writeCatalogSnapshot,
+} from "./output.js";
 
 const BUILDER_VERSION = "0.3.0";
 
@@ -25,14 +28,21 @@ async function main(): Promise<void> {
     process.cwd(),
     options.outputPath ?? "../static-data/public-catalog.snapshot.json",
   );
+  const discoveryOutputPath = path.resolve(
+    process.cwd(),
+    options.discoveryOutputPath ?? "../static-data/public-catalog.discovery.json",
+  );
 
   await writeCatalogSnapshot(outputPath, result);
+  await writeCatalogDiscoverySnapshot(discoveryOutputPath, result);
 
   process.stdout.write(
     [
       `Public catalog snapshot written to ${outputPath}`,
+      `Public catalog discovery written to ${discoveryOutputPath}`,
       `sources: ${result.snapshot.sources.length}`,
       `pages: ${result.snapshot.pages.length}`,
+      `discovery entries: ${result.discoverySnapshot.entries.length}`,
       `curriculum structures: ${result.snapshot.curriculumStructures.length}`,
       `curriculum details: ${result.snapshot.curriculumDetails.length}`,
       `components: ${result.snapshot.components.length}`,

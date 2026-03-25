@@ -2,6 +2,7 @@ import * as cheerio from "cheerio";
 
 import type {
   PublicCatalogComponentCandidate,
+  PublicCatalogDiscoveryEntry,
   PublicCatalogCurriculumDetailComponentEntry,
   PublicCatalogCurriculumDetailEntry,
   PublicCatalogCurriculumDetailSectionEntry,
@@ -30,6 +31,58 @@ export interface PublicCatalogCurriculumDetailRequest {
   actionControlName: string;
   actionUrl: string;
   viewState: string;
+}
+
+export function extractPublicCatalogDiscovery(
+  source: PublicCatalogSourceDefinition,
+  html: string,
+  fetchedAt: string,
+  finalUrl: string,
+  origin: "fixture" | "live",
+): PublicCatalogDiscoveryEntry[] {
+  const $ = cheerio.load(html);
+  const discoveryEntries: PublicCatalogDiscoveryEntry[] = [];
+
+  $("a[href]").each((_index, element) => {
+    const anchor = $(element);
+    const href = anchor.attr("href");
+
+    if (!href) {
+      return;
+    }
+
+    const resolvedUrl = resolveDiscoveryUrl(source.url, finalUrl, href);
+
+    if (!resolvedUrl) {
+      return;
+    }
+
+    const kind = classifyDiscoveryUrl(resolvedUrl);
+
+    if (!kind) {
+      return;
+    }
+
+    const title =
+      normalizeWhitespace(anchor.text()) ||
+      normalizeWhitespace(anchor.attr("title") ?? "") ||
+      resolvedUrl;
+
+    discoveryEntries.push({
+      kind,
+      url: resolvedUrl,
+      title,
+      sourceId: source.id,
+      sourceTitle: source.title,
+      sourceUrl: source.url,
+      sourcePageOrigin: origin,
+      sourcePageFinalUrl: finalUrl,
+      sourcePageFetchedAt: fetchedAt,
+      evidence: compactEvidence([title, href]),
+    });
+  });
+
+  return dedupeDiscoveryEntries(discoveryEntries);
 }
 
 export function extractPublicSourceData(
@@ -518,6 +571,39 @@ function sanitizeToken(value: string): string {
   return value.replace(/\s+/g, "").trim().toUpperCase();
 }
 
+function classifyDiscoveryUrl(
+  value: string,
+): PublicCatalogDiscoveryEntry["kind"] | null {
+  if (value.includes("/sigaa/public/curso/portal.jsf")) {
+    return "course-portal";
+  }
+
+  if (value.includes("/sigaa/public/curso/curriculo.jsf")) {
+    return "course-curriculum";
+  }
+
+  return null;
+}
+
+function resolveDiscoveryUrl(
+  sourceUrl: string,
+  finalUrl: string,
+  href: string,
+): string | null {
+  try {
+    const baseUrl = finalUrl || sourceUrl;
+    const resolved = new URL(href, baseUrl);
+
+    if (!/^https?:$/u.test(resolved.protocol)) {
+      return null;
+    }
+
+    return resolved.toString();
+  } catch {
+    return null;
+  }
+}
+
 function normalizeCurriculumStatus(value: string): "active" | "inactive" | "unknown" {
   const normalized = normalizeWhitespace(value).toLowerCase();
 
@@ -677,6 +763,23 @@ function dedupeCurriculumStructures(
 
   return Array.from(byKey.values()).sort((left, right) =>
     left.code.localeCompare(right.code),
+  );
+}
+
+function dedupeDiscoveryEntries(
+  entries: PublicCatalogDiscoveryEntry[],
+): PublicCatalogDiscoveryEntry[] {
+  const byKey = new Map<string, PublicCatalogDiscoveryEntry>();
+
+  for (const entry of entries) {
+    const key = `${entry.kind}:${entry.url}`;
+    if (!byKey.has(key)) {
+      byKey.set(key, entry);
+    }
+  }
+
+  return Array.from(byKey.values()).sort((left, right) =>
+    `${left.kind}:${left.url}`.localeCompare(`${right.kind}:${right.url}`),
   );
 }
 

@@ -1,4 +1,7 @@
-import type { PublicCatalogSnapshot } from "./types.js";
+import type {
+  PublicCatalogDiscoverySnapshot,
+  PublicCatalogSnapshot,
+} from "./types.js";
 
 const COMPONENT_CODE_PATTERN = /^[A-Z]{2,5}\d{2,3}$/;
 const SCHEDULE_CODE_PATTERN =
@@ -212,6 +215,36 @@ export function validateCatalogSnapshot(snapshot: PublicCatalogSnapshot): void {
     );
     assert(slot.startTime.length > 0, `Missing start time for slot ${slot.slot}.`);
     assert(slot.endTime.length > 0, `Missing end time for slot ${slot.slot}.`);
+  }
+}
+
+export function validateCatalogDiscoverySnapshot(
+  snapshot: PublicCatalogDiscoverySnapshot,
+): void {
+  assert(snapshot.schemaVersion === 1, "Unexpected discovery schema version.");
+  assert(snapshot.institution === "UFBA", "Unexpected institution identifier.");
+
+  const seenKeys = new Set<string>();
+
+  for (const entry of snapshot.entries) {
+    assert(
+      entry.kind === "course-portal" || entry.kind === "course-curriculum",
+      `Invalid discovery kind: ${entry.kind}.`,
+    );
+    assert(
+      entry.url.startsWith("https://"),
+      `Discovery entry must use HTTPS: ${entry.url}.`,
+    );
+    assert(entry.title.length > 0, "Discovery title cannot be empty.");
+    assert(entry.sourceId.length > 0, "Discovery source id cannot be empty.");
+    assert(
+      entry.sourcePageOrigin === "fixture" || entry.sourcePageOrigin === "live",
+      `Invalid discovery origin: ${entry.sourcePageOrigin}.`,
+    );
+
+    const key = `${entry.kind}:${entry.url}`;
+    assert(!seenKeys.has(key), `Duplicate discovery entry: ${key}.`);
+    seenKeys.add(key);
   }
 }
 
