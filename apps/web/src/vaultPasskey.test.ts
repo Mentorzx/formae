@@ -56,6 +56,40 @@ describe("vaultPasskey", () => {
     expect(challengeAwareCreate).toHaveBeenCalledTimes(1);
   });
 
+  it("uses PRF-derived wrapping material immediately when create() returns PRF output", async () => {
+    const challengeAwareCreate = vi.fn().mockImplementation(async () => ({
+      rawId: new Uint8Array([1, 2, 3, 4]).buffer,
+      response: {},
+      getClientExtensionResults: () => ({
+        prf: {
+          enabled: true,
+          results: {
+            first: new Uint8Array([9, 8, 7, 6]).buffer,
+          },
+        },
+      }),
+    }));
+
+    Object.defineProperty(globalThis.navigator, "credentials", {
+      configurable: true,
+      value: {
+        create: challengeAwareCreate,
+        get: vi.fn(),
+      },
+    });
+    Object.defineProperty(globalThis, "PublicKeyCredential", {
+      configurable: true,
+      value: class PublicKeyCredentialMock {},
+    });
+
+    const credential = await createVaultPasskeyCredential("Vault PRF");
+
+    expect(credential.prfReady).toBe(true);
+    expect(isVaultPasskeySessionUnlocked(credential)).toBe(true);
+    expect(getVaultPasskeySessionKeyMaterialMode()).toBe("webauthn-prf");
+    expect(challengeAwareCreate).toHaveBeenCalledTimes(1);
+  });
+
   it("validates a passkey assertion and refreshes the unlocked session", async () => {
     const challengeAwareGet = vi
       .fn()

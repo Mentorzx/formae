@@ -23,7 +23,8 @@ Extensao MV3 para sincronizacao local com o SIGAA. O foco continua sendo manter 
 3. Em produção, a PWA tenta falar direto com a extensão via `runtime.sendMessage` externo.
 4. O relay legado por `window.postMessage` fica restrito a localhost para depuração, não para GitHub Pages.
 5. O runtime abre abas locais do SIGAA, autentica, captura as views esperadas, incluindo o relatório de histórico quando disponível, segmenta capturas com varios registros em uma unica linha, preserva metadados quando o histórico vem como PDF/anexo e devolve um `RawSigaaPayload`.
-6. Depois do sync a sessão efêmera é consumida e removida da memória.
+6. O campo `htmlOrText` enviado para a PWA fica resumido em modo estruturado minimizado; a estrutura detalhada continua no `structuredCapture` para a normalização local.
+7. Depois do sync a sessão efêmera é consumida e removida da memória.
 
 ## Firefox e Chrome
 

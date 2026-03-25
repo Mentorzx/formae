@@ -93,21 +93,22 @@ export async function runAutomaticSigaaSync({
     );
   }
 
+  const structuredCapture = buildStructuredSigaaCapture({
+    portalProfile,
+    capturedViews,
+  });
+
   return {
     rawPayloadMessage: createRawSigaaPayloadMessage({
       syncSessionId,
       source: "dom",
       capturedAt: new Date().toISOString(),
       routeHint: `sigaa-mobile:${capturedViews.map((view) => view.id).join("+")}`,
-      htmlOrText: buildCombinedCaptureText({
-        portalProfile,
-        capturedViews,
+      htmlOrText: buildMinimizedCaptureText({
+        structuredCapture,
         warnings,
       }),
-      structuredCapture: buildStructuredSigaaCapture({
-        portalProfile,
-        capturedViews,
-      }),
+      structuredCapture,
     }),
     sanitizedSession: sanitizeSigaaSession(session),
     capturedViews,
@@ -194,6 +195,91 @@ export function buildStructuredSigaaCapture({
           },
     ),
   };
+}
+
+export function buildMinimizedCaptureText({
+  structuredCapture,
+  warnings = [],
+}) {
+  const blocks = ["SIGAA Sync Local", "[Resumo estruturado minimizado]"];
+
+  if (
+    structuredCapture.portalProfile &&
+    (structuredCapture.portalProfile.studentName ||
+      structuredCapture.portalProfile.studentNumber ||
+      structuredCapture.portalProfile.courseName)
+  ) {
+    blocks.push(
+      [
+        structuredCapture.portalProfile.studentName
+          ? `Aluno(a): ${structuredCapture.portalProfile.studentName}`
+          : null,
+        structuredCapture.portalProfile.studentNumber
+          ? `Matricula: ${structuredCapture.portalProfile.studentNumber}`
+          : null,
+        structuredCapture.portalProfile.courseName
+          ? `Curso: ${structuredCapture.portalProfile.courseName}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" | "),
+    );
+  }
+
+  for (const view of structuredCapture.views) {
+    if (view.id === "classes") {
+      blocks.push(
+        `[${view.label}] ${view.extractedTurmas.length} turma(s)`,
+        ...view.extractedTurmas.map((entry) =>
+          [
+            entry.componentCode,
+            entry.scheduleCodes.length > 0
+              ? `Horario: ${entry.scheduleCodes.join(" ")}`
+              : null,
+          ]
+            .filter(Boolean)
+            .join(" - "),
+        ),
+      );
+      continue;
+    }
+
+    if (view.id === "grades") {
+      blocks.push(
+        `[${view.label}] ${view.extractedGrades.length} registro(s)`,
+        ...view.extractedGrades.map((entry) =>
+          [
+            entry.componentCode,
+            entry.componentName ?? null,
+            entry.statusText ?? null,
+          ]
+            .filter(Boolean)
+            .join(" - "),
+        ),
+      );
+      continue;
+    }
+
+    blocks.push(
+      `[${view.label}] ${view.extractedHistory.length} registro(s)`,
+      ...view.extractedHistory.map((entry) =>
+        [
+          entry.academicPeriod,
+          entry.componentName,
+          entry.gradeValue ?? null,
+          entry.statusText ?? null,
+        ]
+          .filter(Boolean)
+          .join(" - "),
+      ),
+    );
+  }
+
+  if (warnings.length > 0) {
+    blocks.push(...warnings);
+  }
+
+  return `${blocks.filter(Boolean).join("\n")}\n`;
 }
 
 async function captureSigaaView({
@@ -675,10 +761,14 @@ export function buildHistoryDocumentMetadata({
   hasPdfLikeMarker,
   hasAttachmentLikeMarker,
 }) {
-  const pdfCandidates = sourceCandidates.filter(
+  const sanitizedSourceCandidates = sourceCandidates.map((candidate) => ({
+    ...candidate,
+    text: null,
+  }));
+  const pdfCandidates = sanitizedSourceCandidates.filter(
     (candidate) => candidate.kind === "pdf" || /\.pdf(\?|#|$)/i.test(candidate.url),
   );
-  const attachmentCandidates = sourceCandidates.filter(
+  const attachmentCandidates = sanitizedSourceCandidates.filter(
     (candidate) => candidate.kind === "attachment" || candidate.hasDownloadHint,
   );
   const hasVisibleHistoryText = /Relat[oó]rio de Notas|Hist[oó]rico|Per[ií]odo|Situa[cç][aã]o/i.test(
@@ -703,7 +793,7 @@ export function buildHistoryDocumentMetadata({
     hasPdfLikeMarker,
     hasAttachmentLikeMarker,
     textLength: text.length,
-    sourceCandidates,
+    sourceCandidates: sanitizedSourceCandidates,
     pdfCandidates,
     attachmentCandidates,
   };

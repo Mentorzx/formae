@@ -208,8 +208,9 @@ Na prática atual:
 - os dados do snapshot ficam no navegador
 - o vault é cifrado localmente
 - a passkey ajuda a bloquear/desbloquear a sessão local
-- quando o navegador e o autenticador suportam PRF, o vault passa a manter uma cópia embrulhada com material derivado da passkey
+- quando o navegador e o autenticador suportam PRF, o vault passa a preferir esse material como caminho principal de derivação para novos wraps e migra o cofre local na primeira sessão compatível
 - quando PRF não estiver disponível, o fallback continua sendo `browser-local-wrap`
+- o resumo bruto preservado após sync automático também foi minimizado; a PWA guarda o texto estruturado necessário sem trafegar o dump combinado completo do SIGAA
 
 Isso significa que a segurança local já melhorou bastante, mas ainda não é o estado final mais forte possível: ainda falta derivação realmente ancorada de ponta a ponta em WebAuthn para todo o ciclo do vault.
 

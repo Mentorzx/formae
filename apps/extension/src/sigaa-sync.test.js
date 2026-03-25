@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   buildCombinedCaptureText,
   buildHistoryDocumentMetadata,
+  buildMinimizedCaptureText,
   buildStructuredSigaaCapture,
 } from "./sigaa-sync.js";
 
@@ -201,4 +202,42 @@ test("buildStructuredSigaaCapture preserves history document metadata", () => {
   assert.equal(structuredCapture.views[0].historyDocument.transportKind, "pdf");
   assert.equal(structuredCapture.views[0].extractedHistory.length, 1);
   assert.equal(structuredCapture.views[0].extractedHistory[0].academicPeriod, "2026.1");
+});
+
+test("buildMinimizedCaptureText keeps only structured summary lines", () => {
+  const structuredCapture = buildStructuredSigaaCapture({
+    portalProfile: {
+      studentName: "Alex de Lira Neto",
+      studentNumber: "219216387",
+      courseName: "ENGENHARIA DA COMPUTACAO/EPOLI",
+    },
+    capturedViews: [
+      {
+        id: "classes",
+        label: "Minhas Turmas",
+        routeHint: "https://sigaa.ufba.br/sigaa/mobile/touch/menu.jsf",
+        text:
+          "ENGC63 - PROCESSAMENTO DIGITAL DE SINAIS - Horario: 35N12 ENGC41 - ALGORITMOS E ESTRUTURAS DE DADOS - Horario: 35N34",
+      },
+      {
+        id: "grades",
+        label: "Minhas Notas",
+        routeHint: "https://sigaa.ufba.br/sigaa/mobile/touch/menu.jsf",
+        text:
+          "ENGC63 PROCESSAMENTO DIGITAL DE SINAIS APROVADO ENGC41 ALGORITMOS E ESTRUTURAS DE DADOS REPROVADO",
+      },
+    ],
+  });
+
+  const minimized = buildMinimizedCaptureText({
+    structuredCapture,
+    warnings: ["Aviso: historico nao ficou disponivel."],
+  });
+
+  assert.match(minimized, /\[Resumo estruturado minimizado\]/);
+  assert.match(minimized, /\[Minhas Turmas\] 2 turma\(s\)/);
+  assert.match(minimized, /ENGC63 - Horario: 35N12/);
+  assert.match(minimized, /\[Minhas Notas\] 2 registro\(s\)/);
+  assert.match(minimized, /REPROVADO/);
+  assert.match(minimized, /Aviso: historico nao ficou disponivel\./);
 });

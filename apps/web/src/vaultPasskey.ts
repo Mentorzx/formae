@@ -113,16 +113,21 @@ export async function createVaultPasskeyCredential(
     new Uint8Array(createdCredential.rawId),
   );
   const extensionResults = createdCredential.getClientExtensionResults() as {
-    prf?: { enabled?: boolean };
+    prf?: { enabled?: boolean; results?: { first?: ArrayBuffer } };
   };
   const prfReady = extensionResults.prf?.enabled === true;
-  const keyMaterialMode: VaultPasskeyKeyMaterialMode = "browser-local-wrap";
+  const prfWrappingKey = await importPrfWrappingKey(
+    extensionResults.prf?.results?.first,
+  );
+  const keyMaterialMode: VaultPasskeyKeyMaterialMode = prfWrappingKey
+    ? "webauthn-prf"
+    : "browser-local-wrap";
 
   writeVaultPasskeySession(
     credentialId,
     createdAt,
     keyMaterialMode,
-    null,
+    prfWrappingKey,
     VAULT_PASSKEY_SESSION_TTL_MS,
   );
 

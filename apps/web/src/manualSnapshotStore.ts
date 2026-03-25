@@ -495,6 +495,7 @@ async function ensureVaultMaterial(
   const browserWrapKey = await ensureBrowserWrapKey(database);
   const existingRecord = await readVaultWrapSecretRecord(database);
   const prfWrappingKey = getVaultPasskeySessionWrappingKey();
+  const prefersPrf = prfWrappingKey !== null;
 
   if (!existingRecord) {
     const contentKeyBytes = randomBytes(32);
@@ -527,7 +528,11 @@ async function ensureVaultMaterial(
     return record;
   }
 
-  if (prfWrappingKey && !existingRecord.prfWrappedContentKeyB64) {
+  if (
+    prfWrappingKey &&
+    (!existingRecord.prfWrappedContentKeyB64 ||
+      existingRecord.keyDerivation !== "webauthn-prf")
+  ) {
     const contentKeyBytes = await unwrapWrappedContentKeyBytes(
       browserWrapKey.key,
       existingRecord.wrappedContentKeyB64,
@@ -553,6 +558,22 @@ async function ensureVaultMaterial(
     return updatedRecord;
   }
 
+  if (
+    prefersPrf &&
+    existingRecord.prfWrappedContentKeyB64 &&
+    existingRecord.keyDerivation !== "webauthn-prf"
+  ) {
+    const updatedRecord: VaultWrapSecretRecord = {
+      ...existingRecord,
+      keyDerivation: "webauthn-prf",
+      updatedAt: new Date().toISOString(),
+    };
+
+    await writeVaultWrapSecretRecord(database, updatedRecord);
+
+    return updatedRecord;
+  }
+
   return existingRecord;
 }
 
@@ -569,7 +590,11 @@ async function resolveVaultContentKeyMaterial(
   if (wrapSecretRecord) {
     const prfWrappingKey = getVaultPasskeySessionWrappingKey();
 
-    if (prfWrappingKey && wrapSecretRecord.prfWrappedContentKeyB64) {
+    if (wrapSecretRecord.keyDerivation === "webauthn-prf") {
+      if (!prfWrappingKey || !wrapSecretRecord.prfWrappedContentKeyB64) {
+        throw new VaultLockedError();
+      }
+
       const rawContentKey = await unwrapWrappedContentKeyBytes(
         prfWrappingKey,
         wrapSecretRecord.prfWrappedContentKeyB64,
