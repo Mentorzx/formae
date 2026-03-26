@@ -64,7 +64,18 @@ function App() {
               </div>
 
               <div className="site-header-cta-row">
-                <NavLink to="/importacao" className="action-button">
+                <a
+                  href="https://github.com/Mentorzx/formae/releases/latest"
+                  className="action-button"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Instalar extensao
+                </a>
+                <NavLink
+                  to="/importacao"
+                  className="action-button action-button-secondary"
+                >
                   Abrir importacao
                 </NavLink>
                 <NavLink

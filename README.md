@@ -20,6 +20,17 @@ Endereço público atual:
 
 - `https://mentorzx.github.io/formae/`
 
+## Antes de tudo: usuário final vs. desenvolvimento
+
+Hoje existem dois jeitos bem diferentes de interagir com o projeto:
+
+- **uso comum**: abrir a PWA publicada, instalar a extensão e importar localmente do SIGAA
+- **desenvolvimento**: clonar o repositório, instalar Node/Rust/pnpm e rodar tudo localmente
+
+Se você **só quer usar o Formaê**, ignore `pnpm`, `Rust`, `wasm-pack` e qualquer comando de terminal. Isso é só para quem vai desenvolver o projeto.
+
+O fluxo de usuário final está abaixo.
+
 ## Compromisso deste README
 
 Este README deve ser atualizado sempre que uma mudança no produto afetar:
@@ -32,7 +43,56 @@ Este README deve ser atualizado sempre que uma mudança no produto afetar:
 
 Ou seja: se o jeito de usar o Formaê mudar, este passo a passo também precisa mudar no mesmo commit ou na mesma rodada.
 
-## Como usar hoje, do zero
+## Como usar hoje como usuário final
+
+Esse é o caminho certo para quem abriu o GitHub agora e só quer usar o produto.
+
+### 1. Abra a PWA publicada
+
+- `https://mentorzx.github.io/formae/`
+
+### 2. Instale a extensão
+
+No estado atual, a extensão ainda **não está publicada na Chrome Web Store nem no AMO**. Então a instalação continua manual, via artefatos do repositório:
+
+- releases: `https://github.com/Mentorzx/formae/releases/latest`
+
+Hoje os artefatos publicados são:
+
+- `.zip` para Chrome/Chromium
+- `.xpi` para Firefox
+
+### 3. Abra a extensão e salve as credenciais só em memória
+
+Na popup da extensão:
+
+1. informe CPF/usuário do SIGAA
+2. informe a senha
+3. clique em `Salvar em memória`
+
+### 4. Volte para a PWA e importe automaticamente
+
+Na rota `Importação`:
+
+1. clique em `Importar automaticamente`
+2. a extensão lê localmente as views do SIGAA
+3. o snapshot fica salvo só no navegador
+4. `Visão Geral` e `Planejador` passam a refletir esse estado
+
+### 5. O que ainda não está no nível “app pronto para qualquer usuário”
+
+Hoje ainda faltam duas coisas para o fluxo ficar realmente popular e trivial:
+
+- publicar a extensão em loja oficial
+- reduzir ainda mais o atrito da instalação inicial
+
+Então o fluxo de uso já existe, mas ainda está em estágio de **preview avançado**, não de produto “clicou e usou” para qualquer pessoa.
+
+## Como desenvolver localmente
+
+As instruções abaixo são para quem vai editar código, rodar testes ou contribuir com o projeto.
+
+## Como usar hoje, do zero para desenvolvimento
 
 ### 1. Clonar o repositório
 
@@ -66,6 +126,25 @@ corepack prepare pnpm@10.18.3 --activate
 rustup default stable
 cargo install wasm-pack
 ```
+
+### Se aparecer `pnpm: command not found`
+
+Foi exatamente o erro que você encontrou. Nesse caso, o ambiente ainda não tem `pnpm` disponível no `PATH`.
+
+Faça isto:
+
+```bash
+corepack enable
+corepack prepare pnpm@10.18.3 --activate
+pnpm --version
+```
+
+Se o `corepack` também não existir, então o problema vem antes: o Node.js da máquina não está instalado corretamente ou não está no `PATH`.
+
+Resumo direto:
+
+- usuário final não precisa de `pnpm`
+- desenvolvedor precisa de Node + Corepack + pnpm funcionando antes de rodar qualquer comando do monorepo
 
 ### 3. Instalar as dependências do monorepo
 
