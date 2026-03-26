@@ -103,6 +103,7 @@ O repositório agora já deixa pronta a parte operacional para publicacao:
 - script de upload e publish para Chrome Web Store API
 - script de assinatura/submissao para AMO
 - workflow manual `Publish Extension Stores`
+- guia objetivo de publicacao do Chrome em `apps/extension/store/chrome-publicacao.pt-BR.md`
 
 O que ainda depende do dono da conta:
 

@@ -12,7 +12,17 @@ test("extension manifest is hardened for release and Firefox portability", async
 
   assert.equal(manifest.manifest_version, 3);
   assert.deepEqual(manifest.permissions, ["scripting", "tabs"]);
+  assert.deepEqual(manifest.icons, {
+    "16": "assets/icon-16.png",
+    "32": "assets/icon-32.png",
+    "48": "assets/icon-48.png",
+    "128": "assets/icon-128.png",
+  });
   assert.equal(manifest.action.default_popup, "src/popup.html");
+  assert.deepEqual(manifest.action.default_icon, {
+    "16": "assets/icon-16.png",
+    "32": "assets/icon-32.png",
+  });
   assert.deepEqual(manifest.background.scripts, ["src/background.js"]);
   assert.equal(manifest.background.service_worker, "src/background.js");
   assert.equal(manifest.background.type, "module");

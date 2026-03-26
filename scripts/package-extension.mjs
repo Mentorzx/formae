@@ -152,6 +152,10 @@ async function stageTargetPackage({
   );
   await copyOptionalFile(join(extensionRoot, "README.md"), join(packageRoot, "README.md"));
   await copyOptionalFile(join(extensionRoot, "package.json"), join(packageRoot, "package.json"));
+  await copyOptionalDirectory(
+    join(extensionRoot, "assets"),
+    join(packageRoot, "assets"),
+  );
   await copyTree(join(extensionRoot, "src"), join(packageRoot, "src"));
   await assertManifestAssetPathsExist({
     packageRoot,
@@ -231,6 +235,18 @@ async function copyTree(sourceDir, destinationDir) {
 async function copyOptionalFile(sourcePath, destinationPath) {
   try {
     await copyFile(sourcePath, destinationPath);
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
+      return;
+    }
+
+    throw error;
+  }
+}
+
+async function copyOptionalDirectory(sourcePath, destinationPath) {
+  try {
+    await copyTree(sourcePath, destinationPath);
   } catch (error) {
     if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
       return;

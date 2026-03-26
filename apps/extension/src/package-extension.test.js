@@ -43,11 +43,15 @@ test("packageExtension stages browser-specific artifacts and manifests", async (
   assert.equal(firefoxMetadata.runtimeTarget, "firefox");
   assert.ok(chromeMetadata.files.includes("src/popup.html"));
   assert.ok(firefoxMetadata.files.includes("src/popup.html"));
+  assert.ok(chromeMetadata.files.includes("assets/icon-128.png"));
+  assert.ok(firefoxMetadata.files.includes("assets/icon-128.png"));
   assert.equal(chromeManifest.background.service_worker, "src/background.js");
   assert.equal("scripts" in chromeManifest.background, false);
   assert.deepEqual(firefoxManifest.background.scripts, ["src/background.js"]);
   assert.equal("service_worker" in firefoxManifest.background, false);
   assert.equal("externally_connectable" in firefoxManifest, false);
+  assert.equal(chromeManifest.icons["128"], "assets/icon-128.png");
+  assert.equal(firefoxManifest.icons["128"], "assets/icon-128.png");
   assert.match(chromeArchiveChecksum, /formae-extension-0\.1\.0\.zip/);
   assert.match(firefoxArchiveChecksum, /formae-extension-0\.1\.0\.xpi/);
 });
