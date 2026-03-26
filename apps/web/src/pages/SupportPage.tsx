@@ -1,18 +1,24 @@
+import {
+  CHROME_WEB_STORE_URL,
+  GITHUB_ISSUES_URL,
+  GITHUB_REPOSITORY_URL,
+} from "../runtimeLinks";
+
 const SUPPORT_LINKS = [
   {
     label: "Repositorio",
-    href: "https://github.com/Mentorzx/formae",
+    href: GITHUB_REPOSITORY_URL,
     body: "Codigo-fonte, historico de commits e releases publicos.",
   },
   {
     label: "Issues",
-    href: "https://github.com/Mentorzx/formae/issues",
+    href: GITHUB_ISSUES_URL,
     body: "Canal principal para bugs, regressao de sync e problemas no planner.",
   },
   {
-    label: "Releases",
-    href: "https://github.com/Mentorzx/formae/releases/latest",
-    body: "Artefatos atuais da extensao para Chrome e Firefox.",
+    label: "Chrome Web Store",
+    href: CHROME_WEB_STORE_URL,
+    body: "Instalacao principal da extensao para o fluxo publico do produto.",
   },
 ];
 
@@ -23,9 +29,10 @@ export function SupportPage() {
         <p className="section-label">Suporte publico</p>
         <h2>Onde acompanhar, instalar e reportar problemas hoje</h2>
         <p>
-          O Formaê ainda esta em preview avancado. O fluxo mais util para
-          suporte e abrir a PWA publicada, instalar a extensao pelos releases e,
-          se algo falhar, registrar um issue com navegador, sistema e sintomas.
+          O fluxo recomendado agora e abrir a PWA publicada, instalar a extensao
+          pela Chrome Web Store, preparar a sessao efemera na popup e
+          sincronizar. Se algo falhar, registre um issue com navegador, sistema
+          e sintomas.
         </p>
       </section>
 
@@ -52,7 +59,9 @@ export function SupportPage() {
       <section className="panel">
         <p className="section-label">Checklist para relatar bug</p>
         <ol className="list ordered">
-          <li>Informe se o problema ocorreu na PWA, na extensao ou nos dois.</li>
+          <li>
+            Informe se o problema ocorreu na PWA, na extensao ou nos dois.
+          </li>
           <li>Informe navegador, versao e sistema operacional.</li>
           <li>Descreva em que tela estava e qual acao executou.</li>
           <li>
@@ -69,9 +78,10 @@ export function SupportPage() {
       <section className="panel">
         <p className="section-label">Estado da distribuicao</p>
         <p>
-          A extensao ja tem empacotamento para Chrome e Firefox e pipeline de
-          verificacao reprodutivel. A publicacao em loja ainda depende das
-          contas de publisher, segredos de API e revisao das lojas.
+          O fluxo publico foi alinhado para instalacao pela Chrome Web Store. O
+          pipeline continua gerando pacotes e verificacoes locais para
+          Chrome/Firefox, mas a jornada principal do aluno agora aponta para a
+          instalacao em loja em vez do download manual por ZIP.
         </p>
       </section>
     </div>

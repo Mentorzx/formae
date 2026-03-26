@@ -1,8 +1,9 @@
 import type {
   BridgeMessage,
-  RawSigaaPayloadMessage,
+  ExtensionCredentialState,
   RequestSyncMessage,
   RequestSyncPayload,
+  SigaaSyncSnapshotMessage,
   TimingProfileId,
 } from "@formae/protocol";
 import { BRIDGE_PROTOCOL_VERSION } from "@formae/protocol";
@@ -40,9 +41,22 @@ interface ExternalRuntimeApi {
   };
 }
 
+interface CredentialStateResponse {
+  ok: true;
+  kind: "GetCredentialState";
+  credentialState: ExtensionCredentialState;
+}
+
+export interface ExtensionBridgeStatus {
+  installed: boolean;
+  extensionId: string | null;
+  sessionState: "missing" | "ready" | "unknown";
+  credentialState: ExtensionCredentialState | null;
+}
+
 export async function runAutomaticSigaaSync(input: {
   timingProfileId: TimingProfileId;
-}): Promise<RawSigaaPayloadMessage["payload"]> {
+}): Promise<SigaaSyncSnapshotMessage["payload"]> {
   const syncSessionId = globalThis.crypto.randomUUID();
   const requestMessage: RequestSyncMessage = {
     kind: "RequestSync",
@@ -56,13 +70,83 @@ export async function runAutomaticSigaaSync(input: {
   };
   const response = await postBridgeMessage(requestMessage, 90_000);
 
-  if (response.kind !== "RawSigaaPayload") {
+  if (response.kind !== "SigaaSyncSnapshot") {
     throw new Error(
       `Unexpected bridge response from the extension: ${response.kind}.`,
     );
   }
 
   return response.payload;
+}
+
+export async function readExtensionBridgeStatus(): Promise<ExtensionBridgeStatus> {
+  if (typeof window === "undefined") {
+    return {
+      installed: false,
+      extensionId: null,
+      sessionState: "unknown",
+      credentialState: null,
+    };
+  }
+
+  const runtime = resolveExternalRuntime();
+  const extensionId = await discoverExtensionId();
+
+  if (!runtime || !extensionId) {
+    return {
+      installed: false,
+      extensionId: null,
+      sessionState: "unknown",
+      credentialState: null,
+    };
+  }
+
+  const response = await new Promise<CredentialStateResponse>(
+    (resolve, reject) => {
+      runtime.sendMessage(
+        extensionId,
+        {
+          kind: "GetCredentialState",
+          protocolVersion: BRIDGE_PROTOCOL_VERSION,
+          payload: {
+            requestedAt: new Date().toISOString(),
+          },
+        },
+        (value: unknown) => {
+          if (runtime.lastError) {
+            reject(new Error(runtime.lastError.message));
+            return;
+          }
+
+          if (!isCredentialStateResponse(value)) {
+            reject(
+              new Error(
+                "The Formaê extension returned an invalid credential-state response.",
+              ),
+            );
+            return;
+          }
+
+          resolve(value);
+        },
+      );
+    },
+  );
+
+  const sessionState =
+    response.credentialState.hasSession &&
+    response.credentialState.syncApprovalActive
+      ? "ready"
+      : response.credentialState.hasSession
+        ? "missing"
+        : "missing";
+
+  return {
+    installed: true,
+    extensionId,
+    sessionState,
+    credentialState: response.credentialState,
+  };
 }
 
 async function postBridgeMessage(
@@ -277,6 +361,22 @@ function isBridgeFailure(
       "error" in value &&
       (value as { ok?: unknown }).ok === false &&
       typeof (value as { error?: unknown }).error === "string",
+  );
+}
+
+function isCredentialStateResponse(
+  value: unknown,
+): value is CredentialStateResponse {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  return (
+    candidate.ok === true &&
+    candidate.kind === "GetCredentialState" &&
+    typeof candidate.credentialState === "object" &&
+    candidate.credentialState !== null
   );
 }
 

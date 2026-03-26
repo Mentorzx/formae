@@ -10,7 +10,10 @@ import {
 import { runAutomaticSigaaSync } from "./sigaa-sync.js";
 import { extensionApi } from "./runtime.js";
 
-const ALLOWED_EXTERNAL_BRIDGE_MESSAGE_KINDS = new Set(["RequestSync"]);
+const ALLOWED_EXTERNAL_BRIDGE_MESSAGE_KINDS = new Set([
+  "RequestSync",
+  "GetCredentialState",
+]);
 
 const syncState = {
   credentialState: createCredentialState(),
@@ -134,7 +137,7 @@ async function handleBridgeMessage(message, context) {
         session,
       });
       syncState.latestRawPayload = syncResult.rawPayloadMessage.payload;
-      return syncResult.rawPayloadMessage;
+      return syncResult.syncSnapshotMessage;
     case "SetEphemeralCredentials":
       return {
         ok: true,

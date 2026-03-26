@@ -12,6 +12,7 @@ export const bridgeMessageKinds = [
   "GetCredentialState",
   "ClearEphemeralCredentials",
   "RawSigaaPayload",
+  "SigaaSyncSnapshot",
   "NormalizedSnapshot",
   "StoreEncryptedSnapshot",
   "WipeLocalVault",

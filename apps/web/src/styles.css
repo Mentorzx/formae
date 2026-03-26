@@ -2,21 +2,24 @@
   --ink: #2b3a4a;
   --ink-soft: #63778a;
   --paper: #f0f4f8;
-  /* icy blue-grey */
-  --page-background: #e3ebf3;
-  /* slightly darker icy background */
-  --paper-strong: rgba(255, 255, 255, 0.65);
-  --panel: rgba(255, 255, 255, 0.45);
-  --line: rgba(43, 58, 74, 0.08);
-  /* softer line */
+  --page-background: #e9eff5; /* lighter icy background to contrast better with glass */
+  --paper-strong: rgba(255, 255, 255, 0.45); /* more translucent */
+  --panel: rgba(255, 255, 255, 0.25); /* highly translucent */
+  --line: rgba(255, 255, 255, 0.6); /* frosted lighter edges */
   --accent: #5e8aa3;
-  /* muted cool blue */
   --accent-warm: #aebfd1;
-  /* pale steel blue instead of warm */
   --accent-pale: #e0e8f0;
-  --shadow: 0 12px 40px rgba(43, 58, 74, 0.06);
+  --shadow:
+    0 24px 48px rgba(0, 0, 0, 0.04), inset 0 1px 1px rgba(255, 255, 255, 0.5); /* floating + edge reflection */
+  --font-sans:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  --font-display: "Space Grotesk", var(--font-sans);
+  --font-mono:
+    "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, "Liberation Mono",
+    Menlo, monospace;
   color-scheme: light;
-  font-family: "IBM Plex Sans", "Avenir Next", "Segoe UI", sans-serif;
+  font-family: var(--font-sans);
   color: var(--ink);
   background: var(--page-background);
 }
@@ -25,14 +28,15 @@
   --ink: #e0e8f0;
   --ink-soft: #8e9ea8;
   --paper: #1c232b;
-  --page-background: #141a20;
-  --paper-strong: rgba(30, 40, 52, 0.7);
-  --panel: rgba(40, 52, 66, 0.5);
-  --line: rgba(224, 232, 240, 0.08);
+  --page-background: #0f141a;
+  --paper-strong: rgba(30, 40, 52, 0.45);
+  --panel: rgba(40, 52, 66, 0.25);
+  --line: rgba(255, 255, 255, 0.06); /* subtle border in dark mode */
   --accent: #78a3c2;
   --accent-warm: #5c7285;
   --accent-pale: rgba(120, 163, 194, 0.15);
-  --shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  --shadow:
+    0 32px 64px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.04);
   color-scheme: dark;
   background: var(--page-background);
 }
@@ -47,10 +51,36 @@ body,
   min-height: 100vh;
 }
 
+h1, h2, h3, h4, h5, h6,
+.display-text,
+.card-title,
+.hero-title,
+.metric-value,
+.number,
+.stat-figure,
+.planner-code-tag,
+.shell-runway-step {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+code, kbd, samp, pre,
+.mono-text,
+.code-tag,
+.tech-spec,
+.version-number {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
 body {
   margin: 0;
+  font-family: var(--font-sans);
   background: var(--page-background);
   color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .sr-only {

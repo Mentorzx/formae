@@ -7,9 +7,9 @@ import {
   shouldRequireApprovalForRequestSync,
 } from "./background.js";
 
-test("external page traffic is restricted to RequestSync only", () => {
+test("external page traffic is restricted to sync and session-state reads", () => {
   assert.equal(isExternalBridgeMessageKindAllowed("RequestSync"), true);
-  assert.equal(isExternalBridgeMessageKindAllowed("GetCredentialState"), false);
+  assert.equal(isExternalBridgeMessageKindAllowed("GetCredentialState"), true);
   assert.equal(isExternalBridgeMessageKindAllowed("RawSigaaPayload"), false);
   assert.equal(isExternalBridgeMessageKindAllowed("WipeLocalVault"), false);
 });

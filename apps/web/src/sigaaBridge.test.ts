@@ -1,16 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { runAutomaticSigaaSync } from "./sigaaBridge";
+import {
+  readExtensionBridgeStatus,
+  runAutomaticSigaaSync,
+} from "./sigaaBridge";
 
-function createRawPayloadResponse() {
+function createSyncSnapshotResponse() {
   return {
-    kind: "RawSigaaPayload",
+    kind: "SigaaSyncSnapshot",
     protocolVersion: 1,
     payload: {
       syncSessionId: "sync-test",
       source: "dom",
       capturedAt: "2026-03-24T05:00:00.000Z",
       routeHint: "sigaa-mobile:classes+grades",
-      htmlOrText: "texto",
+      retentionMode: "structured-minimized",
+      persistedRawInput: "texto",
+      structuredContext: null,
+      warnings: [],
     },
   } as const;
 }
@@ -35,7 +41,7 @@ describe("sigaaBridge", () => {
         _message: unknown,
         callback: (value: unknown) => void,
       ) => {
-        callback(createRawPayloadResponse());
+        callback(createSyncSnapshotResponse());
       },
     );
     const postMessageSpy = vi.spyOn(window, "postMessage");
@@ -66,7 +72,7 @@ describe("sigaaBridge", () => {
             data: {
               source: "formae-extension",
               requestId: request.requestId,
-              response: createRawPayloadResponse(),
+              response: createSyncSnapshotResponse(),
             },
             origin:
               typeof targetOrigin === "string"
@@ -91,5 +97,46 @@ describe("sigaaBridge", () => {
         timingProfileId: "Ufba2025",
       }),
     ).rejects.toThrow(/Legacy relay is restricted to local development/i);
+  });
+
+  it("reads the extension readiness state from the direct runtime bridge", async () => {
+    const sendMessage = vi.fn(
+      (
+        _extensionId: string,
+        message: { kind: string },
+        callback: (value: unknown) => void,
+      ) => {
+        if (message.kind === "GetCredentialState") {
+          callback({
+            ok: true,
+            kind: "GetCredentialState",
+            credentialState: {
+              hasSession: true,
+              syncSessionId: "sync-cred",
+              usernameOrCpfMasked: "***540",
+              expiresAt: "2026-03-24T05:02:00.000Z",
+              syncApprovalActive: true,
+              syncApprovalExpiresAt: "2026-03-24T05:02:00.000Z",
+            },
+          });
+          return;
+        }
+
+        callback(createSyncSnapshotResponse());
+      },
+    );
+
+    document.documentElement.dataset.formaeExtensionId = "ext-test";
+    vi.stubGlobal("chrome", {
+      runtime: {
+        sendMessage,
+      },
+    });
+
+    const status = await readExtensionBridgeStatus();
+
+    expect(status.installed).toBe(true);
+    expect(status.sessionState).toBe("ready");
+    expect(status.credentialState?.hasSession).toBe(true);
   });
 });

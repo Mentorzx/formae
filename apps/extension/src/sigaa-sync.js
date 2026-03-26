@@ -1,4 +1,7 @@
-import { createRawSigaaPayloadMessage } from "./bridge.js";
+import {
+  createRawSigaaPayloadMessage,
+  createSigaaSyncSnapshotMessage,
+} from "./bridge.js";
 import { isSigaaSessionExpired, sanitizeSigaaSession } from "./login-session.js";
 import {
   createTab,
@@ -97,18 +100,34 @@ export async function runAutomaticSigaaSync({
     portalProfile,
     capturedViews,
   });
+  const capturedAt = new Date().toISOString();
+  const routeHint = `sigaa-mobile:${capturedViews.map((view) => view.id).join("+")}`;
+  const persistedRawInput = buildMinimizedCaptureText({
+    structuredCapture,
+    warnings,
+  });
+  const structuredContext = buildManualImportStructuredContext(
+    structuredCapture,
+  );
 
   return {
     rawPayloadMessage: createRawSigaaPayloadMessage({
       syncSessionId,
       source: "dom",
-      capturedAt: new Date().toISOString(),
-      routeHint: `sigaa-mobile:${capturedViews.map((view) => view.id).join("+")}`,
-      htmlOrText: buildMinimizedCaptureText({
-        structuredCapture,
-        warnings,
-      }),
+      capturedAt,
+      routeHint,
+      htmlOrText: persistedRawInput,
       structuredCapture,
+    }),
+    syncSnapshotMessage: createSigaaSyncSnapshotMessage({
+      syncSessionId,
+      source: "dom",
+      capturedAt,
+      routeHint,
+      retentionMode: "structured-minimized",
+      persistedRawInput,
+      structuredContext,
+      warnings,
     }),
     sanitizedSession: sanitizeSigaaSession(session),
     capturedViews,
@@ -282,6 +301,95 @@ export function buildMinimizedCaptureText({
   return `${blocks.filter(Boolean).join("\n")}\n`;
 }
 
+export function buildManualImportStructuredContext(structuredCapture) {
+  if (!structuredCapture) {
+    return null;
+  }
+
+  const componentStates = [];
+  const scheduleBindings = [];
+  const historyEntries = [];
+  let historyDocument = null;
+
+  for (const view of structuredCapture.views) {
+    if (view.id === "classes") {
+      for (const turmaEntry of view.extractedTurmas) {
+        componentStates.push({
+          code: turmaEntry.componentCode,
+          title: extractTitleFromRawLine(turmaEntry.rawLine),
+          status: "inProgress",
+          source: "classes",
+          rawLine: turmaEntry.rawLine,
+          statusText: null,
+          scheduleCodes: turmaEntry.scheduleCodes,
+        });
+
+        for (const scheduleCode of turmaEntry.scheduleCodes) {
+          scheduleBindings.push({
+            componentCode: turmaEntry.componentCode,
+            scheduleCode,
+            source: "classes",
+          });
+        }
+      }
+
+      continue;
+    }
+
+    if (view.id === "grades") {
+      for (const gradeEntry of view.extractedGrades) {
+        componentStates.push({
+          code: gradeEntry.componentCode,
+          title: gradeEntry.componentName ?? extractTitleFromRawLine(gradeEntry.rawLine),
+          status: deriveAcademicStatus(gradeEntry.statusText),
+          source: "grades",
+          rawLine: gradeEntry.rawLine,
+          statusText: gradeEntry.statusText,
+          scheduleCodes: [],
+        });
+      }
+
+      continue;
+    }
+
+    historyDocument ??= view.historyDocument ?? null;
+
+    for (const historyEntry of view.extractedHistory) {
+      const componentCode =
+        extractComponentCode(historyEntry.componentName) ??
+        extractComponentCode(historyEntry.rawLine);
+
+      historyEntries.push({
+        academicPeriod: historyEntry.academicPeriod,
+        componentCode,
+        componentName: historyEntry.componentName,
+        normalizedTitle: normalizeHistoryComponentTitle(
+          historyEntry.componentName,
+          componentCode,
+        ),
+        gradeValue: historyEntry.gradeValue,
+        absences: historyEntry.absences,
+        statusText: historyEntry.statusText,
+        rawLine: historyEntry.rawLine,
+      });
+    }
+  }
+
+  return {
+    studentProfile: structuredCapture.portalProfile
+      ? {
+          studentNumber: structuredCapture.portalProfile.studentNumber ?? null,
+          studentName: structuredCapture.portalProfile.studentName ?? null,
+          courseName: structuredCapture.portalProfile.courseName ?? null,
+        }
+      : null,
+    componentStates: deduplicateComponentStates(componentStates),
+    scheduleBindings: deduplicateScheduleBindings(scheduleBindings),
+    historyEntries,
+    historyDocument,
+  };
+}
+
 function buildStructuredViewSummary(capturedView) {
   if (capturedView.id === "classes") {
     const entries = extractTurmaEntries(capturedView.text);
@@ -339,6 +447,83 @@ function extractComponentCode(value) {
   const normalized = value.toUpperCase();
   const match = normalized.match(COMPONENT_CODE_PATTERN);
   return match?.[1] ?? null;
+}
+
+function extractTitleFromRawLine(rawLine) {
+  return rawLine
+    .replace(COMPONENT_CODE_PATTERN, "")
+    .replace(SCHEDULE_CODE_PATTERN, "")
+    .replace(GRADE_STATUS_PATTERN, "")
+    .replace(/hor[aá]rio:/giu, "")
+    .replace(/[–—-]+/gu, " ")
+    .replace(/\s+/gu, " ")
+    .trim() || null;
+}
+
+function normalizeHistoryComponentTitle(componentName, componentCode) {
+  const title = componentCode
+    ? componentName.replace(componentCode, "").trim()
+    : componentName.trim();
+  return title.length > 0 ? title : null;
+}
+
+function deriveAcademicStatus(statusText) {
+  if (!statusText) {
+    return "unknown";
+  }
+
+  const normalized = statusText.toUpperCase();
+
+  if (/APROVADO|APTO/iu.test(normalized)) {
+    return "completed";
+  }
+
+  if (/CURSANDO|MATRICULADO|EM CURSO|EM ANDAMENTO/iu.test(normalized)) {
+    return "inProgress";
+  }
+
+  if (/REPROVADO|CANCELADO|TRANCADO|INAPTO/iu.test(normalized)) {
+    return "failed";
+  }
+
+  return "unknown";
+}
+
+function deduplicateComponentStates(componentStates) {
+  const byKey = new Map();
+
+  for (const componentState of componentStates) {
+    const key = `${componentState.code}:${componentState.source}`;
+    if (!byKey.has(key)) {
+      byKey.set(key, componentState);
+      continue;
+    }
+
+    const current = byKey.get(key);
+    byKey.set(key, {
+      ...current,
+      title: current.title ?? componentState.title,
+      statusText: current.statusText ?? componentState.statusText,
+      scheduleCodes: Array.from(
+        new Set([...current.scheduleCodes, ...componentState.scheduleCodes]),
+      ),
+    });
+  }
+
+  return [...byKey.values()];
+}
+
+function deduplicateScheduleBindings(scheduleBindings) {
+  const uniqueBindings = new Map();
+
+  for (const binding of scheduleBindings) {
+    uniqueBindings.set(
+      `${binding.componentCode}:${binding.scheduleCode}:${binding.source}`,
+      binding,
+    );
+  }
+
+  return [...uniqueBindings.values()];
 }
 
 async function captureSigaaView({

@@ -11,8 +11,8 @@ export function PrivacyPage() {
         </p>
         <p>
           Quando a extensao conversa com o SIGAA, o objetivo e somente permitir
-          que o proprio usuario visualize progresso, grade, horarios,
-          pendencias e contexto curricular dentro do Formaê.
+          que o proprio usuario visualize progresso, grade, horarios, pendencias
+          e contexto curricular dentro do Formaê.
         </p>
       </section>
 
@@ -55,8 +55,8 @@ export function PrivacyPage() {
             usuario.
           </li>
           <li>
-            Exibir progresso, pendencias, dependencias e planejamento
-            academico dentro da PWA.
+            Exibir progresso, pendencias, dependencias e planejamento academico
+            dentro da PWA.
           </li>
           <li>
             Permitir importacao manual e sincronizacao automatica sem depender
@@ -72,7 +72,9 @@ export function PrivacyPage() {
           <li>Nao persiste credenciais do SIGAA em disco pelo runtime web.</li>
           <li>Nao mantem banco de dados remoto com historico academico.</li>
           <li>Nao ativa analytics por padrao.</li>
-          <li>Nao vende nem transfere dados do usuario a terceiros por padrao.</li>
+          <li>
+            Nao vende nem transfere dados do usuario a terceiros por padrao.
+          </li>
           <li>
             Nao usa os dados para publicidade, score, emprestimo ou finalidade
             sem relacao com o planejamento academico.
@@ -111,16 +113,18 @@ export function PrivacyPage() {
       </section>
 
       <section className="panel">
-        <p className="section-label">Suporte, transparencia e revisao juridica</p>
+        <p className="section-label">
+          Suporte, transparencia e revisao juridica
+        </p>
         <p>
           Esta pagina descreve a intencao tecnica atual do projeto. Ela nao
           substitui revisao juridica, analise de LGPD nem documentacao formal de
           uma eventual publicacao em loja.
         </p>
-        <p>O canal publico de suporte hoje e o proprio repositorio no GitHub.</p>
         <p>
-          Repositorio: https://github.com/Mentorzx/formae
+          O canal publico de suporte hoje e o proprio repositorio no GitHub.
         </p>
+        <p>Repositorio: https://github.com/Mentorzx/formae</p>
       </section>
     </div>
   );

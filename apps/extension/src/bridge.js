@@ -52,6 +52,10 @@ export function createRawSigaaPayloadMessage(payload) {
   return createBridgeEnvelope("RawSigaaPayload", payload);
 }
 
+export function createSigaaSyncSnapshotMessage(payload) {
+  return createBridgeEnvelope("SigaaSyncSnapshot", payload);
+}
+
 export function createNormalizedSnapshotMessage(payload) {
   return createBridgeEnvelope("NormalizedSnapshot", payload);
 }

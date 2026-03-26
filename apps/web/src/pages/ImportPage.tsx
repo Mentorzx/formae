@@ -405,11 +405,11 @@ export function ImportPage() {
     setLocalSnapshotMessage(null);
 
     try {
-      const rawPayload = await runAutomaticSigaaSync({
+      const syncSnapshot = await runAutomaticSigaaSync({
         timingProfileId: "Ufba2025",
       });
       const { bundle } = await buildAutomaticSigaaSyncBundle({
-        rawPayload,
+        syncSnapshot,
         timingProfileId: "Ufba2025",
       });
       const nextVaultState = await saveLatestLocalStudentSnapshotBundle(bundle);

@@ -7,7 +7,7 @@ import type {
   ManualImportStructuredContext,
   ManualImportStructuredHistoryEntry,
   ManualImportStructuredScheduleBinding,
-  RawSigaaPayloadPayload,
+  SigaaSyncSnapshotPayload,
   TimingProfileId,
 } from "@formae/protocol";
 import { createManualImportPreview } from "./manualImport";
@@ -17,7 +17,7 @@ import { buildLocalStudentSnapshotBundle } from "./studentSnapshot";
 import { normalizeScheduleCodesWithWasm } from "./wasmScheduleParser";
 
 export async function buildAutomaticSigaaSyncBundle(input: {
-  rawPayload: RawSigaaPayloadPayload;
+  syncSnapshot: SigaaSyncSnapshotPayload;
   timingProfileId: TimingProfileId;
   normalizeSchedules?: (
     scheduleCodes: string[],
@@ -28,18 +28,22 @@ export async function buildAutomaticSigaaSyncBundle(input: {
   matchedComponentCodes: string[];
 }> {
   const structuredContext = buildStructuredManualImportContext(
-    input.rawPayload,
+    input.syncSnapshot,
   );
   const persistedRawInput =
     buildMinimizedPersistedRawInput(structuredContext) ??
-    input.rawPayload.htmlOrText;
+    input.syncSnapshot.persistedRawInput;
   const textPreview = createManualImportPreview({
     source: "sigaa-html",
     rawInput: persistedRawInput,
-    capturedAt: input.rawPayload.capturedAt,
+    capturedAt: input.syncSnapshot.capturedAt,
     timingProfileId: input.timingProfileId,
   });
-  const preview = mergeStructuredPreview(textPreview, structuredContext);
+  const preview = mergeStructuredPreview(
+    textPreview,
+    structuredContext,
+    input.syncSnapshot.warnings,
+  );
   const normalizeSchedules =
     input.normalizeSchedules ?? normalizeScheduleCodesWithWasm;
   const normalizedSchedules = await normalizeSchedules(
@@ -112,6 +116,7 @@ function buildMinimizedPersistedRawInput(
 function mergeStructuredPreview(
   preview: ManualImportPreview,
   structuredContext: ManualImportStructuredContext | null,
+  additionalWarnings: string[] = [],
 ): ManualImportPreview {
   if (!structuredContext) {
     return preview;
@@ -153,16 +158,16 @@ function mergeStructuredPreview(
     ...preview,
     detectedComponentCodes,
     detectedScheduleCodes,
-    warnings,
+    warnings: uniqueValues([...warnings, ...additionalWarnings]),
   };
 }
 
 function buildStructuredManualImportContext(
-  rawPayload: RawSigaaPayloadPayload,
+  syncSnapshot: SigaaSyncSnapshotPayload,
 ): ManualImportStructuredContext | null {
-  const structuredCapture = rawPayload.structuredCapture;
+  const structuredContext = syncSnapshot.structuredContext;
 
-  if (!structuredCapture) {
+  if (!structuredContext) {
     return null;
   }
 
@@ -172,176 +177,39 @@ function buildStructuredManualImportContext(
   >();
   const scheduleBindings: ManualImportStructuredScheduleBinding[] = [];
   const historyEntries: ManualImportStructuredHistoryEntry[] = [];
-  let historyDocument = null;
+  const historyDocument = structuredContext.historyDocument ?? null;
 
-  for (const view of structuredCapture.views) {
-    if (view.id === "classes") {
-      for (const turmaEntry of mergeTurmaEntries(
-        view.extractedTurmas,
-        view.text ? extractTurmaEntriesFromUnstructuredText(view.text) : [],
-      )) {
-        const title = extractTitleFromRawLine(turmaEntry.rawLine);
-        componentStateByCode.set(turmaEntry.componentCode, {
-          code: turmaEntry.componentCode,
-          title,
-          status: "inProgress",
-          source: "classes",
-          rawLine: turmaEntry.rawLine,
-          statusText: null,
-          scheduleCodes: turmaEntry.scheduleCodes,
-        });
-
-        for (const scheduleCode of turmaEntry.scheduleCodes) {
-          scheduleBindings.push({
-            componentCode: turmaEntry.componentCode,
-            scheduleCode,
-            source: "classes",
-          });
-        }
-      }
-
-      continue;
-    }
-
-    if (view.id === "history") {
-      historyDocument ??= view.historyDocument ?? null;
-
-      for (const historyEntry of view.extractedHistory) {
-        const componentCode =
-          extractComponentCode(historyEntry.componentName) ??
-          extractComponentCode(historyEntry.rawLine);
-        const normalizedTitle = normalizeHistoryComponentTitle(
-          historyEntry.componentName,
-          componentCode,
-        );
-
-        historyEntries.push({
-          academicPeriod: historyEntry.academicPeriod,
-          componentCode,
-          componentName: historyEntry.componentName,
-          normalizedTitle,
-          gradeValue: historyEntry.gradeValue,
-          absences: historyEntry.absences,
-          statusText: historyEntry.statusText,
-          rawLine: historyEntry.rawLine,
-        });
-
-        if (!componentCode) {
-          continue;
-        }
-
-        const existingComponentState = componentStateByCode.get(componentCode);
-        const historyStatus = mapGradeStatusText(historyEntry.statusText);
-
-        if (
-          existingComponentState &&
-          (existingComponentState.source === "classes" ||
-            existingComponentState.source === "grades")
-        ) {
-          continue;
-        }
-
-        componentStateByCode.set(componentCode, {
-          code: componentCode,
-          title: normalizedTitle,
-          status: historyStatus,
-          source: "history",
-          rawLine: historyEntry.rawLine,
-          statusText: historyEntry.statusText,
-          scheduleCodes: [],
-        });
-      }
-
-      continue;
-    }
-
-    for (const gradeEntry of mergeGradeEntries(
-      view.extractedGrades,
-      view.text ? extractGradeEntriesFromUnstructuredText(view.text) : [],
-    )) {
-      const existingComponentState = componentStateByCode.get(
-        gradeEntry.componentCode,
-      );
-
-      if (existingComponentState?.source === "classes") {
-        continue;
-      }
-
-      componentStateByCode.set(gradeEntry.componentCode, {
-        code: gradeEntry.componentCode,
-        title: extractTitleFromRawLine(gradeEntry.rawLine),
-        status: mapGradeStatusText(gradeEntry.statusText),
-        source: "grades",
-        rawLine: gradeEntry.rawLine,
-        statusText: gradeEntry.statusText,
-        scheduleCodes: [],
-      });
-    }
+  for (const componentState of structuredContext.componentStates) {
+    componentStateByCode.set(
+      `${componentState.code}:${componentState.source}`,
+      componentState,
+    );
   }
+
+  scheduleBindings.push(...structuredContext.scheduleBindings);
+  historyEntries.push(...(structuredContext.historyEntries ?? []));
 
   if (
     componentStateByCode.size === 0 &&
     scheduleBindings.length === 0 &&
     historyEntries.length === 0 &&
     historyDocument === null &&
-    !structuredCapture.portalProfile
+    !structuredContext.studentProfile
   ) {
     return null;
   }
 
   return {
-    studentProfile: structuredCapture.portalProfile
-      ? {
-          studentNumber: structuredCapture.portalProfile.studentNumber ?? null,
-          studentName: structuredCapture.portalProfile.studentName ?? null,
-          courseName: structuredCapture.portalProfile.courseName ?? null,
-        }
-      : null,
+    studentProfile: structuredContext.studentProfile,
     componentStates: Array.from(componentStateByCode.values()).sort(
-      (left, right) => left.code.localeCompare(right.code),
+      (left, right) =>
+        left.code.localeCompare(right.code) ||
+        left.source.localeCompare(right.source),
     ),
     scheduleBindings: uniqueScheduleBindings(scheduleBindings),
     historyEntries,
     historyDocument,
   };
-}
-
-function mapGradeStatusText(
-  statusText: string | null,
-): AcademicComponentStatus {
-  if (!statusText) {
-    return "unknown";
-  }
-
-  const normalizedStatus = statusText.toUpperCase();
-
-  if (
-    normalizedStatus.includes("APROVADO") ||
-    normalizedStatus.includes("DISPENSADO") ||
-    normalizedStatus.includes("CREDITADO")
-  ) {
-    return "completed";
-  }
-
-  if (
-    normalizedStatus.includes("REPROVADO") ||
-    normalizedStatus.includes("CANCELADO") ||
-    normalizedStatus.includes("TRANCADO") ||
-    normalizedStatus.includes("INAPTO")
-  ) {
-    return "failed";
-  }
-
-  if (
-    normalizedStatus.includes("CURSANDO") ||
-    normalizedStatus.includes("MATRICULADO") ||
-    normalizedStatus.includes("EM CURSO") ||
-    normalizedStatus.includes("EM ANDAMENTO")
-  ) {
-    return "inProgress";
-  }
-
-  return "unknown";
 }
 
 function formatStructuredStatus(
@@ -362,195 +230,6 @@ function formatStructuredStatus(
     default:
       return null;
   }
-}
-
-function extractTitleFromRawLine(rawLine: string): string | null {
-  const classTitleMatch = rawLine.match(
-    /^[A-Z]{3,5}\d{2,3}\s*-\s*(.+?)(?:\s+-\s+HOR[ÁA]RIO:|\s+LOCAL:|$)/i,
-  );
-
-  if (classTitleMatch?.[1]) {
-    return classTitleMatch[1].trim();
-  }
-
-  const gradeTitleMatch = rawLine.match(
-    /^[A-Z]{3,5}\d{2,3}\s+(.+?)(?:\s+(?:--|\d+[,.]?\d*|APROVADO|REPROVADO|CANCELADO|TRANCADO|CURSANDO|MATRICULADO|APTO|INAPTO)\b|$)/i,
-  );
-
-  return gradeTitleMatch?.[1]?.trim() ?? null;
-}
-
-function extractComponentCode(value: string): string | null {
-  const matchedCode = value.match(/\b([A-Z]{3,5}\d{2,3})\b/i)?.[1];
-
-  return matchedCode?.toUpperCase() ?? null;
-}
-
-function normalizeHistoryComponentTitle(
-  componentName: string,
-  componentCode: string | null,
-): string | null {
-  const trimmedName = componentName.trim();
-
-  if (!componentCode) {
-    return trimmedName || null;
-  }
-
-  const normalizedName = trimmedName
-    .replace(new RegExp(`^${componentCode}\\s+`, "i"), "")
-    .trim();
-
-  return normalizedName || trimmedName || null;
-}
-
-function extractTurmaEntriesFromUnstructuredText(text: string): Array<{
-  componentCode: string;
-  scheduleCodes: string[];
-  rawLine: string;
-}> {
-  return extractComponentSegments(
-    text,
-    /([A-Z]{3,5}\d{2,3})\s*-\s*(.+?)(?=(?:\s+[A-Z]{3,5}\d{2,3}\s*-)|$)/gs,
-  ).map((segment) => ({
-    componentCode: segment.componentCode,
-    scheduleCodes: uniqueValues(
-      Array.from(segment.rawLine.matchAll(/\b([2-7]+[MTN]\d{1,4})\b/g))
-        .map((match) => match[1])
-        .filter((value): value is string => typeof value === "string"),
-    ),
-    rawLine: segment.rawLine,
-  }));
-}
-
-function extractGradeEntriesFromUnstructuredText(text: string): Array<{
-  componentCode: string;
-  statusText: string | null;
-  rawLine: string;
-}> {
-  return extractComponentSegments(
-    text,
-    /([A-Z]{3,5}\d{2,3})\s+(.+?)(?=(?:\s+[A-Z]{3,5}\d{2,3}\b)|$)/gs,
-  ).map((segment) => ({
-    componentCode: segment.componentCode,
-    statusText:
-      segment.rawLine.match(
-        /\b(APROVADO|REPROVADO|CANCELADO|TRANCADO|CURSANDO|MATRICULADO|APTO|INAPTO|EM CURSO|EM ANDAMENTO)\b/i,
-      )?.[1] ?? null,
-    rawLine: segment.rawLine,
-  }));
-}
-
-function extractComponentSegments(
-  text: string,
-  pattern: RegExp,
-): Array<{
-  componentCode: string;
-  rawLine: string;
-}> {
-  const matches = Array.from(text.matchAll(pattern));
-
-  return matches
-    .map((match) => {
-      const componentCode = match[1]?.trim();
-      const rawLine = match[0]
-        ?.replace(/\s+/g, " ")
-        .replace(/\s+-\s+/g, " - ")
-        .trim();
-
-      if (!componentCode || !rawLine) {
-        return null;
-      }
-
-      return {
-        componentCode,
-        rawLine,
-      };
-    })
-    .filter((segment): segment is { componentCode: string; rawLine: string } =>
-      Boolean(segment),
-    );
-}
-
-function mergeTurmaEntries(
-  primaryEntries: Array<{
-    componentCode: string;
-    scheduleCodes: string[];
-    rawLine: string;
-  }>,
-  fallbackEntries: Array<{
-    componentCode: string;
-    scheduleCodes: string[];
-    rawLine: string;
-  }>,
-): Array<{
-  componentCode: string;
-  scheduleCodes: string[];
-  rawLine: string;
-}> {
-  const mergedByCode = new Map<
-    string,
-    { componentCode: string; scheduleCodes: string[]; rawLine: string }
-  >();
-
-  for (const entry of [...primaryEntries, ...fallbackEntries]) {
-    const existing = mergedByCode.get(entry.componentCode);
-    if (!existing) {
-      mergedByCode.set(entry.componentCode, {
-        ...entry,
-        scheduleCodes: uniqueValues(entry.scheduleCodes),
-      });
-      continue;
-    }
-
-    existing.scheduleCodes = uniqueValues([
-      ...existing.scheduleCodes,
-      ...entry.scheduleCodes,
-    ]);
-    if (!existing.rawLine && entry.rawLine) {
-      existing.rawLine = entry.rawLine;
-    }
-  }
-
-  return Array.from(mergedByCode.values());
-}
-
-function mergeGradeEntries(
-  primaryEntries: Array<{
-    componentCode: string;
-    statusText: string | null;
-    rawLine: string;
-  }>,
-  fallbackEntries: Array<{
-    componentCode: string;
-    statusText: string | null;
-    rawLine: string;
-  }>,
-): Array<{
-  componentCode: string;
-  statusText: string | null;
-  rawLine: string;
-}> {
-  const mergedByCode = new Map<
-    string,
-    { componentCode: string; statusText: string | null; rawLine: string }
-  >();
-
-  for (const entry of [...primaryEntries, ...fallbackEntries]) {
-    const existing = mergedByCode.get(entry.componentCode);
-    if (!existing) {
-      mergedByCode.set(entry.componentCode, entry);
-      continue;
-    }
-
-    if (!existing.statusText && entry.statusText) {
-      existing.statusText = entry.statusText;
-    }
-    if (!existing.rawLine && entry.rawLine) {
-      existing.rawLine = entry.rawLine;
-    }
-  }
-
-  return Array.from(mergedByCode.values());
 }
 
 function uniqueValues(values: string[]): string[] {

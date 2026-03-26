@@ -4,54 +4,47 @@ import { buildAutomaticSigaaSyncBundle } from "./automaticSigaaImport";
 describe("buildAutomaticSigaaSyncBundle", () => {
   test("projects SIGAA classes and grades into the existing local bundle path", async () => {
     const result = await buildAutomaticSigaaSyncBundle({
-      rawPayload: {
+      syncSnapshot: {
         syncSessionId: "sync-1",
         source: "dom",
         capturedAt: "2026-03-24T03:20:48.000Z",
         routeHint: "sigaa-mobile:classes+grades",
-        htmlOrText: [
+        retentionMode: "structured-minimized",
+        persistedRawInput: [
           "[Minhas Turmas]",
           "ENGC63 - PROCESSAMENTO DIGITAL DE SINAIS - Horário: 35N12",
           "[Minhas Notas]",
           "ENGC63 PROCESSAMENTO DIGITAL DE SINAIS APROVADO",
         ].join("\n"),
-        structuredCapture: {
-          schemaVersion: 1,
-          portalProfile: {
+        structuredContext: {
+          studentProfile: {
             studentNumber: "219216387",
             studentName: "Alex de Lira Neto",
             courseName: "Engenharia da Computacao",
           },
-          views: [
+          componentStates: [
             {
-              id: "classes",
-              label: "Minhas Turmas",
-              routeHint: "sigaa-mobile:classes",
-              text: "ENGC63 - PROCESSAMENTO DIGITAL DE SINAIS - Horário: 35N12",
-              extractedTurmas: [
-                {
-                  componentCode: "ENGC63",
-                  scheduleCodes: ["35N12"],
-                  rawLine:
-                    "ENGC63 - PROCESSAMENTO DIGITAL DE SINAIS - Horário: 35N12",
-                },
-              ],
-            },
-            {
-              id: "grades",
-              label: "Minhas Notas",
-              routeHint: "sigaa-mobile:grades",
-              text: "ENGC63 PROCESSAMENTO DIGITAL DE SINAIS APROVADO",
-              extractedGrades: [
-                {
-                  componentCode: "ENGC63",
-                  statusText: "APROVADO",
-                  rawLine: "ENGC63 PROCESSAMENTO DIGITAL DE SINAIS APROVADO",
-                },
-              ],
+              code: "ENGC63",
+              title: "PROCESSAMENTO DIGITAL DE SINAIS",
+              status: "inProgress",
+              source: "classes",
+              rawLine:
+                "ENGC63 - PROCESSAMENTO DIGITAL DE SINAIS - Horário: 35N12",
+              statusText: null,
+              scheduleCodes: ["35N12"],
             },
           ],
+          scheduleBindings: [
+            {
+              componentCode: "ENGC63",
+              scheduleCode: "35N12",
+              source: "classes",
+            },
+          ],
+          historyEntries: [],
+          historyDocument: null,
         },
+        warnings: [],
       },
       timingProfileId: "Ufba2025",
       normalizeSchedules: async (scheduleCodes) =>
@@ -124,55 +117,87 @@ describe("buildAutomaticSigaaSyncBundle", () => {
 
   test("recovers multiple component states from collapsed classes and grades text", async () => {
     const result = await buildAutomaticSigaaSyncBundle({
-      rawPayload: {
+      syncSnapshot: {
         syncSessionId: "sync-2",
         source: "dom",
         capturedAt: "2026-03-24T05:20:00.000Z",
         routeHint: "sigaa-mobile:classes+grades",
-        htmlOrText: [
+        retentionMode: "structured-minimized",
+        persistedRawInput: [
           "[Minhas Turmas]",
           "ENGC25 - ANALISE DE CIRCUITOS II - Horário: 24N34 ENGC41 - DISPOSITIVOS ELETRÔNICOS - Horário: 35N34",
           "[Minhas Notas]",
           "ENGC25 ANALISE DE CIRCUITOS II -- 0 -- ENGC41 DISPOSITIVOS ELETRÔNICOS -- 0 -- ENGC50 SISTEMAS MICROPROCESSADOS 8,9 12 APROVADO ENGC33 SINAIS E SISTEMAS II 3,3 10 REPROVADO",
         ].join("\n"),
-        structuredCapture: {
-          schemaVersion: 1,
-          portalProfile: {
+        structuredContext: {
+          studentProfile: {
             studentNumber: "219216387",
             studentName: "Alex de Lira Neto",
             courseName: "Engenharia da Computacao",
           },
-          views: [
+          componentStates: [
             {
-              id: "classes",
-              label: "Minhas Turmas",
-              routeHint: "sigaa-mobile:classes",
-              text: "ENGC25 - ANALISE DE CIRCUITOS II - Horário: 24N34 ENGC41 - DISPOSITIVOS ELETRÔNICOS - Horário: 35N34",
-              extractedTurmas: [
-                {
-                  componentCode: "ENGC25",
-                  scheduleCodes: ["24N34", "35N34"],
-                  rawLine:
-                    "ENGC25 - ANALISE DE CIRCUITOS II - Horário: 24N34 ENGC41 - DISPOSITIVOS ELETRÔNICOS - Horário: 35N34",
-                },
-              ],
+              code: "ENGC25",
+              title: "ANALISE DE CIRCUITOS II",
+              status: "inProgress",
+              source: "classes",
+              rawLine:
+                "ENGC25 - ANALISE DE CIRCUITOS II - Horário: 24N34 ENGC41 - DISPOSITIVOS ELETRÔNICOS - Horário: 35N34",
+              statusText: null,
+              scheduleCodes: ["24N34", "35N34"],
             },
             {
-              id: "grades",
-              label: "Minhas Notas",
-              routeHint: "sigaa-mobile:grades",
-              text: "ENGC25 ANALISE DE CIRCUITOS II -- 0 -- ENGC41 DISPOSITIVOS ELETRÔNICOS -- 0 -- ENGC50 SISTEMAS MICROPROCESSADOS 8,9 12 APROVADO ENGC33 SINAIS E SISTEMAS II 3,3 10 REPROVADO",
-              extractedGrades: [
-                {
-                  componentCode: "ENGC25",
-                  statusText: null,
-                  rawLine:
-                    "ENGC25 ANALISE DE CIRCUITOS II -- 0 -- ENGC41 DISPOSITIVOS ELETRÔNICOS -- 0 -- ENGC50 SISTEMAS MICROPROCESSADOS 8,9 12 APROVADO ENGC33 SINAIS E SISTEMAS II 3,3 10 REPROVADO",
-                },
-              ],
+              code: "ENGC41",
+              title: "DISPOSITIVOS ELETRÔNICOS",
+              status: "inProgress",
+              source: "classes",
+              rawLine:
+                "ENGC25 - ANALISE DE CIRCUITOS II - Horário: 24N34 ENGC41 - DISPOSITIVOS ELETRÔNICOS - Horário: 35N34",
+              statusText: null,
+              scheduleCodes: ["35N34"],
+            },
+            {
+              code: "ENGC50",
+              title: "SISTEMAS MICROPROCESSADOS",
+              status: "completed",
+              source: "grades",
+              rawLine:
+                "ENGC25 ANALISE DE CIRCUITOS II -- 0 -- ENGC41 DISPOSITIVOS ELETRÔNICOS -- 0 -- ENGC50 SISTEMAS MICROPROCESSADOS 8,9 12 APROVADO ENGC33 SINAIS E SISTEMAS II 3,3 10 REPROVADO",
+              statusText: "APROVADO",
+              scheduleCodes: [],
+            },
+            {
+              code: "ENGC33",
+              title: "SINAIS E SISTEMAS II",
+              status: "failed",
+              source: "grades",
+              rawLine:
+                "ENGC25 ANALISE DE CIRCUITOS II -- 0 -- ENGC41 DISPOSITIVOS ELETRÔNICOS -- 0 -- ENGC50 SISTEMAS MICROPROCESSADOS 8,9 12 APROVADO ENGC33 SINAIS E SISTEMAS II 3,3 10 REPROVADO",
+              statusText: "REPROVADO",
+              scheduleCodes: [],
             },
           ],
+          scheduleBindings: [
+            {
+              componentCode: "ENGC25",
+              scheduleCode: "24N34",
+              source: "classes",
+            },
+            {
+              componentCode: "ENGC25",
+              scheduleCode: "35N34",
+              source: "classes",
+            },
+            {
+              componentCode: "ENGC41",
+              scheduleCode: "35N34",
+              source: "classes",
+            },
+          ],
+          historyEntries: [],
+          historyDocument: null,
         },
+        warnings: [],
       },
       timingProfileId: "Ufba2025",
       normalizeSchedules: async (scheduleCodes) =>
@@ -236,71 +261,81 @@ describe("buildAutomaticSigaaSyncBundle", () => {
 
   test("promotes history-derived component states when they carry a component code", async () => {
     const result = await buildAutomaticSigaaSyncBundle({
-      rawPayload: {
+      syncSnapshot: {
         syncSessionId: "sync-3",
         source: "dom",
         capturedAt: "2026-03-24T05:35:00.000Z",
         routeHint: "sigaa-mobile:classes+grades+history",
-        htmlOrText: [
+        retentionMode: "structured-minimized",
+        persistedRawInput: [
           "[Minhas Turmas]",
           "ENGC63 - PROCESSAMENTO DIGITAL DE SINAIS - Horário: 35N12",
           "[Consultar Histórico]",
           "2025.2 ENGC50 SISTEMAS MICROPROCESSADOS 10,0 0 APROVADO",
         ].join("\n"),
-        structuredCapture: {
-          schemaVersion: 1,
-          portalProfile: {
+        structuredContext: {
+          studentProfile: {
             studentNumber: "219216387",
             studentName: "Alex de Lira Neto",
             courseName: "Engenharia da Computacao",
           },
-          views: [
+          componentStates: [
             {
-              id: "classes",
-              label: "Minhas Turmas",
-              routeHint: "sigaa-mobile:classes",
-              text: "ENGC63 - PROCESSAMENTO DIGITAL DE SINAIS - Horário: 35N12",
-              extractedTurmas: [
-                {
-                  componentCode: "ENGC63",
-                  scheduleCodes: ["35N12"],
-                  rawLine:
-                    "ENGC63 - PROCESSAMENTO DIGITAL DE SINAIS - Horário: 35N12",
-                },
-              ],
+              code: "ENGC63",
+              title: "PROCESSAMENTO DIGITAL DE SINAIS",
+              status: "inProgress",
+              source: "classes",
+              rawLine:
+                "ENGC63 - PROCESSAMENTO DIGITAL DE SINAIS - Horário: 35N12",
+              statusText: null,
+              scheduleCodes: ["35N12"],
             },
             {
-              id: "history",
-              label: "Consultar Histórico",
-              routeHint: "sigaa-mobile:history",
-              text: "2025.2 ENGC50 SISTEMAS MICROPROCESSADOS 10,0 0 APROVADO",
-              extractedHistory: [
-                {
-                  academicPeriod: "2025.2",
-                  componentName: "ENGC50 SISTEMAS MICROPROCESSADOS",
-                  gradeValue: "10,0",
-                  absences: "0",
-                  statusText: "APROVADO",
-                  rawLine:
-                    "2025.2 ENGC50 SISTEMAS MICROPROCESSADOS 10,0 0 APROVADO",
-                },
-              ],
-              historyDocument: {
-                currentUrl:
-                  "https://sigaa.ufba.br/sigaa/mobile/touch/gerarHistorico",
-                title: "Relatório de Notas",
-                transportKind: "pdf",
-                hasVisibleHistoryText: true,
-                hasPdfLikeMarker: true,
-                hasAttachmentLikeMarker: false,
-                textLength: 58,
-                sourceCandidates: [],
-                pdfCandidates: [],
-                attachmentCandidates: [],
-              },
+              code: "ENGC50",
+              title: "SISTEMAS MICROPROCESSADOS",
+              status: "completed",
+              source: "history",
+              rawLine:
+                "2025.2 ENGC50 SISTEMAS MICROPROCESSADOS 10,0 0 APROVADO",
+              statusText: "APROVADO",
+              scheduleCodes: [],
             },
           ],
+          scheduleBindings: [
+            {
+              componentCode: "ENGC63",
+              scheduleCode: "35N12",
+              source: "classes",
+            },
+          ],
+          historyEntries: [
+            {
+              academicPeriod: "2025.2",
+              componentCode: "ENGC50",
+              componentName: "ENGC50 SISTEMAS MICROPROCESSADOS",
+              normalizedTitle: "SISTEMAS MICROPROCESSADOS",
+              gradeValue: "10,0",
+              absences: "0",
+              statusText: "APROVADO",
+              rawLine:
+                "2025.2 ENGC50 SISTEMAS MICROPROCESSADOS 10,0 0 APROVADO",
+            },
+          ],
+          historyDocument: {
+            currentUrl:
+              "https://sigaa.ufba.br/sigaa/mobile/touch/gerarHistorico",
+            title: "Relatório de Notas",
+            transportKind: "pdf",
+            hasVisibleHistoryText: true,
+            hasPdfLikeMarker: true,
+            hasAttachmentLikeMarker: false,
+            textLength: 58,
+            sourceCandidates: [],
+            pdfCandidates: [],
+            attachmentCandidates: [],
+          },
         },
+        warnings: [],
       },
       timingProfileId: "Ufba2025",
       normalizeSchedules: async (scheduleCodes) =>

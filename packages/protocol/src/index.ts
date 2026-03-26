@@ -7,6 +7,7 @@ export const bridgeMessageKinds = [
   "GetCredentialState",
   "ClearEphemeralCredentials",
   "RawSigaaPayload",
+  "SigaaSyncSnapshot",
   "NormalizedSnapshot",
   "StoreEncryptedSnapshot",
   "WipeLocalVault",
@@ -95,6 +96,17 @@ export interface RawSigaaPayloadPayload {
   routeHint: string;
   htmlOrText: string;
   structuredCapture?: SigaaStructuredCapture | null;
+}
+
+export interface SigaaSyncSnapshotPayload {
+  syncSessionId: string;
+  source: "dom" | "download";
+  capturedAt: string;
+  routeHint: string;
+  retentionMode: "structured-minimized";
+  persistedRawInput: string;
+  structuredContext: ManualImportStructuredContext | null;
+  warnings: string[];
 }
 
 export interface SigaaPortalProfile {
@@ -434,6 +446,10 @@ export type RawSigaaPayloadMessage = BridgeEnvelope<
   "RawSigaaPayload",
   RawSigaaPayloadPayload
 >;
+export type SigaaSyncSnapshotMessage = BridgeEnvelope<
+  "SigaaSyncSnapshot",
+  SigaaSyncSnapshotPayload
+>;
 export type NormalizedSnapshotMessage = BridgeEnvelope<
   "NormalizedSnapshot",
   NormalizedSnapshotPayload
@@ -454,6 +470,7 @@ export type BridgeMessage =
   | GetCredentialStateMessage
   | ClearEphemeralCredentialsMessage
   | RawSigaaPayloadMessage
+  | SigaaSyncSnapshotMessage
   | NormalizedSnapshotMessage
   | StoreEncryptedSnapshotMessage
   | WipeLocalVaultMessage;
