@@ -26,8 +26,15 @@ pnpm package:extension
 - script de upload/publish via API: `scripts/publish-chrome-webstore.mjs`
 - texto base da listing: `apps/extension/store/chrome-listing.pt-BR.md`
 - icones da extensao em `apps/extension/assets/`
+- screenshots prontos para a loja em `apps/extension/store/screenshots/`
 - pagina publica de privacidade: `https://mentorzx.github.io/formae/#/privacidade`
 - pagina publica de suporte: `https://mentorzx.github.io/formae/#/suporte`
+
+As capturas de tela prontas seguem o formato exigido pela Chrome Web Store:
+
+- `1280x800`
+- PNG
+- sem canal alfa
 
 ## O que ainda e manual no primeiro publish
 
