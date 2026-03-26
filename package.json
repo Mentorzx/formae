@@ -15,6 +15,8 @@
     "format": "pnpm -r --if-present format && cargo fmt --all",
     "lint": "pnpm -r --if-present lint && cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings",
     "package:extension": "node scripts/package-extension.mjs",
+    "publish:chrome-webstore": "node scripts/publish-chrome-webstore.mjs",
+    "publish:firefox-amo": "node scripts/publish-firefox-amo.mjs",
     "prepare:wasm": "pnpm build:wasm && node scripts/sync-wasm.mjs",
     "smoke:extension": "node scripts/smoke-extension-runtime.mjs",
     "test": "pnpm -r --if-present test && cargo test --workspace"

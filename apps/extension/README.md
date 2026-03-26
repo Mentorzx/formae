@@ -58,6 +58,20 @@ node scripts/smoke-extension-runtime.mjs
 
 Esse smoke valida que popup, background e content script carregam a partir dos artefatos empacotados para Chrome e Firefox.
 
+## Publicacao em loja
+
+O repositório agora inclui os insumos minimos para publicacao:
+
+- metadata AMO: `store/amo-metadata.json`
+- texto base da Chrome Web Store: `store/chrome-listing.pt-BR.md`
+- checklist operacional: `store/store-readiness-checklist.md`
+- script Chrome Web Store API: `../../scripts/publish-chrome-webstore.mjs`
+- script AMO/web-ext: `../../scripts/publish-firefox-amo.mjs`
+
+Chrome, por politica da plataforma, ainda exige bootstrap manual do item no
+dashboard para preencher listing, privacidade e test instructions antes da
+primeira publicacao.
+
 ## Convenções
 
 - Credenciais do SIGAA nunca sao persistidas em disco.

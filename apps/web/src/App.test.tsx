@@ -36,6 +36,12 @@ describe("App", () => {
     expect(await screen.findByText(/35N12/)).toBeInTheDocument();
     expect(await screen.findByText(/18:30 a 20:20/i)).toBeInTheDocument();
     expect(
+      await screen.findAllByRole("link", { name: "Privacidade" }),
+    ).not.toHaveLength(0);
+    expect(
+      await screen.findAllByRole("link", { name: "Suporte" }),
+    ).not.toHaveLength(0);
+    expect(
       await screen.findByText(/Nenhuma projecao local foi salva ainda/i),
     ).toBeInTheDocument();
   });

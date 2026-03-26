@@ -69,3 +69,19 @@ paths so that CI can compare rebuilds byte-for-byte.
   touching extension packaging paths.
 - `release-extension.yml` reruns the same reproducibility and package-audit
   gates before publishing GitHub release assets for tags.
+- `publish-extension-stores.yml` is a manual workflow intended for store
+  publication once publisher secrets exist.
+
+## Store publication
+
+The repository now includes:
+
+- AMO metadata in `apps/extension/store/amo-metadata.json`
+- Chrome listing copy in `apps/extension/store/chrome-listing.pt-BR.md`
+- a readiness checklist in `apps/extension/store/store-readiness-checklist.md`
+- `scripts/publish-chrome-webstore.mjs` for Chrome Web Store API upload/publish
+- `scripts/publish-firefox-amo.mjs` for AMO signing/submission
+
+The Chrome path still requires a one-time manual bootstrap in the Developer
+Dashboard because the store listing and privacy fields must be completed before
+publishing a new item.

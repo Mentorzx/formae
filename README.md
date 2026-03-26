@@ -62,6 +62,9 @@ Hoje os artefatos publicados são:
 - `.zip` para Chrome/Chromium
 - `.xpi` para Firefox
 
+Quando a extensao estiver publicada em loja, este README deve trocar esse passo
+para o fluxo direto de Chrome Web Store e AMO.
+
 ### 3. Abra a extensão e salve as credenciais só em memória
 
 Na popup da extensão:
@@ -87,6 +90,27 @@ Hoje ainda faltam duas coisas para o fluxo ficar realmente popular e trivial:
 - reduzir ainda mais o atrito da instalação inicial
 
 Então o fluxo de uso já existe, mas ainda está em estágio de **preview avançado**, não de produto “clicou e usou” para qualquer pessoa.
+
+## Publicacao em lojas: estado atual
+
+O repositório agora já deixa pronta a parte operacional para publicacao:
+
+- pagina publica de privacidade: `https://mentorzx.github.io/formae/#/privacidade`
+- pagina publica de suporte: `https://mentorzx.github.io/formae/#/suporte`
+- metadata do AMO em `apps/extension/store/amo-metadata.json`
+- texto base da Chrome Web Store em `apps/extension/store/chrome-listing.pt-BR.md`
+- checklist de readiness em `apps/extension/store/store-readiness-checklist.md`
+- script de upload e publish para Chrome Web Store API
+- script de assinatura/submissao para AMO
+- workflow manual `Publish Extension Stores`
+
+O que ainda depende do dono da conta:
+
+- conta de publisher da Chrome Web Store
+- conta AMO
+- segredos de API
+- preencher listing e privacidade no dashboard do Chrome
+- revisao das lojas
 
 ## Como desenvolver localmente
 
@@ -171,6 +195,59 @@ pnpm dev:web
 Depois abra:
 
 - `http://localhost:4173/#/`
+
+## Como preparar publicacao da extensao
+
+Para maintainer, nao para usuario final.
+
+### Chrome Web Store
+
+1. Registrar conta de developer.
+2. Ativar verificacao em duas etapas na conta Google.
+3. Habilitar a Chrome Web Store API no Google Cloud.
+4. Criar OAuth consent screen e OAuth client.
+5. Gerar refresh token.
+6. Criar o item no dashboard e preencher listing + privacy.
+7. Configurar:
+
+```bash
+export CWS_CLIENT_ID=...
+export CWS_CLIENT_SECRET=...
+export CWS_REFRESH_TOKEN=...
+export CWS_PUBLISHER_ID=...
+export CWS_EXTENSION_ID=...
+```
+
+8. Rodar upload:
+
+```bash
+pnpm publish:chrome-webstore
+```
+
+9. Para submeter para review/publicacao:
+
+```bash
+pnpm publish:chrome-webstore -- --publish
+```
+
+### Firefox AMO
+
+1. Criar conta no AMO.
+2. Emitir JWT issuer + secret.
+3. Revisar `apps/extension/store/amo-metadata.json`.
+4. Configurar:
+
+```bash
+export AMO_JWT_ISSUER=...
+export AMO_JWT_SECRET=...
+export AMO_CHANNEL=listed
+```
+
+5. Rodar assinatura/submissao:
+
+```bash
+pnpm publish:firefox-amo
+```
 
 ## Como navegar no app hoje
 

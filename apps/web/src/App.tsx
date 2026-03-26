@@ -5,6 +5,8 @@ import { CatalogPage } from "./pages/CatalogPage";
 import { ImportPage } from "./pages/ImportPage";
 import { OverviewPage } from "./pages/OverviewPage";
 import { PlannerPage } from "./pages/PlannerPage";
+import { PrivacyPage } from "./pages/PrivacyPage";
+import { SupportPage } from "./pages/SupportPage";
 import { useThemePreference } from "./useThemePreference";
 
 function App() {
@@ -127,6 +129,8 @@ function App() {
               <NavLink to="/catalogo">Catalogo</NavLink>
               <NavLink to="/importacao">Importacao</NavLink>
               <NavLink to="/arquitetura">Arquitetura</NavLink>
+              <NavLink to="/privacidade">Privacidade</NavLink>
+              <NavLink to="/suporte">Suporte</NavLink>
             </nav>
 
             <section
@@ -151,13 +155,25 @@ function App() {
             <Route path="/catalogo" element={<CatalogPage />} />
             <Route path="/importacao" element={<ImportPage />} />
             <Route path="/arquitetura" element={<ArchitecturePage />} />
+            <Route path="/privacidade" element={<PrivacyPage />} />
+            <Route path="/suporte" element={<SupportPage />} />
           </Routes>
         </main>
 
         <footer className="site-footer">
           <span>PWA estatica publicada no GitHub Pages</span>
           <span>Slug tecnico: formae</span>
-          <span>Theme aware UI</span>
+          <div className="site-footer-links">
+            <NavLink to="/privacidade">Privacidade</NavLink>
+            <NavLink to="/suporte">Suporte</NavLink>
+            <a
+              href="https://github.com/Mentorzx/formae/releases/latest"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Releases
+            </a>
+          </div>
         </footer>
       </div>
     </HashRouter>

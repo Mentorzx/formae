@@ -1,0 +1,21 @@
+{
+  "categories": {
+    "firefox": ["productivity"]
+  },
+  "summary": {
+    "pt-BR": "Extensao local-first para sincronizar SIGAA no navegador e alimentar o planner academico do Formaê sem enviar credenciais para um backend proprio.",
+    "en-US": "Local-first extension that syncs SIGAA data in the browser and feeds the Formae academic planner without sending credentials to a dedicated backend."
+  },
+  "homepage": {
+    "pt-BR": "https://mentorzx.github.io/formae/#/",
+    "en-US": "https://mentorzx.github.io/formae/#/"
+  },
+  "support_url": {
+    "pt-BR": "https://mentorzx.github.io/formae/#/suporte",
+    "en-US": "https://mentorzx.github.io/formae/#/suporte"
+  },
+  "version": {
+    "license": "Apache-2.0"
+  },
+  "requires_payment": false
+}

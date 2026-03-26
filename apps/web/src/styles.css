@@ -628,6 +628,21 @@ a {
   color: var(--ink-soft);
 }
 
+.site-footer-links {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+}
+
+.site-footer-links a {
+  color: var(--ink-soft);
+}
+
+.site-footer-links a:hover,
+.site-footer-links a.active {
+  color: var(--ink);
+}
+
 .input-panel {
   display: grid;
   gap: 0.75rem;
@@ -713,6 +728,18 @@ a {
 
 .action-button-danger {
   background: #9c4121;
+}
+
+.inline-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.inline-link:hover {
+  color: var(--accent-warm);
 }
 
 .storage-summary {

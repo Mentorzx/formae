@@ -1,0 +1,129 @@
+name: Publish Extension Stores
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish_chrome:
+        description: "Publicar ou atualizar Chrome Web Store"
+        required: false
+        default: true
+        type: boolean
+      publish_firefox:
+        description: "Publicar ou atualizar Firefox AMO"
+        required: false
+        default: true
+        type: boolean
+      chrome_publish:
+        description: "Submeter para publish apos upload no Chrome"
+        required: false
+        default: false
+        type: boolean
+      firefox_channel:
+        description: "Canal AMO"
+        required: false
+        default: listed
+        type: choice
+        options:
+          - listed
+          - unlisted
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    outputs:
+      chrome_ready: ${{ steps.chrome_ready.outputs.value }}
+      firefox_ready: ${{ steps.firefox_ready.outputs.value }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22.19.0
+
+      - name: Verify extension package
+        run: node scripts/verify-extension-release.mjs
+
+      - name: Audit extension package
+        run: node scripts/audit-extension-package.mjs
+
+      - name: Package extension release
+        run: node scripts/package-extension.mjs
+
+      - name: Mark Chrome readiness
+        id: chrome_ready
+        run: |
+          if [ -n "${{ secrets.CWS_CLIENT_ID }}" ] && [ -n "${{ secrets.CWS_CLIENT_SECRET }}" ] && [ -n "${{ secrets.CWS_REFRESH_TOKEN }}" ] && [ -n "${{ secrets.CWS_PUBLISHER_ID }}" ] && [ -n "${{ secrets.CWS_EXTENSION_ID }}" ]; then
+            echo "value=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Mark Firefox readiness
+        id: firefox_ready
+        run: |
+          if [ -n "${{ secrets.AMO_JWT_ISSUER }}" ] && [ -n "${{ secrets.AMO_JWT_SECRET }}" ]; then
+            echo "value=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload packaged artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: formae-extension-store-package
+          path: dist/releases/*
+
+  publish-chrome:
+    needs: package
+    if: ${{ github.event.inputs.publish_chrome == 'true' && needs.package.outputs.chrome_ready == 'true' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22.19.0
+
+      - name: Publish Chrome Web Store
+        env:
+          CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+          CWS_PUBLISHER_ID: ${{ secrets.CWS_PUBLISHER_ID }}
+          CWS_EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
+        run: |
+          args=""
+          if [ "${{ github.event.inputs.chrome_publish }}" = "true" ]; then
+            args="$args --publish"
+          fi
+          node scripts/publish-chrome-webstore.mjs $args
+
+  publish-firefox:
+    needs: package
+    if: ${{ github.event.inputs.publish_firefox == 'true' && needs.package.outputs.firefox_ready == 'true' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22.19.0
+
+      - name: Publish Firefox AMO
+        env:
+          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+          AMO_CHANNEL: ${{ github.event.inputs.firefox_channel }}
+        run: node scripts/publish-firefox-amo.mjs
