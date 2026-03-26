@@ -12,6 +12,7 @@ import {
   principles,
   requestSyncExample,
   syncRunway,
+  shellSignalDeck,
 } from "../content";
 import {
   type LocalStudentSnapshotSource,
@@ -137,9 +138,9 @@ export function OverviewPage() {
   }, []);
   const curriculumResolution = overviewState.bundle
     ? resolveCurriculumSeed(
-        overviewState.bundle.manualImport.detectedComponentCodes,
-        overviewState.bundle.manualImport.preferredCurriculumSeedId ?? null,
-      )
+      overviewState.bundle.manualImport.detectedComponentCodes,
+      overviewState.bundle.manualImport.preferredCurriculumSeedId ?? null,
+    )
     : null;
   const overviewSourceLabel = formatBundleSource(overviewState.bundleSource);
   const overviewResolutionLabel = curriculumResolution
@@ -246,6 +247,27 @@ export function OverviewPage() {
 
   return (
     <div className="page-grid">
+      <header className="page-header" style={{ marginBottom: '3rem' }}>
+        <p className="site-header-kicker">PWA estática, sync local e uma fronteira de confiança legível</p>
+        <h1 style={{ fontSize: '2.5rem', marginTop: '0.5rem', marginBottom: '1rem', lineHeight: '1.1' }}>
+          Planejamento acadêmico local com sync honesto e progresso que não vira caixa-preta
+        </h1>
+        <p className="lede" style={{ maxWidth: '70ch', fontSize: '1.05rem', color: 'var(--ink-soft)' }}>
+          O Formaê nasce como uma releitura local-first: importação automática via extensão,
+          vault cifrado no navegador, catálogo público versionado e um planner que mostra
+          dependências, pendências e limites da leitura sem vender magia falsa.
+        </p>
+
+        <div className="shell-chip-row" style={{ marginTop: '2rem' }}>
+          {shellSignalDeck.map((item) => (
+            <span key={item.label} className="hero-chip">
+              <strong>{item.label}</strong>
+              <span>{item.value}</span>
+            </span>
+          ))}
+        </div>
+      </header>
+
       <section className="hero-card accent-panel overview-hero">
         <div className="hero-split">
           <div className="hero-copy-block">
@@ -533,16 +555,16 @@ export function OverviewPage() {
                     Confianca da grade:{" "}
                     {curriculumResolution
                       ? formatCurriculumConfidence(
-                          curriculumResolution.confidence,
-                        )
+                        curriculumResolution.confidence,
+                      )
                       : "nao avaliada"}
                   </li>
                   <li>
                     Selecao da grade:{" "}
                     {curriculumResolution
                       ? formatCurriculumSelectionMode(
-                          curriculumResolution.selectionMode,
-                        )
+                        curriculumResolution.selectionMode,
+                      )
                       : "nao avaliada"}
                   </li>
                   <li>
@@ -569,14 +591,14 @@ export function OverviewPage() {
                     Snapshot salvo em:{" "}
                     {formatLocalDateTime(
                       overviewState.bundle?.manualImport.savedAt ??
-                        overviewState.summary.derivedAt,
+                      overviewState.summary.derivedAt,
                     )}
                   </li>
                   <li>
                     Retencao local:{" "}
                     {formatRetentionMode(
                       overviewState.bundle?.manualImport.retentionMode ??
-                        "full-raw-text",
+                      "full-raw-text",
                     )}
                   </li>
                 </ul>
@@ -761,7 +783,7 @@ function OverviewSnapshotPanel({
           passkeyState={vaultPasskeyState}
           actionStatus={vaultPasskeyActionStatus}
           message={vaultPasskeyMessage}
-          onEnable={() => {}}
+          onEnable={() => { }}
           onUnlock={onUnlockVaultPasskey}
           onLock={onLockVaultSession}
           onDisable={onDisableVaultPasskey}

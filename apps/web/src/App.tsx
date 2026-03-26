@@ -1,5 +1,5 @@
 import { HashRouter, NavLink, Route, Routes } from "react-router-dom";
-import { protocolVersion, shellSignalDeck, syncRunway } from "./content";
+import { protocolVersion } from "./content";
 import { ArchitecturePage } from "./pages/ArchitecturePage";
 import { CatalogPage } from "./pages/CatalogPage";
 import { ImportPage } from "./pages/ImportPage";
@@ -17,164 +17,62 @@ function App() {
       <div className="app-shell">
         <div className="backdrop backdrop-one" />
         <div className="backdrop backdrop-two" />
-        <header className="site-header">
-          <div className="site-header-top">
-            <div className="brand-lockup">
-              <p className="eyebrow">Formaê</p>
-              <p className="brand-subtitle">
-                Assistente academico local para progresso, importacao e
-                planejamento
-              </p>
-            </div>
 
-            <div className="site-header-actions">
-              <span className="shell-badge">Protocol v{protocolVersion}</span>
+        <aside className="sidebar">
+          <div className="sidebar-header">
+            <div className="brand-lockup">
+              <span className="eyebrow" style={{ fontSize: "1.25rem", fontWeight: "700" }}>Formaê</span>
+            </div>
+          </div>
+
+          <nav className="sidebar-nav" aria-label="Navegação Secundária">
+            <NavLink to="/" end className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
+              Visão Geral
+            </NavLink>
+            <NavLink to="/planejador" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
+              Planejador
+            </NavLink>
+            <NavLink to="/catalogo" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
+              Catálogo
+            </NavLink>
+            <NavLink to="/importacao" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
+              Importação
+            </NavLink>
+          </nav>
+
+          <div className="sidebar-footer">
+            <nav className="sidebar-nav-small">
+              <NavLink to="/arquitetura">Arquitetura</NavLink>
+              <NavLink to="/privacidade">Privacidade</NavLink>
+              <NavLink to="/suporte">Suporte</NavLink>
+            </nav>
+            <div className="sidebar-actions">
+              <span className="shell-badge">Prot v{protocolVersion}</span>
               <button
                 type="button"
                 className="theme-toggle"
                 onClick={toggleTheme}
                 aria-pressed={theme === "dark"}
               >
-                {theme === "dark" ? "Modo claro" : "Modo escuro"}
+                {theme === "dark" ? "☀️" : "🌙"}
               </button>
             </div>
           </div>
+        </aside>
 
-          <div className="site-header-main">
-            <div className="site-header-copy">
-              <p className="site-header-kicker">
-                PWA estatica, sync local e uma fronteira de confianca legivel
-              </p>
-              <h1>
-                Planejamento academico local com sync honesto e progresso que
-                nao vira caixa-preta
-              </h1>
-              <p className="lede">
-                O Formaê nasce como uma releitura local-first: importacao
-                automatica via extensao, vault cifrado no navegador, catalogo
-                publico versionado e um planner que mostra dependencias,
-                pendencias e limites da leitura sem vender magia falsa.
-              </p>
-
-              <div className="shell-chip-row">
-                {shellSignalDeck.map((item) => (
-                  <span key={item.label} className="hero-chip">
-                    <strong>{item.label}</strong>
-                    <span>{item.value}</span>
-                  </span>
-                ))}
-              </div>
-
-              <div className="site-header-cta-row">
-                <a
-                  href="https://github.com/Mentorzx/formae/releases/latest"
-                  className="action-button"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Instalar extensao
-                </a>
-                <NavLink
-                  to="/importacao"
-                  className="action-button action-button-secondary"
-                >
-                  Abrir importacao
-                </NavLink>
-                <NavLink
-                  to="/planejador"
-                  className="action-button action-button-secondary"
-                >
-                  Explorar planner
-                </NavLink>
-              </div>
-            </div>
-
-            <aside
-              className="shell-hero-panel"
-              aria-label="Resumo da plataforma"
-            >
-              <p className="section-label">Resumo da plataforma</p>
-              <h2>Shell publico, ponte local e cofre cifrado</h2>
-              <p>
-                O fluxo privado roda no dispositivo do usuario. Em producao, a
-                PWA conversa com a extensao pelo bridge direto; o relay legado
-                fica so para depuracao local.
-              </p>
-              <div className="shell-status-list">
-                <div className="shell-status-row">
-                  <span className="status-pill status-pill-ready">Sync</span>
-                  <p>Extensao MV3 com sessoes efemeras e aprovacao curta.</p>
-                </div>
-                <div className="shell-status-row">
-                  <span className="status-pill status-pill-idle">Vault</span>
-                  <p>
-                    IndexedDB cifrado com modo PRF quando o navegador entrega.
-                  </p>
-                </div>
-                <div className="shell-status-row">
-                  <span className="status-pill status-pill-warning">Grade</span>
-                  <p>
-                    Planner local explica quando a leitura ainda depende de seed
-                    ou revisao manual.
-                  </p>
-                </div>
-              </div>
-            </aside>
+        <main className="main-content">
+          <div className="page-container">
+            <Routes>
+              <Route path="/" element={<OverviewPage />} />
+              <Route path="/planejador" element={<PlannerPage />} />
+              <Route path="/catalogo" element={<CatalogPage />} />
+              <Route path="/importacao" element={<ImportPage />} />
+              <Route path="/arquitetura" element={<ArchitecturePage />} />
+              <Route path="/privacidade" element={<PrivacyPage />} />
+              <Route path="/suporte" element={<SupportPage />} />
+            </Routes>
           </div>
-
-          <div className="site-chrome">
-            <nav className="site-nav" aria-label="Secoes principais">
-              <NavLink to="/">Visao Geral</NavLink>
-              <NavLink to="/planejador">Planejador</NavLink>
-              <NavLink to="/catalogo">Catalogo</NavLink>
-              <NavLink to="/importacao">Importacao</NavLink>
-              <NavLink to="/arquitetura">Arquitetura</NavLink>
-              <NavLink to="/privacidade">Privacidade</NavLink>
-              <NavLink to="/suporte">Suporte</NavLink>
-            </nav>
-
-            <section
-              className="shell-runway-grid shell-runway-grid-compact"
-              aria-label="Fluxo da experiencia"
-            >
-              {syncRunway.map((item) => (
-                <article key={item.step} className="shell-runway-card">
-                  <p className="shell-runway-step">{item.step}</p>
-                  <strong>{item.title}</strong>
-                  <p>{item.body}</p>
-                </article>
-              ))}
-            </section>
-          </div>
-        </header>
-
-        <main className="page-main">
-          <Routes>
-            <Route path="/" element={<OverviewPage />} />
-            <Route path="/planejador" element={<PlannerPage />} />
-            <Route path="/catalogo" element={<CatalogPage />} />
-            <Route path="/importacao" element={<ImportPage />} />
-            <Route path="/arquitetura" element={<ArchitecturePage />} />
-            <Route path="/privacidade" element={<PrivacyPage />} />
-            <Route path="/suporte" element={<SupportPage />} />
-          </Routes>
         </main>
-
-        <footer className="site-footer">
-          <span>PWA estatica publicada no GitHub Pages</span>
-          <span>Slug tecnico: formae</span>
-          <div className="site-footer-links">
-            <NavLink to="/privacidade">Privacidade</NavLink>
-            <NavLink to="/suporte">Suporte</NavLink>
-            <a
-              href="https://github.com/Mentorzx/formae/releases/latest"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Releases
-            </a>
-          </div>
-        </footer>
       </div>
     </HashRouter>
   );
